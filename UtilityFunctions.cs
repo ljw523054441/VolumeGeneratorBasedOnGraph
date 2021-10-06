@@ -33,6 +33,8 @@ namespace VolumeGeneratorBasedOnGraph
             }
         }
 
+        // public static void 
+
         //public static void DataTreeMerge_Int(ref DataTree<int> mainDataTree, DataTree<int> secondaryDataTree)
         //{
         //    if (mainDataTree.BranchCount == secondaryDataTree.BranchCount)
@@ -93,6 +95,13 @@ namespace VolumeGeneratorBasedOnGraph
             return lineList;
         }
 
+        /// <summary>
+        /// 将一个列表的点，由一个坐标系整体平移到另一个坐标系
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="location1"></param>
+        /// <param name="location2"></param>
+        /// <returns></returns>
         public static List<Point3d> Relocate(List<Point3d> p, Plane location1, Plane location2)
         {
             Point3d point3d = new Point3d(0.0, 0.0, 0.0);
