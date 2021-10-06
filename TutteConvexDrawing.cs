@@ -244,8 +244,20 @@ namespace VolumeGeneratorBasedOnGraph
                 }
 
                 List<Point3d> list25 = UtilityFunctions.Relocate(nodePointList, Plane.WorldXY, worldXY);
-                DA.SetDataList(0, list25);
-                DA.SetDataList(1,GMeshFaceBoundaries(list25,))
+                DA.SetDataList("New Graph Vertices", list25);
+                DA.SetDataList("ConvexFaceBorders", GMeshFaceBoundaries(list25, GraphEdgeList(graph, list25), worldXY));
+
+
+                for (int i = 0; i < nodePointList.Count; i++)
+                {
+                    list22.Add(nodePointList[i]);
+                }
+                DA.SetDataList("SubVertices", list22);
+                if (DA.GetDataList("NodeAttributes", list2))
+                {
+                    List<NodeAttribute> list26 = ;
+                    DA.SetDataList("SubAttributes", list26);
+                }
             }
 
         }
@@ -261,6 +273,17 @@ namespace VolumeGeneratorBasedOnGraph
                 sum += x[i];
             }
             return sum;
+        }
+
+        public List<NodeAttribute> SubAttributes(List<NodeAttribute> attributes, List<int> subIndices)
+        {
+            List<NodeAttribute> list = new List<NodeAttribute>();
+
+
+
+
+
+            return list;
         }
 
         public List<List<int>> SubGraph(List<List<int>> graph, List<int> indices)
@@ -454,9 +477,20 @@ namespace VolumeGeneratorBasedOnGraph
             return list2;
         }
 
-        public List<Line> GraphEdgeList(List<List<int>> G, List<Point3d> GV)
+        public List<Line> GraphEdgeList(List<List<int>> graph, List<Point3d> graphVertices)
         {
             List<Line> list = new List<Line>();
+
+            for (int i = 0; i < graph.Count; i++)
+            {
+                for (int j = 0; j < graph[i].Count; j++)
+                {
+                    Line item = new Line(graphVertices[i], graphVertices[graph[i][j]]);
+                    list.Add(item);
+                }
+            }
+
+            return list;
         }
 
         /// <summary>
