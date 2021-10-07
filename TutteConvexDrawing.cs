@@ -74,22 +74,10 @@ namespace VolumeGeneratorBasedOnGraph
 
                 // List<List<int>> list6 = new List<List<int>>();          // list6 -> graph
 
-                //foreach (GH_Path gh_Path in gh_Structure_graph.Paths)
-                //{
-                //    List<int> list7 = new List<int>();
-                //    foreach (object obj in gh_Structure_graph.get_Branch(gh_Path))
-                //    {
-                //        GH_Integer gH_Integer = 
-                //    }
-                //}
-
                 // // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
 
                 List<int> volumeNodeIndexList = new List<int>();                      // list8 -> volumeNodeIndexList
-                // int num = nodePoints.Count - 5;                               // num -> nodePoints.Count - NodeAttribute.BoundaryNodeCount
-                // int num3 = nodePointList.Count - 5;
-                // int num4 = 0;
 
                 for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
                 {
@@ -98,18 +86,12 @@ namespace VolumeGeneratorBasedOnGraph
 
                 // List<int> list9 = new List<int>();                                      // list9 ->
                 List<int> graphBranchCountList = new List<int>();                       // list10 -> graphBranchCountList
-                // int num7 = 0;
-                // int num8 = graph.DataCount - 1;
-                // int num9 = 0;
                 for (int i = 0; i < graph.BranchCount; i++)
                 {
                     graphBranchCountList.Add(graph.Branch(i).Count);
                 }
 
                 List<int> volumeNodeBranchCountList = new List<int>();                     // list11 -> volumeNodeBranchCountList
-                // int num11 = 0;
-                // int num12 = num;
-                // int num13 = 0;
                 for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
                 {
                     volumeNodeBranchCountList.Add(graphBranchCountList[volumeNodeIndexList[i]]);
@@ -117,77 +99,68 @@ namespace VolumeGeneratorBasedOnGraph
 
                 // List<List<int>> volumeNodeGraph = new List<List<int>>();         // list12 -> volumeNodeGraph
                 DataTree<int> volumeNodeGraph = new DataTree<int>();
-                // int num15 = 0;
-                // int num16 = num;
-                // num13 = num15;
                 for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
                 {
-                    // volumeNodeGraph.Add(new List<int>());
-                    // volumeNodeGraph[i].AddRange(graph.Branch(volumeNodeIndexList[i]));
-
                     volumeNodeGraph.EnsurePath(i);
                     volumeNodeGraph.Branch(i).AddRange(graph.Branch(volumeNodeIndexList[i]));
                 }
 
-
-
-
-
-
-
-                List<int> list13 = new List<int>();                     // list13 ->
-                int num18 = nodePoints.Count - 4;
-                int num19 = nodePoints.Count - 1;
-                int num20 = num18;
+                List<int> boundaryNodeIndexList = new List<int>();                     // list13 -> boundaryNodeIndexList
                 for (int i = nodePoints.Count - NodeAttribute.BoundaryNodeCount; i < nodePoints.Count; i++)
                 {
-                    list13.Add(i);
+                    // 让boundaryNodeIndexList中的元素都是设定好的负值，以便后面的元素匹配
+                    boundaryNodeIndexList.Add(i- NodeAttribute.BoundaryNodeCount);
                 }
 
-                List<int> list14 = new List<int>();                     // list14 ->
-                List<List<int>> list15 = new List<List<int>>();         // list15 ->
-                int num22 = volumeNodeGraph.Count - 1;
-                int num23 = 0;
-                int num24 = num22;
-                //num9 = num23;
-                for (int i = 0; i < volumeNodeGraph.Count; i++)
+                // List<int> list14 = new List<int>();                     // list14 ->
+                // List<List<int>> list15 = new List<List<int>>();         // list15 -> boundaryAdjacencyGraph
+                // boundaryAdjacencyGraph是每一支表示该支对应的点与哪些BoundaryNode相连
+                DataTree<int> boundaryAdjacencyGraph = new DataTree<int>();
+                for (int i = 0; i < volumeNodeGraph.BranchCount; i++)
                 {
-                    list15.Add(new List<int>());
-                    int num26 = 0;
-                    int num27 = volumeNodeGraph[i].Count - 1;
-                    for (int j = 0; j < volumeNodeGraph[j].Count; j++)
+                    boundaryAdjacencyGraph.EnsurePath(i);
+                    for (int j = 0; j < volumeNodeGraph.Branch(j).Count; j++)
                     {
-                        if (list13.Contains(volumeNodeGraph[i][j]))
+                        if (boundaryNodeIndexList.Contains(volumeNodeGraph.Branch(i)[j]))
                         {
-                            list15[i].Add(volumeNodeGraph[i][j]);
+                            boundaryAdjacencyGraph.Branch(i).Add(volumeNodeGraph.Branch(i)[j]);
                         }
                     }
                 }
 
-                List<List<double>> list16 = new List<List<double>>();   // list16 ->
-                List<List<double>> list17 = new List<List<double>>();   // list17 ->
+                //List<List<double>> list16 = new List<List<double>>();   // list16 -> boundaryAdjacencyGraphPointX
+                //List<List<double>> list17 = new List<List<double>>();   // list17 -> boundaryAdjacencyGraphPointY
+                DataTree<double> boundaryAdjacencyGraphPointX = new DataTree<double>();
+                DataTree<double> boundaryAdjacencyGraphPointY = new DataTree<double>();
 
-                int num29 = 0;
-                int num30 = num22;
+                // int num29 = 0;
+                // int num30 = num22;
                 // num9 = num29;
-                Point3d item;
-                for (int i = 0; i < volumeNodeGraph.Count; i++)
+                Point3d boundaryPoint;
+                for (int i = 0; i < volumeNodeGraph.BranchCount; i++)
                 {
-                    list16.Add(new List<double>());
-                    list17.Add(new List<double>());
-                    int num32 = 0;
-                    int num33 = list15[i].Count - 1;
-                    num13 = num32;
-                    for (int j = 0; j < volumeNodeGraph.Count; j++)
+                    //list16.Add(new List<double>());
+                    //list17.Add(new List<double>());
+                    boundaryAdjacencyGraphPointX.EnsurePath(i);
+                    boundaryAdjacencyGraphPointY.EnsurePath(i);
+
+                    for (int j = 0; j < boundaryAdjacencyGraph.Branch(i).Count; j++)
                     {
-                        List<double> list18 = list16[i];
-                        item = nodePoints[list15[i][j]];
-                        list18.Add(item.X);
-                        List<double> list19 = list17[i];
-                        item = nodePoints[list15[i][j]];
-                        list19.Add(item.Y);
+                        //List<double> list18 = list16[i];
+                        //item = nodePoints[boundaryAdjacencyGraph[i][j]];
+                        //list18.Add(item.X);
+                        //List<double> list19 = list17[i];
+                        //item = nodePoints[boundaryAdjacencyGraph[i][j]];
+                        //list19.Add(item.Y);
+
+                        boundaryPoint = nodePoints[boundaryAdjacencyGraph.Branch(i)[j]];
+                        boundaryAdjacencyGraphPointX.Add(boundaryPoint.X, boundaryAdjacencyGraphPointX.Path(i));
+                        boundaryAdjacencyGraphPointY.Add(boundaryPoint.Y, boundaryAdjacencyGraphPointY.Path(i));
                     }
                 }
+
+
+
 
                 List<double> list20 = new List<double>();
                 List<double> list21 = new List<double>();
@@ -198,10 +171,10 @@ namespace VolumeGeneratorBasedOnGraph
                 num13 = num35;
                 for (int i = 0; i < volumeNodeGraph.Count; i++)
                 {
-                    list20.Add(Sum(list16[i]));
-                    matrix[i, 0] = Sum(list16[i]);
-                    list21.Add(Sum(list17[i]));
-                    matrix2[i, 0] = Sum(list17[i]);
+                    list20.Add(Sum(boundaryAdjacencyGraphPointX[i]));
+                    matrix[i, 0] = Sum(boundaryAdjacencyGraphPointX[i]);
+                    list21.Add(Sum(boundaryAdjacencyGraphPointY[i]));
+                    matrix2[i, 0] = Sum(boundaryAdjacencyGraphPointY[i]);
                 }
 
                 DataTree<int> dataTree = new DataTree<int>();
@@ -242,8 +215,8 @@ namespace VolumeGeneratorBasedOnGraph
                 for (int i = 0; i < volumeNodeBranchCountList.Count; i++)
                 {
                     List<Point3d> list24 = list23;
-                    item = new Point3d(matrix5[i, 0], matrix6[i, 0], 0.0);
-                    list24.Add(item);
+                    boundaryPoint = new Point3d(matrix5[i, 0], matrix6[i, 0], 0.0);
+                    list24.Add(boundaryPoint);
                 }
 
                 int num47 = 0;
