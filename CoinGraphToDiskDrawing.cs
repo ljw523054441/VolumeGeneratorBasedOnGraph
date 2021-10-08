@@ -76,6 +76,8 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+
             pManager.AddPlaneParameter("Plane", "P", "A plane for placing the disk-graph drawing", GH_ParamAccess.item, Plane.WorldXY);
             pManager.AddIntegerParameter("ConnectivityArributeTree", "ConnectivityTree", "体量连接关系树", GH_ParamAccess.tree);
             pManager.AddIntegerParameter("BoundaryAdjacencyTree", "BoundaryAdjacencyTree", "体量与边界的邻接关系树", GH_ParamAccess.tree);
@@ -84,8 +86,8 @@ namespace VolumeGeneratorBasedOnGraph
             pManager.AddGenericParameter("VolumeNodeAttributes", "VolumeNodeAttributes", "A list of lists containing name, area and color attributes of the disks", GH_ParamAccess.list);
             pManager.AddGenericParameter("BoundaryNodeAttributes", "BoundaryAttributes", "边界节点所包含的属性", GH_ParamAccess.list);
             pManager.AddIntegerParameter("Thickness", "Th", "Thickness of graph links in the diagram", GH_ParamAccess.item, 1);
-            pManager[0].Optional = true;
-            pManager[7].Optional = true;
+            pManager[1].Optional = true;
+            pManager[8].Optional = true;
         }
 
         /// <summary>
@@ -101,6 +103,12 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            // 全局参数传递
+            GlobalParameter globalParameter = new GlobalParameter();
+            DA.GetData("GlobalParameter", ref globalParameter);
+            int volumeNodeCount = globalParameter.VolumeNodeCount;
+            int boundaryNodeCount = globalParameter.BoundaryNodeCount;
+
             Plane location = default(Plane);
 
             GH_Structure<GH_Integer> gh_Structure_ConnectivityGraph = null;                     // gh_Structure -> gh_Structure_ConnectivityGraph
@@ -160,7 +168,7 @@ namespace VolumeGeneratorBasedOnGraph
                 // 对Connectivity中的Edge进行连线
                 connectivityEdgeList = UtilityFunctions.ConnectivityGraphEdgeToLine(connectivityTree, volumeNodeListRelocated);
                 // 对adjacency中的Edge进行连线
-                adjacencyEdgeList = UtilityFunctions.AdjacencyGraphEdgeToLine(adjacencyTree, volumeNodeListRelocated, boundaryNodeListRelocated);
+                adjacencyEdgeList = UtilityFunctions.AdjacencyGraphEdgeToLine(adjacencyTree, volumeNodeListRelocated, boundaryNodeListRelocated, globalParameter);
 
 
                 List<double> volumeNodeRadiusListForLabelSize = new List<double>();                                       // list11 -> nodeRadiusList
@@ -176,7 +184,7 @@ namespace VolumeGeneratorBasedOnGraph
                 {
                     for (int j = 0; j < adjacencyTree.Branch(j).Count; j++)
                     {
-                        boundaryNodeRadiusListForLabelSize.Add(Math.Sqrt(0.2 * boundaryAreaList[adjacencyTree.Branch(j)[j] + NodeAttribute.BoundaryNodeCount] / Math.PI));
+                        boundaryNodeRadiusListForLabelSize.Add(Math.Sqrt(0.2 * boundaryAreaList[adjacencyTree.Branch(j)[j] + globalParameter.BoundaryNodeCount] / Math.PI));
                     }
                 }
 

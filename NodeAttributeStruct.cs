@@ -8,9 +8,9 @@ namespace VolumeGeneratorBasedOnGraph
     public  struct NodeAttribute
     {
         // 包括NEWS点的boundaryNodeCount
-        public static int BoundaryNodeCount = 4;
+        //public static int BoundaryNodeCount = 4;
 
-        public static int VolumeNodeCount;
+        //public static int VolumeNodeCount;
         
         public string NodeLabel;
         public double NodeArea;

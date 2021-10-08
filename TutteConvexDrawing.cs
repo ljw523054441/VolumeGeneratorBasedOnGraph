@@ -29,11 +29,13 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+
             pManager.AddPlaneParameter("BasePlane", "BasePlane", "A plane on which you want to get the Tutte convex drawing", GH_ParamAccess.item, Plane.WorldXY);
             pManager.AddIntegerParameter("Graph", "Graph", "A graph describing which node is connected to which other nodes", GH_ParamAccess.tree);
             pManager.AddPointParameter("NodePoints", "Vertices", "用抽象点（point）表示的图结构节点（node）", GH_ParamAccess.list);
             pManager.AddGenericParameter("NodeAttributes", "Attributes", "图结构中节点所包含的属性", GH_ParamAccess.list);
-            pManager[3].Optional = true;
+            pManager[4].Optional = true;
         }
 
         /// <summary>
@@ -54,6 +56,13 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            // 全局参数传递
+            GlobalParameter globalParameter = new GlobalParameter();
+            DA.GetData("GlobalParameter", ref globalParameter);
+            int volumeNodeCount = globalParameter.VolumeNodeCount;
+            int boundaryNodeCount = globalParameter.BoundaryNodeCount;
+
+
             GH_Structure<GH_Integer> gh_Structure_graph = null;
             DataTree<int> graph = new DataTree<int>();
 
@@ -79,7 +88,7 @@ namespace VolumeGeneratorBasedOnGraph
 
                 List<int> volumeNodeIndexList = new List<int>();                      // list8 -> volumeNodeIndexList
 
-                for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
+                for (int i = 0; i < nodePoints.Count - boundaryNodeCount; i++)
                 {
                     volumeNodeIndexList.Add(i);
                 }
@@ -93,14 +102,14 @@ namespace VolumeGeneratorBasedOnGraph
 
                 // 每个volume点，其连接的数量，即该节点的度
                 List<int> volumeNodeBranchCountList = new List<int>();                     // list11 -> volumeNodeBranchCountList
-                for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
+                for (int i = 0; i < nodePoints.Count - boundaryNodeCount; i++)
                 {
                     volumeNodeBranchCountList.Add(graphBranchCountList[volumeNodeIndexList[i]]);
                 }
 
                 // List<List<int>> volumeNodeGraph = new List<List<int>>();         // list12 -> volumeNodeGraph
                 DataTree<int> volumeNodeGraph = new DataTree<int>();
-                for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
+                for (int i = 0; i < nodePoints.Count - boundaryNodeCount; i++)
                 {
                     volumeNodeGraph.EnsurePath(i);
                     volumeNodeGraph.Branch(i).AddRange(graph.Branch(volumeNodeIndexList[i]));
@@ -115,10 +124,10 @@ namespace VolumeGeneratorBasedOnGraph
                 //    boundaryNodeIndexList.Add(i - 2 * NodeAttribute.BoundaryNodeCount);
                 //}
 
-                for (int i = 0; i < NodeAttribute.BoundaryNodeCount; i++)
+                for (int i = 0; i < boundaryNodeCount; i++)
                 {
                     // 让boundaryNodeIndexList中的元素都是设定好的负值，以便后面的元素匹配
-                    boundaryNodeIndexList.Add(i - NodeAttribute.BoundaryNodeCount);
+                    boundaryNodeIndexList.Add(i - boundaryNodeCount);
                 }
 
                 // List<int> list14 = new List<int>();                     // list14 ->
@@ -151,7 +160,7 @@ namespace VolumeGeneratorBasedOnGraph
 
                     for (int j = 0; j < volumeAdjacencyBoundary.Branch(i).Count; j++)
                     {
-                        boundaryPoint = nodePoints[volumeAdjacencyBoundary.Branch(i)[j] + NodeAttribute.BoundaryNodeCount + NodeAttribute.VolumeNodeCount];
+                        boundaryPoint = nodePoints[volumeAdjacencyBoundary.Branch(i)[j] + boundaryNodeCount + volumeNodeCount];
                         boundaryAdjacencyGraphPointX.Add(boundaryPoint.X, boundaryAdjacencyGraphPointX.Path(i));
                         boundaryAdjacencyGraphPointY.Add(boundaryPoint.Y, boundaryAdjacencyGraphPointY.Path(i));
                     }
@@ -174,14 +183,14 @@ namespace VolumeGeneratorBasedOnGraph
                 // volumeAdjacencyVolume是每一支表示该支对应的点与哪些volumeNode相连
                 DataTree<int> volumeConnectivityVolume = new DataTree<int>();            // dataTree -> volumeConnectivityVolume
 
-                for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
+                for (int i = 0; i < nodePoints.Count - boundaryNodeCount; i++)
                 {
                     volumeConnectivityVolume.EnsurePath(i);
 
-                    for (int j = 0; j < nodePoints.Count - NodeAttribute.BoundaryNodeCount; j++)
+                    for (int j = 0; j < nodePoints.Count - boundaryNodeCount; j++)
                     {
                         // 从子矩阵中找到1（表示有连接，0表示没有连接）
-                        if (SubAdjacencyMatrix(GraphToAdjacencyMatrix(graph), volumeNodeIndexList).Branch(i)[j] == 1)
+                        if (SubAdjacencyMatrix(GraphToAdjacencyMatrix(graph, globalParameter), volumeNodeIndexList).Branch(i)[j] == 1)
                         {
                             volumeConnectivityVolume.Branch(i).Add(j);
                         }
@@ -193,7 +202,7 @@ namespace VolumeGeneratorBasedOnGraph
                 // SubGraph输出
                 DA.SetDataTree(2, volumeConnectivityVolume);
 
-                DataTree<int> harmonicDataTree = HarmonicMatrix(SubAdjacencyMatrix(GraphToAdjacencyMatrix(graph), volumeNodeIndexList), volumeNodeBranchCountList);
+                DataTree<int> harmonicDataTree = HarmonicMatrix(SubAdjacencyMatrix(GraphToAdjacencyMatrix(graph, globalParameter), volumeNodeIndexList), volumeNodeBranchCountList);
 
 
                 // matrix3 -> harmonicMatrix
@@ -220,7 +229,7 @@ namespace VolumeGeneratorBasedOnGraph
 
                 List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
                 DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
-                DA.SetDataList("ConvexFaceBorders", GMeshFaceBoundaries(newNodePointsRelocated, GraphEdgeList(graph, newNodePointsRelocated), worldXY));
+                DA.SetDataList("ConvexFaceBorders", GMeshFaceBoundaries(newNodePointsRelocated, GraphEdgeList(graph, newNodePointsRelocated, globalParameter), worldXY));
 
 
                 for (int i = 0; i < nodePoints.Count; i++)
@@ -308,7 +317,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         /// <param name="graph"></param>
         /// <returns></returns>
-        public DataTree<int> GraphToAdjacencyMatrix(DataTree<int> graph)
+        public DataTree<int> GraphToAdjacencyMatrix(DataTree<int> graph, GlobalParameter globalParameter)
         {
             // List<List<int>> list = new List<List<int>>();
 
@@ -329,7 +338,7 @@ namespace VolumeGeneratorBasedOnGraph
                 for (int j = 0; j < graph.BranchCount; j++)
                 {
                     // connectivity连接关系时
-                    if (j < NodeAttribute.VolumeNodeCount)
+                    if (j < globalParameter.VolumeNodeCount)
                     {
                         if (graph.Branch(i).Contains(j))
                         {
@@ -345,7 +354,7 @@ namespace VolumeGeneratorBasedOnGraph
                     // adjacency连接关系时
                     else
                     {
-                        if (graph.Branch(i).Contains(j - NodeAttribute.VolumeNodeCount - NodeAttribute.BoundaryNodeCount))
+                        if (graph.Branch(i).Contains(j - globalParameter.VolumeNodeCount - globalParameter.BoundaryNodeCount))
                         {
                             //list[i].Add(1);
                             dataTree.Branch(i).Add(1);
@@ -471,7 +480,7 @@ namespace VolumeGeneratorBasedOnGraph
             return list2;
         }
 
-        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices)
+        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices, GlobalParameter globalParameter)
         {
             List<Line> list = new List<Line>();
 
@@ -486,7 +495,7 @@ namespace VolumeGeneratorBasedOnGraph
                     }
                     else
                     {
-                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j] + NodeAttribute.BoundaryNodeCount + NodeAttribute.VolumeNodeCount]);
+                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j] + globalParameter.BoundaryNodeCount + globalParameter.VolumeNodeCount]);
                         list.Add(item);
                     }
                     

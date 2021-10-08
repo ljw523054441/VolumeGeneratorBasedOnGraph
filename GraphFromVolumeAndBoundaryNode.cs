@@ -41,6 +41,8 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+            
             pManager.AddPointParameter("VolumeNodePoints", "VolumeNodePoints", "能够代表volumeNode节点的抽象点（point）", GH_ParamAccess.list);
             pManager.AddPointParameter("BoundaryNodePointsExceptNEWS", "BoundaryNodePointsExceptNEWS", "能够代表除了NEWS点外的其他BoundaryNode节点的抽象点", GH_ParamAccess.list);
             pManager.AddIntegerParameter("VolumeConnectivityTree", "ConnectivityTree", "体量连接关系树", GH_ParamAccess.tree);
@@ -48,10 +50,11 @@ namespace VolumeGeneratorBasedOnGraph
             pManager.AddGenericParameter("VolumeLabelList", "LabelList", "体量标签列表", GH_ParamAccess.list);
             pManager.AddGenericParameter("VolumeAttributeList", "AttributeList", "体量属性列表", GH_ParamAccess.list);
             pManager.AddGenericParameter("BoundaryLabelListExceptNEWS", "BoundaryLabelList", "除了NEWS外的其他BoundaryNode的标签列表", GH_ParamAccess.list);
+
             // pManager.AddGenericParameter("BoundaryAttributeListExceptNEWS", "BoundaryAttributeList", "除了NEWS外的其他BoundaryNode的属性列表", GH_ParamAccess.list);
-            pManager[1].Optional = true;
-            pManager[5].Optional = true;
+            pManager[2].Optional = true;
             pManager[6].Optional = true;
+            pManager[7].Optional = true;
         }
 
         /// <summary>
@@ -84,7 +87,13 @@ namespace VolumeGeneratorBasedOnGraph
             NEWS_Surfaces.Clear();
             NEWS_Tags.Clear();
             NEWS_Location.Clear();
-            
+
+            // 全局参数传递
+            GlobalParameter globalParameter = new GlobalParameter();
+            DA.GetData("GlobalParameter", ref globalParameter);
+            int volumeNodeCount = globalParameter.VolumeNodeCount;
+            int boundaryNodeCount = globalParameter.BoundaryNodeCount;
+
             List<Point3d> volumeNodeList = new List<Point3d>();                                   // list -> volumeNodeList
             List<Point3d> boundaryNodeListExceptNEWS = new List<Point3d>();
             //List<Line> allEdgesList = new List<Line>();                                     // list2 -> allEdgesList  allLineList uniqueLineList
@@ -241,11 +250,11 @@ namespace VolumeGeneratorBasedOnGraph
                     {
                         for (int j = 0; j < boundaryAdjacencyTree.Branch(i).Count; j++)
                         {
-                            if (boundaryAdjacencyTree.Branch(i)[j] + NodeAttribute.BoundaryNodeCount < 0)
+                            if (boundaryAdjacencyTree.Branch(i)[j] + boundaryNodeCount < 0)
                             {
                                 continue;
                             }
-                            graph.Add(i, graph.Path(volumeConnectivityTree.BranchCount + (boundaryAdjacencyTree.Branch(i)[j] + NodeAttribute.BoundaryNodeCount)));
+                            graph.Add(i, graph.Path(volumeConnectivityTree.BranchCount + (boundaryAdjacencyTree.Branch(i)[j] + boundaryNodeCount)));
                         }
                     }
 
@@ -272,19 +281,19 @@ namespace VolumeGeneratorBasedOnGraph
                     {
                         if (i == 0)
                         {
-                            graph.Add(indexList[indexList.Count - 1] - NodeAttribute.BoundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                            graph.Add(indexList[i + 1] - NodeAttribute.BoundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
+                            graph.Add(indexList[indexList.Count - 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
+                            graph.Add(indexList[i + 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
                             continue;
                         }
                         if (i == indexList.Count - 1)
                         {
-                            graph.Add(indexList[i - 1] - NodeAttribute.BoundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                            graph.Add(indexList[0] - NodeAttribute.BoundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
+                            graph.Add(indexList[i - 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
+                            graph.Add(indexList[0] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
                             continue;
                         }
 
-                        graph.Add(indexList[i - 1] - NodeAttribute.BoundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                        graph.Add(indexList[i + 1] - NodeAttribute.BoundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
+                        graph.Add(indexList[i - 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
+                        graph.Add(indexList[i + 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
                     }
 
                     //List<int> indexList = new List<int>();

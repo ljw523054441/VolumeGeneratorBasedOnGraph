@@ -75,7 +75,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="volumeNodeList">volume顶点列表</param>
         /// <param name="boundaryNodeList">boundary顶点列表</param>
         /// <returns>可以显示的Line线段</returns>
-        public static List<Line> AdjacencyGraphEdgeToLine(DataTree<int> adjacencyGraphTree, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList)
+        public static List<Line> AdjacencyGraphEdgeToLine(DataTree<int> adjacencyGraphTree, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, GlobalParameter globalParameter)
         {
             List<Line> lineList = new List<Line>();
 
@@ -83,11 +83,11 @@ namespace VolumeGeneratorBasedOnGraph
             {
                 for (int j = 0; j < adjacencyGraphTree.Branch(i).Count; j++)
                 {
-                    if (adjacencyGraphTree.Branch(i)[j] == -1 - NodeAttribute.BoundaryNodeCount)
+                    if (adjacencyGraphTree.Branch(i)[j] == -1 - globalParameter.BoundaryNodeCount)
                     {
                         continue;
                     }
-                    Line line = new Line(volumeNodeList[i], boundaryNodeList[adjacencyGraphTree.Branch(i)[j] + NodeAttribute.BoundaryNodeCount]);
+                    Line line = new Line(volumeNodeList[i], boundaryNodeList[adjacencyGraphTree.Branch(i)[j] + globalParameter.BoundaryNodeCount]);
                     lineList.Add(line);
                 }
             }

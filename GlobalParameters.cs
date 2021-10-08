@@ -5,12 +5,12 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph
 {
-    public class Globals : GH_Component
+    public class GlobalParameters : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the Globals class.
         /// </summary>
-        public Globals()
+        public GlobalParameters()
           : base("Globals", "SetGlobalVaribles",
               "Set global varibles",
               "VolumeGeneratorBasedOnGraph", "CSV Import")
@@ -31,6 +31,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddGenericParameter("GlobalParameter", "", "", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -39,6 +40,15 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            List<Point3d> volumeNodes = new List<Point3d>();
+            List<Point3d> additionalBoundaryNodes = new List<Point3d>();
+
+            if (DA.GetDataList<Point3d>("VolumeNodePoints", volumeNodes) & DA.GetDataList<Point3d>("AdditionalBoundaryNodePoints", additionalBoundaryNodes))
+            {
+                GlobalParameter globalParameter = new GlobalParameter(volumeNodes.Count, additionalBoundaryNodes.Count + 4);
+                
+                DA.SetData("GlobalParameter", globalParameter);
+            }
         }
 
         /// <summary>

@@ -29,6 +29,8 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+
             pManager.AddIntegerParameter("ConnectivityGraph", "ConnectivityGraph", "体量连接关系", GH_ParamAccess.tree);
             pManager.AddIntegerParameter("BoundaryAdjacencyGraph", "AdjacencyGraph", "体量与边界的邻接关系", GH_ParamAccess.tree);
             pManager.AddPointParameter("VolumeNode", "VolumeNode", "用抽象点（point）表示的图结构节点（node）", GH_ParamAccess.list);
@@ -47,7 +49,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddPointParameter("NewVolumeNode", "NewVolumeNode", "A set of new vertices on which a neat coin/kissing disk drawing can be drawn", GH_ParamAccess.list);
+            pManager.AddPointParameter("NeswVolumeNode", "NewVolumeNode", "A set of new vertices on which a neat coin/kissing disk drawing can be drawn", GH_ParamAccess.list);
             pManager.AddIntegerParameter("IterationCount", "IterationCount", "How many iterations (recusrions) have happend?", GH_ParamAccess.item);
         }
 
@@ -57,6 +59,13 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            // 全局参数传递
+            GlobalParameter globalParameter = new GlobalParameter();
+            DA.GetData("GlobalParameter", ref globalParameter);
+            int volumeNodeCount = globalParameter.VolumeNodeCount;
+            int boundaryNodeCount = globalParameter.BoundaryNodeCount;
+
+
             GH_Structure<GH_Integer> gh_Structure_ConnectivityGraph = null;                         // gh_Structure -> gh_Structure_ConnectivityGraph
             GH_Structure<GH_Integer> gh_Structure_AdjacencyGraph = null;                            // 
             DataTree<int> connectivityTree = new DataTree<int>();
@@ -117,7 +126,7 @@ namespace VolumeGeneratorBasedOnGraph
                     }
                     DA.SetData("IterationCount", currentIteration);
 
-                    attrationForce = AttractionForce(connectivityTree, volumeNodeList, boundaryNodeList, volumeNodeAttributes, boundaryNodeAttributes, st_Att);
+                    attrationForce = AttractionForce(connectivityTree, volumeNodeList, boundaryNodeList, volumeNodeAttributes, boundaryNodeAttributes, st_Att, globalParameter);
                     repulsionForce = RepulsionForce(connectivityTree, volumeNodeList, boundaryNodeList, volumeNodeAttributes, boundaryNodeAttributes, st_Rep);
 
                     Result_Force(
@@ -198,7 +207,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="boundaryNodeAttributes">代表边界NEWS的点的属性</param>
         /// <param name="st_Att">吸引力强度</param>
         /// <returns>返回每个点（树形数据的一支branch）的volume点对它的吸引力，以及NEWS点对它的吸引力，两者加起来（共有mergeGraph.Branch[i].Count个）</returns>
-        public DataTree<Vector3d> AttractionForce(DataTree<int> mergedGraph, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, List<NodeAttribute> volumeNodeAttributes, List<NodeAttribute> boundaryNodeAttributes, double st_Att)
+        public DataTree<Vector3d> AttractionForce(DataTree<int> mergedGraph, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, List<NodeAttribute> volumeNodeAttributes, List<NodeAttribute> boundaryNodeAttributes, double st_Att, GlobalParameter globalParameter)
         {
             if (mergedGraph.DataCount != 0 & volumeNodeList.Count != 0 & volumeNodeAttributes.Count != 0 & st_Att != 0.0)
             {
@@ -229,7 +238,7 @@ namespace VolumeGeneratorBasedOnGraph
                         if (branchItems[j] < 0)
                         {
                             // 对于adjacent连接关系为空值时（-1 - 4 = -5），其吸引力是0
-                            if (branchItems[j] == -1 - NodeAttribute.BoundaryNodeCount)
+                            if (branchItems[j] == -1 - globalParameter.BoundaryNodeCount)
                             {
                                 attractionForce.Add(new Vector3d(0.0, 0.0, 0.0), mergedGraph.Paths[i]);
                             }
@@ -237,8 +246,8 @@ namespace VolumeGeneratorBasedOnGraph
                             else
                             {
                                 // 连线，算距离
-                                Line line = new Line(volumeNodeList[i], boundaryNodeList[branchItems[j]+ NodeAttribute.BoundaryNodeCount]);
-                                double distance = line.Length - (volumeNodeCoinRadius[i] + boundaryNodeCoinRadius[branchItems[j] + NodeAttribute.BoundaryNodeCount]);
+                                Line line = new Line(volumeNodeList[i], boundaryNodeList[branchItems[j]+ globalParameter.BoundaryNodeCount]);
+                                double distance = line.Length - (volumeNodeCoinRadius[i] + boundaryNodeCoinRadius[branchItems[j] + globalParameter.BoundaryNodeCount]);
                                 // 如果相离（>）时，那么在吸引力的树形数据中，这个点的这一支上，添加一个NEWS点对于这个点的Vector3d
                                 if (distance > 0)
                                 {

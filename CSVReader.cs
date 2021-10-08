@@ -24,8 +24,10 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
+            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+
             pManager.AddGenericParameter("CSVFilePath", "Path", "CSV文件的路径", GH_ParamAccess.item);
-            pManager.AddIntegerParameter("NumberOfCustomBoundaryNode", "Number", "自定义的边界邻接点的数量", GH_ParamAccess.item, 0);
+            // pManager.AddIntegerParameter("NumberOfCustomBoundaryNode", "Number", "自定义的边界邻接点的数量", GH_ParamAccess.item, 0);
         }
 
         /// <summary>
@@ -45,12 +47,18 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            // 全局参数传递
+            GlobalParameter globalParameter = new GlobalParameter();
+            DA.GetData("GlobalParameter", ref globalParameter);
+            int volumeNodeCount = globalParameter.VolumeNodeCount;
+            int boundaryNodeCount = globalParameter.BoundaryNodeCount;
+
             // Receive input 接收输入
             string csvPath = null;
             DA.GetData("CSVFilePath", ref csvPath);
 
-            int number = 0;
-            DA.GetData("NumberOfCustomBoundaryNode", ref number);
+            // int number = 0;
+            // DA.GetData("NumberOfCustomBoundaryNode", ref number);
 
             // Initialize variables 初始化变量
             List<string> nodeLabelList = new List<string>();
@@ -105,18 +113,18 @@ namespace VolumeGeneratorBasedOnGraph
 
                 // 边界邻接点的数量，先设置成4，可以继续增加，比如8
                 // NodeAttribute.NEWSCount
-                NodeAttribute.BoundaryNodeCount = 4 + number;
-                NodeAttribute.VolumeNodeCount = csvLines.Length - 1;
+                // NodeAttribute.BoundaryNodeCount = 4 + number;
+                // NodeAttribute.VolumeNodeCount = csvLines.Length - 1;
 
                 string[] adjacency = rowData[3].Split('-');
                 for (int j = 0; j < adjacency.Length; j++)
                 {
                     if (adjacency[j] == "")
                     {
-                        volumeBoundaryAdjacencyDataTree.Add(-1 - NodeAttribute.BoundaryNodeCount, path);
+                        volumeBoundaryAdjacencyDataTree.Add(-1 - boundaryNodeCount, path);
                         continue;
                     }
-                    else if (Convert.ToInt32(adjacency[j]) >= NodeAttribute.BoundaryNodeCount)
+                    else if (Convert.ToInt32(adjacency[j]) >= boundaryNodeCount)
                     {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "请检查adjacency在csv文件中的输入。");
                     }
@@ -142,7 +150,7 @@ namespace VolumeGeneratorBasedOnGraph
                     //}
                     else
                     {
-                        volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]) - NodeAttribute.BoundaryNodeCount, path);
+                        volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]) - boundaryNodeCount, path);
                     }
                     // volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
                 }
