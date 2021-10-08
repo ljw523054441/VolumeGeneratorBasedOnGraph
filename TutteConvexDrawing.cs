@@ -91,6 +91,7 @@ namespace VolumeGeneratorBasedOnGraph
                     graphBranchCountList.Add(graph.Branch(i).Count);
                 }
 
+                // 每个volume点，其连接的数量，即该节点的度
                 List<int> volumeNodeBranchCountList = new List<int>();                     // list11 -> volumeNodeBranchCountList
                 for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
                 {
@@ -105,6 +106,8 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeNodeGraph.Branch(i).AddRange(graph.Branch(volumeNodeIndexList[i]));
                 }
 
+                // boundaryNodeIndexList :  NEWSAB  -6,-5,-4,-3,-2,-1
+                //                          NEWS    -4,-3,-2,-1
                 List<int> boundaryNodeIndexList = new List<int>();                     // list13 -> boundaryNodeIndexList
                 //for (int i = nodePoints.Count - NodeAttribute.BoundaryNodeCount; i < nodePoints.Count; i++)
                 //{
@@ -190,11 +193,13 @@ namespace VolumeGeneratorBasedOnGraph
                 // SubGraph输出
                 DA.SetDataTree(2, volumeConnectivityVolume);
 
+                DataTree<int> harmonicDataTree = HarmonicMatrix(SubAdjacencyMatrix(GraphToAdjacencyMatrix(graph), volumeNodeIndexList), volumeNodeBranchCountList);
+
 
                 // matrix3 -> harmonicMatrix
-                Matrix harmonicMatrix = ToGHMatrix(HarmonicMatrix(SubAdjacencyMatrix(GraphToAdjacencyMatrix(graph), volumeNodeIndexList), volumeNodeBranchCountList));
-                harmonicMatrix.Invert(0.0);
-                Matrix inverseHarmonicMatrix = harmonicMatrix;                          // matrix4 -> inverseHarmonicMatrix
+                Matrix volumeNodeHarmonicMatrix = ToGHMatrix(harmonicDataTree);
+                volumeNodeHarmonicMatrix.Invert(0.0);
+                Matrix inverseHarmonicMatrix = volumeNodeHarmonicMatrix;                          // matrix4 -> inverseHarmonicMatrix
                 Matrix matrix5 = inverseHarmonicMatrix * MatrixXSum;                    // matrix5 ->
                 Matrix matrix6 = inverseHarmonicMatrix * MatrixYSum;                    // matrix6 ->
                 List<Point3d> newBoundaryPoints = new List<Point3d>();                             // list23 -> newBoundaryPoints

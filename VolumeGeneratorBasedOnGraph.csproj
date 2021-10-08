@@ -59,6 +59,7 @@
     <Compile Include="CoinGraph.cs" />
     <Compile Include="CoinGraphToDiskDrawing.cs" />
     <Compile Include="CSVReader.cs" />
+    <Compile Include="Globals.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
     <Compile Include="NodeAttributeStruct.cs" />
     <Compile Include="TutteConvexDrawing.cs" />

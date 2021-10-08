@@ -106,7 +106,6 @@ namespace VolumeGeneratorBasedOnGraph
                 // 边界邻接点的数量，先设置成4，可以继续增加，比如8
                 // NodeAttribute.NEWSCount
                 NodeAttribute.BoundaryNodeCount = 4 + number;
-
                 NodeAttribute.VolumeNodeCount = csvLines.Length - 1;
 
                 string[] adjacency = rowData[3].Split('-');

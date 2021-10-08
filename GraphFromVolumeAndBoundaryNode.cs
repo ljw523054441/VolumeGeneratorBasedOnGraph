@@ -130,8 +130,7 @@ namespace VolumeGeneratorBasedOnGraph
 
 
             // 获取NEWS四个方向的Region，同时将四个Region的中心添加到节点列表nodeList中
-            if (DA.GetDataList<Point3d>("VolumeNodePoints", volumeNodeList)
-                & DA.GetDataList<Point3d>("BoundaryNodePointsExceptNEWS",boundaryNodeListExceptNEWS))
+            if (DA.GetDataList<Point3d>("VolumeNodePoints", volumeNodeList))//& DA.GetDataList<Point3d>("BoundaryNodePointsExceptNEWS",boundaryNodeListExceptNEWS)
             {
                 // 获取NEWS四个方向的Region，同时将四个Region的中心添加到节点列表nodeList中
                 SketchBoxNEWS(PadSquare(volumeNodeList, Plane.WorldXY), ref NEWS_Regions, ref NEWS_Vertices);
