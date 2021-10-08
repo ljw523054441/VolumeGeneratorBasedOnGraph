@@ -107,6 +107,8 @@ namespace VolumeGeneratorBasedOnGraph
                 // NodeAttribute.NEWSCount
                 NodeAttribute.BoundaryNodeCount = 4 + number;
 
+                NodeAttribute.VolumeNodeCount = csvLines.Length - 1;
+
                 string[] adjacency = rowData[3].Split('-');
                 for (int j = 0; j < adjacency.Length; j++)
                 {

@@ -45,7 +45,7 @@ namespace VolumeGeneratorBasedOnGraph
             pManager.AddCurveParameter("ConvexFaceBorders", "ConvexFaceBorders", "A list of convex polylines represening the boundaries of Tutte convex faces.", GH_ParamAccess.list);
             pManager.AddIntegerParameter("SubGraph", "SubGraph", "A graph describing the relations of main nodes only, without NEWS nodes", GH_ParamAccess.tree);
             pManager.AddPointParameter("SubVertices", "SubVertices", "A list of points containing inner vertices only, excluding NEWS vertices", GH_ParamAccess.list);
-            pManager.AddGenericParameter("SubAttributes", "SubAttributes", "A list of lists of attributes pertaining to the main vertices only", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("SubAttributes", "SubAttributes", "A list of lists of attributes pertaining to the main vertices only", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -106,24 +106,31 @@ namespace VolumeGeneratorBasedOnGraph
                 }
 
                 List<int> boundaryNodeIndexList = new List<int>();                     // list13 -> boundaryNodeIndexList
-                for (int i = nodePoints.Count - NodeAttribute.BoundaryNodeCount; i < nodePoints.Count; i++)
+                //for (int i = nodePoints.Count - NodeAttribute.BoundaryNodeCount; i < nodePoints.Count; i++)
+                //{
+                //    // 让boundaryNodeIndexList中的元素都是设定好的负值，以便后面的元素匹配
+                //    boundaryNodeIndexList.Add(i - 2 * NodeAttribute.BoundaryNodeCount);
+                //}
+
+                for (int i = 0; i < NodeAttribute.BoundaryNodeCount; i++)
                 {
                     // 让boundaryNodeIndexList中的元素都是设定好的负值，以便后面的元素匹配
-                    boundaryNodeIndexList.Add(i- NodeAttribute.BoundaryNodeCount);
+                    boundaryNodeIndexList.Add(i - NodeAttribute.BoundaryNodeCount);
                 }
 
                 // List<int> list14 = new List<int>();                     // list14 ->
-                // List<List<int>> list15 = new List<List<int>>();         // list15 -> boundaryAdjacencyGraph
-                // boundaryAdjacencyGraph是每一支表示该支对应的点与哪些BoundaryNode相连
-                DataTree<int> boundaryAdjacencyGraph = new DataTree<int>();
+                // List<List<int>> list15 = new List<List<int>>();         // list15 -> volumeAdjacencyBoundary
+                // volumeAdjacencyBoundary是每一支表示该支对应的点与哪些BoundaryNode相连
+                DataTree<int> volumeAdjacencyBoundary = new DataTree<int>();
+
                 for (int i = 0; i < volumeNodeGraph.BranchCount; i++)
                 {
-                    boundaryAdjacencyGraph.EnsurePath(i);
-                    for (int j = 0; j < volumeNodeGraph.Branch(j).Count; j++)
+                    volumeAdjacencyBoundary.EnsurePath(i);
+                    for (int j = 0; j < volumeNodeGraph.Branch(i).Count; j++)
                     {
                         if (boundaryNodeIndexList.Contains(volumeNodeGraph.Branch(i)[j]))
                         {
-                            boundaryAdjacencyGraph.Branch(i).Add(volumeNodeGraph.Branch(i)[j]);
+                            volumeAdjacencyBoundary.Branch(i).Add(volumeNodeGraph.Branch(i)[j]);
                         }
                     }
                 }
@@ -133,103 +140,82 @@ namespace VolumeGeneratorBasedOnGraph
                 DataTree<double> boundaryAdjacencyGraphPointX = new DataTree<double>();
                 DataTree<double> boundaryAdjacencyGraphPointY = new DataTree<double>();
 
-                // int num29 = 0;
-                // int num30 = num22;
-                // num9 = num29;
                 Point3d boundaryPoint;
                 for (int i = 0; i < volumeNodeGraph.BranchCount; i++)
                 {
-                    //list16.Add(new List<double>());
-                    //list17.Add(new List<double>());
                     boundaryAdjacencyGraphPointX.EnsurePath(i);
                     boundaryAdjacencyGraphPointY.EnsurePath(i);
 
-                    for (int j = 0; j < boundaryAdjacencyGraph.Branch(i).Count; j++)
+                    for (int j = 0; j < volumeAdjacencyBoundary.Branch(i).Count; j++)
                     {
-                        //List<double> list18 = list16[i];
-                        //item = nodePoints[boundaryAdjacencyGraph[i][j]];
-                        //list18.Add(item.X);
-                        //List<double> list19 = list17[i];
-                        //item = nodePoints[boundaryAdjacencyGraph[i][j]];
-                        //list19.Add(item.Y);
-
-                        boundaryPoint = nodePoints[boundaryAdjacencyGraph.Branch(i)[j]];
+                        boundaryPoint = nodePoints[volumeAdjacencyBoundary.Branch(i)[j] + NodeAttribute.BoundaryNodeCount + NodeAttribute.VolumeNodeCount];
                         boundaryAdjacencyGraphPointX.Add(boundaryPoint.X, boundaryAdjacencyGraphPointX.Path(i));
                         boundaryAdjacencyGraphPointY.Add(boundaryPoint.Y, boundaryAdjacencyGraphPointY.Path(i));
                     }
                 }
 
 
+                List<double> boundaryAdjacencyGraphPointXSum = new List<double>();      // list20 -> boundaryAdjacencyGraphPointXSum
+                List<double> boundaryAdjacencyGraphPointYSum = new List<double>();      // list21 -> boundaryAdjacencyGraphPointYSum
+                Matrix MatrixXSum = new Matrix(volumeNodeGraph.BranchCount, 1);
+                Matrix MatrixYSum = new Matrix(volumeNodeGraph.BranchCount, 1);
 
-
-                List<double> list20 = new List<double>();
-                List<double> list21 = new List<double>();
-                Matrix matrix = new Matrix(volumeNodeGraph.Count, 1);
-                Matrix matrix2 = new Matrix(volumeNodeGraph.Count, 1);
-                int num35 = 0;
-                int num36 = num22;
-                num13 = num35;
-                for (int i = 0; i < volumeNodeGraph.Count; i++)
+                for (int i = 0; i < volumeNodeGraph.BranchCount; i++)
                 {
-                    list20.Add(Sum(boundaryAdjacencyGraphPointX[i]));
-                    matrix[i, 0] = Sum(boundaryAdjacencyGraphPointX[i]);
-                    list21.Add(Sum(boundaryAdjacencyGraphPointY[i]));
-                    matrix2[i, 0] = Sum(boundaryAdjacencyGraphPointY[i]);
+                    boundaryAdjacencyGraphPointXSum.Add(Sum(boundaryAdjacencyGraphPointX.Branch(i)));
+                    MatrixXSum[i, 0] = Sum(boundaryAdjacencyGraphPointX.Branch(i));
+                    boundaryAdjacencyGraphPointYSum.Add(Sum(boundaryAdjacencyGraphPointY.Branch(i)));
+                    MatrixYSum[i, 0] = Sum(boundaryAdjacencyGraphPointY.Branch(i));
                 }
 
-                DataTree<int> dataTree = new DataTree<int>();
-                int num38 = 0;
-                int num39 = nodePoints.Count - 5;
-                // num9 = num38;
+                // volumeAdjacencyVolume是每一支表示该支对应的点与哪些volumeNode相连
+                DataTree<int> volumeConnectivityVolume = new DataTree<int>();            // dataTree -> volumeConnectivityVolume
+
                 for (int i = 0; i < nodePoints.Count - NodeAttribute.BoundaryNodeCount; i++)
                 {
-                    dataTree.EnsurePath(new int[]
-                    {
-                        i
-                    });
-                    int num41 = 0;
-                    int num42 = nodePoints.Count - 5;
-                    num13 = num41;
+                    volumeConnectivityVolume.EnsurePath(i);
+
                     for (int j = 0; j < nodePoints.Count - NodeAttribute.BoundaryNodeCount; j++)
                     {
-                        if (SubGraph(GraphMatrix(graph), volumeNodeIndexList)[i][j] == 1)
+                        // 从子矩阵中找到1（表示有连接，0表示没有连接）
+                        if (SubAdjacencyMatrix(GraphToAdjacencyMatrix(graph), volumeNodeIndexList).Branch(i)[j] == 1)
                         {
-                            dataTree.Branch(i).Add(j);
+                            volumeConnectivityVolume.Branch(i).Add(j);
                         }
                     }
                 }
 
-                List<Point3d> list22 = new List<Point3d>();
-                DA.SetDataTree(2, dataTree);
 
-                Matrix matrix3 = ToGHMatrix(In_LaplacianM(SubGraph(GraphMatrix(graph), volumeNodeIndexList), volumeNodeBranchCountList));
-                matrix3.Invert(0.0);
-                Matrix matrix4 = matrix3;
-                Matrix matrix5 = matrix4 * matrix;
-                Matrix matrix6 = matrix4 * matrix2;
-                List<Point3d> list23 = new List<Point3d>();
+                List<Point3d> list22 = new List<Point3d>();                             // list22 -> 
+                // SubGraph输出
+                DA.SetDataTree(2, volumeConnectivityVolume);
 
-                int num44 = 0;
-                int num45 = volumeNodeBranchCountList.Count - 1;
-                num13 = num44;
+
+                // matrix3 -> harmonicMatrix
+                Matrix harmonicMatrix = ToGHMatrix(HarmonicMatrix(SubAdjacencyMatrix(GraphToAdjacencyMatrix(graph), volumeNodeIndexList), volumeNodeBranchCountList));
+                harmonicMatrix.Invert(0.0);
+                Matrix inverseHarmonicMatrix = harmonicMatrix;                          // matrix4 -> inverseHarmonicMatrix
+                Matrix matrix5 = inverseHarmonicMatrix * MatrixXSum;                    // matrix5 ->
+                Matrix matrix6 = inverseHarmonicMatrix * MatrixYSum;                    // matrix6 ->
+                List<Point3d> newBoundaryPoints = new List<Point3d>();                             // list23 -> newBoundaryPoints
+
+                Point3d point;
+
                 for (int i = 0; i < volumeNodeBranchCountList.Count; i++)
                 {
-                    List<Point3d> list24 = list23;
-                    boundaryPoint = new Point3d(matrix5[i, 0], matrix6[i, 0], 0.0);
-                    list24.Add(boundaryPoint);
+                    // List<Point3d> list24 = newBoundaryPoints;                                      // list24 ->
+                    point = new Point3d(matrix5[i, 0], matrix6[i, 0], 0.0);
+                    newBoundaryPoints.Add(point);
                 }
 
-                int num47 = 0;
-                int num48 = volumeNodeIndexList.Count - 1;
-                num13 = num47;
                 for (int i = 0; i < volumeNodeIndexList.Count; i++)
                 {
-                    nodePoints[volumeNodeIndexList[i]] = list23[i];
+                    nodePoints[volumeNodeIndexList[i]] = newBoundaryPoints[i];
                 }
 
-                List<Point3d> list25 = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
-                DA.SetDataList("New Graph Vertices", list25);
-                DA.SetDataList("ConvexFaceBorders", GMeshFaceBoundaries(list25, GraphEdgeList(graph, list25), worldXY));
+                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
+                DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
+                DA.SetDataList("ConvexFaceBorders", GMeshFaceBoundaries(newNodePointsRelocated, GraphEdgeList(graph, newNodePointsRelocated), worldXY));
 
 
                 for (int i = 0; i < nodePoints.Count; i++)
@@ -237,191 +223,210 @@ namespace VolumeGeneratorBasedOnGraph
                     list22.Add(nodePoints[i]);
                 }
                 DA.SetDataList("SubVertices", list22);
-                if (DA.GetDataList("NodeAttributes", list2))
-                {
-                    List<NodeAttribute> list26 = ;
-                    DA.SetDataList("SubAttributes", list26);
-                }
+
+
+                // subAttributes先不考虑
+
+
+                //if (DA.GetDataList("NodeAttributes", list2))
+                //{
+                //    List<NodeAttribute> list26 = ;
+                //    DA.SetDataList("SubAttributes", list26);
+                //}
             }
 
         }
 
+        /// <summary>
+        /// double列表求和
+        /// </summary>
+        /// <param name="x"></param>
+        /// <returns></returns>
         public double Sum(List<double> x)
         {
             //int num = 0;
             //int num2 = x.Count - 1;
             //int num3 = num;
             double sum = 0;
-            for (int i = 0; i < x.Count - 1; i++)
+            for (int i = 0; i < x.Count; i++)
             {
                 sum += x[i];
             }
             return sum;
         }
 
-        public List<NodeAttribute> SubAttributes(List<NodeAttribute> attributes, List<int> subIndices)
+        //public List<NodeAttribute> SubAttributes(List<NodeAttribute> attributes, List<int> subIndices)
+        //{
+        //    List<NodeAttribute> list = new List<NodeAttribute>();
+
+
+
+
+
+        //    return list;
+        //}
+
+        /// <summary>
+        /// 从一个矩阵中，取出与indices有关的那几行和几列数据，形成一个子矩阵
+        /// </summary>
+        /// <param name="adjacencyMatrixOfGraph"></param>
+        /// <param name="indicesForSubMatrix"></param>
+        /// <returns></returns>
+        public DataTree<int> SubAdjacencyMatrix(DataTree<int> adjacencyMatrixOfGraph, List<int> indicesForSubMatrix)
         {
-            List<NodeAttribute> list = new List<NodeAttribute>();
+            // indicesRowData中存储MatrixOfGraph中，有indicesForSubMatrix中序号的，那几行0,1数据
+            DataTree<int> indicesRowData = new DataTree<int>();                           // list -> indicesRowData
+            // indicesRowAndColumeData中存储MatrixOfGraph中，有indicesForSubMatrix中序号的那几行和有indicesForSubMatrix中序号的那几列0,1数据
+            DataTree<int> indicesRowAndColumeData = new DataTree<int>();                // list2 -> indicesRowAndColumeData
 
-
-
-
-
-            return list;
-        }
-
-        public List<List<int>> SubGraph(List<List<int>> graph, List<int> indices)
-        {
-            List<List<int>> list = new List<List<int>>();
-            List<List<int>> list2 = new List<List<int>>();
-
-            // int graphDataCount = graph.Count - 1;          // num -> graphDataCount
-            // int num2 = 0;
-            // int indexListCount = indices.Count - 1;                   // num3 -> indexListCount
-            // int num4 = num2;
-            for (int i = 0; i < indices.Count; i++)
+            // 取MatrixOfGraph中，有indicesForSubMatrix中序号的那几行
+            for (int i = 0; i < indicesForSubMatrix.Count; i++)
             {
-                list.Add(new List<int>());
-                list[i].AddRange(graph[indices[i]]);
+                indicesRowData.EnsurePath(i);
+                indicesRowData.Branch(i).AddRange(adjacencyMatrixOfGraph.Branch(indicesForSubMatrix[i]));
             }
 
-            // int num7 = 0;
-            // int num8 = indices.Count - 1;
-            // num4 = num7;
-            for (int i = 0; i < indices.Count; i++)
+            // 取上面取到的那几行中，有indicesForSubMatrix中序号的那几列
+            for (int i = 0; i < indicesForSubMatrix.Count; i++)
             {
-                list2.Add(new List<int>());
-                // int num10 = 0;
-                // int num11 = indices.Count - 1;
-                // int num12 = num10;
-                for (int j = 0; j < indices.Count; j++)
+                indicesRowAndColumeData.EnsurePath(i);
+                for (int j = 0; j < indicesForSubMatrix.Count; j++)
                 {
-                    list2[i].Add(list[i][indices[j]]);
+                    indicesRowAndColumeData.Branch(i).Add(indicesRowData.Branch(i)[indicesForSubMatrix[j]]);
                 }
             }
-
-            return list2;
+            return indicesRowAndColumeData;
         }
 
-        public List<List<int>> GraphMatrix(List<List<int>> graph)
+        /// <summary>
+        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix
+        /// </summary>
+        /// <param name="graph"></param>
+        /// <returns></returns>
+        public DataTree<int> GraphToAdjacencyMatrix(DataTree<int> graph)
         {
-            List<List<int>> list = new List<List<int>>();
-            
+            // List<List<int>> list = new List<List<int>>();
+
+            DataTree<int> dataTree = new DataTree<int>();
+
             //int num = graph.Count - 1;
             //int num2 = 0;
             //int num3 = num;
             //int num4 = num2;
-            for (int i = 0; i < graph.Count; i++)
+            for (int i = 0; i < graph.BranchCount; i++)
             {
-                list.Add(new List<int>());
+                dataTree.EnsurePath(i);
+                //list.Add(new List<int>());
+
                 //int num7 = 0;
                 //int num8 = num;
                 //int num9 = num7;
-                for (int j = 0; j < graph.Count; j++)
+                for (int j = 0; j < graph.BranchCount; j++)
                 {
-                    if (graph[i].Contains(j))
+                    // connectivity连接关系时
+                    if (j < NodeAttribute.VolumeNodeCount)
                     {
-                        list[i].Add(1);
+                        if (graph.Branch(i).Contains(j))
+                        {
+                            //list[i].Add(1);
+                            dataTree.Branch(i).Add(1);
+                        }
+                        else
+                        {
+                            //list[i].Add(0);
+                            dataTree.Branch(i).Add(0);
+                        }
                     }
+                    // adjacency连接关系时
                     else
                     {
-                        list[i].Add(0);
+                        if (graph.Branch(i).Contains(j - NodeAttribute.VolumeNodeCount - NodeAttribute.BoundaryNodeCount))
+                        {
+                            //list[i].Add(1);
+                            dataTree.Branch(i).Add(1);
+                        }
+                        else
+                        {
+                            //list[i].Add(0);
+                            dataTree.Branch(i).Add(0);
+                        }
                     }
                 }
             }
 
-            return list;
+            return dataTree;
         }
-
-        public Matrix ToGHMatrix(List<List<int>> x)
+        
+        /// <summary>
+        /// 将DataTree<int>结构的矩阵转化为Rhino.Geometry.Matrix结构
+        /// </summary>
+        /// <param name="dataTree"></param>
+        /// <returns></returns>
+        public Matrix ToGHMatrix(DataTree<int> dataTree)
         {
-            Matrix result;
-            if (x == null)
+            Matrix matrix = new Matrix(dataTree.Branch(0).Count, dataTree.BranchCount);
+
+            if (dataTree == null)
             {
-                result = null;
+                matrix = null;
             }
             else
             {
-                int num = 1;
-                int num2 = x.Count - 1;
-                int num3 = num;
-                for (int i = 0; i < x.Count; i++)
+                for (int i = 0; i < dataTree.BranchCount; i++)
                 {
-                    // goto Block_4;
-
-                    if (x[i].Count != x[0].Count)
+                    if (dataTree.Branch(i).Count != dataTree.Branch(0).Count)
                     {
-                        break;
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Matrix must be rectagular! Your input graph is not valid");
+                        matrix = null;
                     }
 
-                }
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Matrix must be rectagular! Your input graph is not valid");
-                // return null;
-            // Block_4:
-                Matrix matrix = new Matrix(x[0].Count, x.Count);
-                int num6 = 0;
-                int num7 = x[0].Count - 1;
-                int num8 = num6;
-                for (int i = 0; i < x[0].Count; i++)
-                {
-                    for (int j = 0; j < x[0].Count; j++)
+                    for (int j = 0; j < dataTree.Branch(0).Count; j++)
                     {
-                        matrix[i, j] = (double)x[j][i];
+                        for (int k = 0; k < dataTree.BranchCount; k++)
+                        {
+                            matrix[j, k] = (double)dataTree.Branch(k)[j];
+                        }
                     }
                 }
-                result = matrix;
             }
-
-            return result;
+            return matrix;
         }
 
-        public List<List<int>> In_LaplacianM(List<List<int>> graph, List<int> Degrees)
+        /// <summary>
+        /// 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix。是图的矩阵表示
+        /// 在图论和计算机科学中，邻接矩阵A（英语：adjacency matrix）是一种方阵，用来表示有限图。它的每个元素代表各点之间是否有边相连。
+        /// 在数学领域图论中，度数矩阵D是一个对角矩阵 ，其中包含的信息为的每一个顶点的度数，也就是说，每个顶点相邻的边数[1] 它可以和邻接矩阵一起使用以构造图的拉普拉斯算子矩阵。
+        /// L = D - A
+        /// </summary>
+        /// <param name="adjacencyMatrix">邻接矩阵 Adjacency Matrix，对角线都是0，其他部分有数据0或1</param>
+        /// <param name="degreesMatrix">度数矩阵 Degrees Matrix，因为是只有对角线有数据，其他部分都是零，所以可以用list存储</param>
+        /// <returns></returns>
+        public DataTree<int> HarmonicMatrix(DataTree<int> adjacencyMatrix, List<int> degreesMatrix)
         {
-            List<List<int>> list = new List<List<int>>();
+            // 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix
+            DataTree<int> harmonicMatrix = new DataTree<int>();
 
-            int num = graph.Count - 1;
-            int num2 = 0;
-            int num3 = num;
-            int num4 = num2;
-            for (int i = 0; i < graph.Count; i++)
+            for (int i = 0; i < adjacencyMatrix.BranchCount; i++)
             {
-                list.Add(new List<int>());
-                int num7 = 0;
-                int num8 = num;
-                int num9 = num7;
-                for (int j = 0; j < graph.Count; j++)
+                harmonicMatrix.EnsurePath(i);
+                for (int j = 0; j < adjacencyMatrix.BranchCount; j++)
                 {
+                    // L = D - A
+                    // 如果是对角线上的位置
                     if (j == i)
                     {
-                        list[i].Add(Degrees[j]);
+                        harmonicMatrix.Branch(i).Add(degreesMatrix[j] - 0);
                     }
+                    // 其他位置
                     else
                     {
-                        list[i].Add(0 - graph[i][j]);
+                        harmonicMatrix.Branch(i).Add(0 - adjacencyMatrix.Branch(i)[j]);
                     }
                 }
             }
 
-            return list;
+            return harmonicMatrix;
         }
-
-        //public List<Point3d> Relocate(List<Point3d> p, Plane location1, Plane location2)
-        //{
-        //    Point3d point3d = new Point3d(0.0, 0.0, 0.0);
-        //    List<Point3d> list = new List<Point3d>();
-        //    foreach (Point3d point3d2 in p)
-        //    {
-        //        point3d += point3d2;
-        //    }
-        //    point3d /= (double)p.Count;
-        //    location1.Origin = point3d;
-        //    foreach (Point3d item in p)
-        //    {
-        //        item.Transform(Transform.PlaneToPlane(location1, location2));
-        //        list.Add(item);
-        //    }
-        //    return list;
-        //}
 
         public Curve ConvexBorder(List<Point3d> vertices, Plane basePlane)
         {
@@ -461,16 +466,27 @@ namespace VolumeGeneratorBasedOnGraph
             return list2;
         }
 
-        public List<Line> GraphEdgeList(List<List<int>> graph, List<Point3d> graphVertices)
+        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices)
         {
             List<Line> list = new List<Line>();
 
-            for (int i = 0; i < graph.Count; i++)
+            for (int i = 0; i < graph.BranchCount; i++)
             {
-                for (int j = 0; j < graph[i].Count; j++)
+                for (int j = 0; j < graph.Branch(i).Count; j++)
                 {
-                    Line item = new Line(graphVertices[i], graphVertices[graph[i][j]]);
-                    list.Add(item);
+                    if (graph.Branch(i)[j] >= 0)
+                    {
+                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j]]);
+                        list.Add(item);
+                    }
+                    else
+                    {
+                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j] + NodeAttribute.BoundaryNodeCount + NodeAttribute.VolumeNodeCount]);
+                        list.Add(item);
+                    }
+                    
+                    
+                    
                 }
             }
 
