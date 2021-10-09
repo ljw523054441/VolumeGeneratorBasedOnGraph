@@ -70,7 +70,7 @@ namespace VolumeGeneratorBasedOnGraph
             //pManager.AddGenericParameter("BoundaryNodeAttributes", "BoundaryAttributes", "边界节点所包含的属性", GH_ParamAccess.list);
             pManager.AddPointParameter("NodePoints", "GraphNode", "用抽象点（point）表示的图结构节点（node）", GH_ParamAccess.list);
             pManager.AddGenericParameter("NodeAttributes", "NodeAttributes", "图结构中节点所包含的属性", GH_ParamAccess.list);
-            pManager.AddIntegerParameter("index", "index", "", GH_ParamAccess.list);
+            pManager.AddIntegerParameter("DebugIndex", "index", "", GH_ParamAccess.list);
 
 
         }
@@ -94,8 +94,11 @@ namespace VolumeGeneratorBasedOnGraph
             int volumeNodeCount = globalParameter.VolumeNodeCount;
             int boundaryNodeCount = globalParameter.BoundaryNodeCount;
 
+
+            // Local Varible 初始化
             List<Point3d> volumeNodeList = new List<Point3d>();                                   // list -> volumeNodeList
             List<Point3d> boundaryNodeListExceptNEWS = new List<Point3d>();
+
             //List<Line> allEdgesList = new List<Line>();                                     // list2 -> allEdgesList  allLineList uniqueLineList
             //List<Line> allAdjacencyList = new List<Line>();
             GH_Structure<GH_Integer> gh_Structure_ConnectivityTree = null;
@@ -108,10 +111,6 @@ namespace VolumeGeneratorBasedOnGraph
             // List<double> volumeAreaAttributeList = new List<double>();                      // list4 -> volumeAreaAttributeList
             List<NodeAttribute> volumeNodeAttributeList = new List<NodeAttribute>();
 
-            List<string> boundaryLabelListExceptNEWS = new List<string>();
-            // List<double> boundaryAreaAttributeListExceptNEWS = new List<double>();
-            List<NodeAttribute> boundaryNodeAttributeListExceptNEWS = new List<NodeAttribute>();
-
             List<string> boundaryLabelList = new List<string>();
             boundaryLabelList.AddRange(new string[]
                 {
@@ -123,6 +122,9 @@ namespace VolumeGeneratorBasedOnGraph
             // List<double> boundaryAreaAttributeList = new List<double>();
             List<NodeAttribute> boundaryNodeAttributeList = new List<NodeAttribute>();
 
+            List<string> boundaryLabelListExceptNEWS = new List<string>();
+            // List<double> boundaryAreaAttributeListExceptNEWS = new List<double>();
+            List<NodeAttribute> boundaryNodeAttributeListExceptNEWS = new List<NodeAttribute>();
 
             // double totalArea = 0.0;                                                               // num -> totalArea
             // Plane worldXY = Plane.WorldXY;
@@ -143,18 +145,6 @@ namespace VolumeGeneratorBasedOnGraph
             {
                 // 获取NEWS四个方向的Region，同时将四个Region的中心添加到节点列表nodeList中
                 SketchBoxNEWS(PadSquare(volumeNodeList, Plane.WorldXY), ref NEWS_Regions, ref NEWS_Vertices);
-                // 按NEWS的顺序，将四个点添加到nodeList末尾
-                // nodeList.AddRange(NEWS_Vertices);
-
-                nodePoints.AddRange(volumeNodeList);
-                nodePoints.AddRange(NEWS_Vertices);
-                nodePoints.AddRange(boundaryNodeListExceptNEWS);
-
-                // 输出NodePoints
-                DA.SetDataList("NodePoints", nodePoints);
-                //DA.SetDataList("BoundaryNode", NEWS_Vertices);
-
-                // NodeAttribute.BoundaryNodeCount = 4 + boundaryNodeListExceptNEWS.Count;
 
 
                 
@@ -197,31 +187,12 @@ namespace VolumeGeneratorBasedOnGraph
                 //    volumeNodeAttributes.Add(nodeAttribute);
                 //}
 
-                List<Point3d> allNodeList = volumeNodeList;
-                allNodeList.AddRange(NEWS_Vertices);
-                Sphere sphere = Sphere.FitSphereToPoints(allNodeList);// 包含NEWS节点的大球
+                
 
-                for (int i = 0; i < NEWS_Vertices.Count; i++)
-                {
-                    NodeAttribute NEWSNodeAttribute = new NodeAttribute(boundaryLabelList[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * allNodeList.Count));
-                    boundaryNodeAttributeList.Add(NEWSNodeAttribute);
-                }
 
-                for (int i = 0; i < boundaryNodeListExceptNEWS.Count; i++)
-                {
-                    NodeAttribute boundaryNodeExceptNEWSAttribute = new NodeAttribute(boundaryLabelListExceptNEWS[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * allNodeList.Count));
-                    boundaryNodeAttributeListExceptNEWS.Add(boundaryNodeExceptNEWSAttribute);
-                }
 
-                //DA.SetDataList("VolumeNodeAttributes", volumeNodeAttributes);
-                //DA.SetDataList("BoundaryNodeAttributes", boundaryNodeAttributes);
 
-                nodeAttributes.AddRange(volumeNodeAttributeList);
-                nodeAttributes.AddRange(boundaryNodeAttributeList);
-                nodeAttributes.AddRange(boundaryNodeAttributeListExceptNEWS);
-
-                DA.SetDataList("NodeAttributes", nodeAttributes);
-
+                // 输出Graph的树形结构
                 if (DA.GetDataTree<GH_Integer>("VolumeConnectivityTree", out gh_Structure_ConnectivityTree)
                 & DA.GetDataTree<GH_Integer>("BoundaryAdjacencyTree", out gh_Structure_AdjacencyTree))
                 {
@@ -240,7 +211,7 @@ namespace VolumeGeneratorBasedOnGraph
                     }
 
                     // 对每个boundary点，向树形数据中添加新的path
-                    for (int i = 0; i < NEWS_Vertices.Count + boundaryNodeListExceptNEWS.Count; i++)
+                    for (int i = 0; i < boundaryNodeCount; i++)
                     {
                         graph.EnsurePath(volumeConnectivityTree.BranchCount + i);
                     }
@@ -296,309 +267,65 @@ namespace VolumeGeneratorBasedOnGraph
                         graph.Add(indexList[i + 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
                     }
 
-                    //List<int> indexList = new List<int>();
-                    //List<Vector3d> vectorList = new List<Vector3d>();
-                    //var keyValueList = new List<KeyValuePair<int, Vector3d>>();
-
-                    //for (int i = 0; i < NEWS_Vertices.Count; i++)
-                    //{
-                    //    Vector3d vector = new Vector3d(NEWS_Vertices[i]) - new Vector3d(centerPoint);
-                    //    vector.Unitize();
-                    //    vectorList.Add(vector);
-
-                    //    keyValueList.Add(new KeyValuePair<int, Vector3d>(i, vector));
-                    //}
-                    //for (int i = 0; i < boundaryNodeListExceptNEWS.Count; i++)
-                    //{
-                    //    Vector3d vector = new Vector3d(boundaryNodeListExceptNEWS[i]) - new Vector3d(centerPoint);
-                    //    vector.Unitize();
-                    //    vectorList.Add(vector);
-
-                    //    keyValueList.Add(new KeyValuePair<int, Vector3d>(i + NEWS_Vertices.Count, vector));
-                    //}
-
-                    //keyValueList.Sort((a, b) => (a.Value.CompareTo(b.Value)));
-                    //indexList = keyValueList.Select(a => a.Key).ToList();
-
-
-
-
-                    //vectorList.Sort();
-
-                    
-                    //for (int i = 0; i < vectorList.Count; i++)
-                    //{
-                    //    int index = vectorList.IndexOf(vectorList[i]);
-                    //    indexList.Add(index);
-                    //}
-
-
-                    DA.SetDataList("index", indexList);
+                    DA.SetDataList("DebugIndex", indexList);
                     DA.SetDataTree(0, graph);
 
-                    //Dictionary<int, Vector3d> dictionary = new Dictionary<int, Vector3d>();
-                    //Vector3d vector;
-                    //for (int i = 0; i < NEWS_Vertices.Count; i++)
-                    //{
-                    //    vector = new Vector3d(NEWS_Vertices[i]) - new Vector3d(centerPoint);
-                    //    vector.Unitize();
-                    //    dictionary.Add(i, vector);
-                    //}
 
 
-                    //for (int i = 0; i < boundaryNodeListExceptNEWS.Count; i++)
-                    //{
-                    //    vector = new Vector3d(boundaryNodeListExceptNEWS[i]) - new Vector3d(centerPoint);
-                    //    vector.Unitize();
-                    //    dictionary.Add(4 + i, vector);
-                    //}
+                    // 构造包含所有node节点的列表，顺序是 inner node + outer node
+                    nodePoints.AddRange(volumeNodeList);
+                    //nodePoints.AddRange(NEWS_Vertices);
+                    //nodePoints.AddRange(boundaryNodeListExceptNEWS);
+                    nodePoints.AddRange(SortedBoundaryNodeList);
 
-                    //List<KeyValuePair<int, Vector3d>> list = new List<KeyValuePair<int, Vector3d>>(dictionary);
-                    //list.Sort(
-                    //    delegate (KeyValuePair<int, Vector3d> s1, KeyValuePair<int, Vector3d> s2)
-                    //    {
-                    //        return s2.Value.CompareTo(s1.Value);
-                    //    });
-                    //dictionary.Clear();
-                    //foreach (KeyValuePair<int,Vector3d> ss in list)
-                    //{
-                    //    dictionary[ss.Key] = ss.Value;
-                    //}
+                    // 输出NodePoints
+                    DA.SetDataList("NodePoints", nodePoints);
 
 
 
-                    //DA.SetDataTree(0, graph);
+                    List<Point3d> volumeAndNEWSNodes = volumeNodeList;
+                    volumeAndNEWSNodes.AddRange(NEWS_Vertices);
+                    // 包含volume节点和NEWS节点的大球
+                    Sphere sphere = Sphere.FitSphereToPoints(volumeAndNEWSNodes);
+
+                    // NEWS节点的属性列表
+                    for (int i = 0; i < NEWS_Vertices.Count; i++)
+                    {
+                        NodeAttribute NEWSNodeAttribute = new NodeAttribute(boundaryLabelList[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * volumeAndNEWSNodes.Count));
+                        boundaryNodeAttributeList.Add(NEWSNodeAttribute);
+                    }
+
+                    // 除NEWS节点以外的其他BoundaryNode的属性列表
+                    for (int i = 0; i < boundaryNodeListExceptNEWS.Count; i++)
+                    {
+                        NodeAttribute boundaryNodeExceptNEWSAttribute = new NodeAttribute(boundaryLabelListExceptNEWS[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * volumeAndNEWSNodes.Count));
+                        boundaryNodeAttributeList.Add(boundaryNodeExceptNEWSAttribute);
+                    }
+
+                    // 用前面生成的对于Boundary点的排序列表来对BoundaryAttribute列表进行对应的排序
+                    List<NodeAttribute> SortedBoundaryNodeAttributes = new List<NodeAttribute>();
+                    foreach (int index in indexList)
+                    {
+                        SortedBoundaryNodeAttributes.Add(boundaryNodeAttributeList[index]);
+                    }
+
+
+                    // 构造包含所有node节点的属性列表，顺序是 inner node + outer node
+                    nodeAttributes.AddRange(volumeNodeAttributeList);
+                    nodeAttributes.AddRange(SortedBoundaryNodeAttributes);
+                    // 输出NodeAttributes
+                    DA.SetDataList("NodeAttributes", nodeAttributes);
+
                 }
             }
-
-
-            // Component中属性的设置
-            // 暂不知道Fontsize作用
-            //Fontsize = Sphere.FitSphereToPoints(nodeList).Radius / 10.0;
-
-            //List<Brep> NEWS_Brep = new List<Brep>();                                            // list6 -> NEWS_Brep
-            //for (int i = 0; i < 4; i++)
-            //{
-            //    Brep item = Brep.CreatePlanarBreps(NEWS_Regions[i].ToNurbsCurve(), RhinoDoc.ActiveDoc.ModelAbsoluteTolerance)[0];
-            //    NEWS_Brep.Add(item);
-            //}
-
-            //NEWS_Polygons.AddRange(NEWS_Regions);
-            //NEWS_Surfaces.AddRange(NEWS_Brep);
-            //NEWS_Tags.AddRange(new string[]
-            //{
-            //    "N",
-            //    "E",
-            //    "W",
-            //    "S"
-            //});
-            //NEWS_Location.AddRange(NEWS_Vertices);
-            //NEWS_Size = Math.Sqrt(PadSquare(nodeList, worldXY).Area) / 16.0;
-            //BasePlane = worldXY;
-
-            //if (volumeLabelList.Count == nodeList.Count - 4)
-            //{
-            //    Texts.AddRange(volumeLabelList);
-            //    Texts.AddRange(new string[]
-            //    {
-            //        "",
-            //        "",
-            //        "",
-            //        ""
-            //    });
-            //    Locations.AddRange(nodeList);
-            //}
-            //else
-            //{
-            //    List<string> debugIndexList = new List<string>();                                    // list7 -> 
-            //    for (int i = 0; i <= nodeList.Count - 5; i++)
-            //    {
-            //        debugIndexList.Add(i.ToString());
-            //    }
-            //    Texts.AddRange(debugIndexList);
-            //    Texts.AddRange(new string[]
-            //    {
-            //        "",
-            //        "",
-            //        "",
-            //        ""
-            //    });
-            //    Locations.AddRange(nodeList);
-            //}
-
-
-            // 主体计算部分
-            // Convert GH_Interger to Int, and return a new DataTree<int> volumeConnectivityAttributeTree
-            //if (DA.GetDataTree<GH_Integer>(1, out gh_Structure_ConnectivityTree) & gh_Structure_ConnectivityTree.DataCount > 1 & DA.GetDataTree<GH_Integer>(2, out gh_Structure_AdjacencyTree) & gh_Structure_AdjacencyTree.DataCount > 1)
-            //{
-            //    // 将ConnectivityTree从GH_Structure<GH_Integer>转化为DataTree<int>
-            //    //foreach (GH_Path gh_Path in gh_Structure_ConnectivityTree.Paths)
-            //    //{
-            //    //    List<int> branchItems = new List<int>();
-            //    //    foreach (GH_Integer element in gh_Structure_ConnectivityTree.get_Branch(gh_Path))
-            //    //    {
-            //    //        branchItems.Add(Convert.ToInt32(element.Value));
-            //    //    }
-            //    //    volumeConnectivityTree.AddRange(branchItems, gh_Path);
-            //    //}
-            //    //// 将AdjacencyTree从GH_Structure<GH_Integer>转化为DataTree<int>
-            //    //foreach (GH_Path gh_Path in gh_Structure_AdjacencyTree.Paths)
-            //    //{
-            //    //    List<int> branchItems = new List<int>();
-            //    //    foreach (GH_Integer element in gh_Structure_AdjacencyTree.get_Branch(gh_Path))
-            //    //    {
-            //    //        branchItems.Add(Convert.ToInt32(element.Value));
-            //    //    }
-            //    //    // 
-            //    //}
-
-            //    ///* 
-            //    //需要修改，原来是List<Line>输入，我这里只是DataTree<int> 
-            //    //*/
-            //    //allEdgesList = ConnectivityTreeToEdges(nodeList, volumeConnectivityTree);
-
-
-
-
-
-            //    //NodeLinkToNEWS(ref allEdgesList, NEWS_Regions);
-            //    //List<Line> uniqueLineList = CleanLinesUD(allEdgesList);
-            //    //Point3dList nodePoint3dList = new Point3dList();                                // point3dList放置nodeList
-
-            //    //// DA.SetDataList(1, nodeList);// nodeList变量的值中包含NEWS节点
-                
-
-            //    //// 建好类似DataTree的结构
-            //    //List<List<int>> eachNodeConnectivity = new List<List<int>>();                              // list8 -> 每个节点与其他哪些节点相连
-            //    //List<List<double>> eachNodeConnectivityLength = new List<List<double>>();                  // list9 -> 与list8对应的连接的线段长度
-            //    //for (int i = 0; i < nodeList.Count; i++)
-            //    //{
-            //    //    eachNodeConnectivity.Add(new List<int>());
-            //    //    eachNodeConnectivityLength.Add(new List<double>());
-            //    //}
-
-            //    //nodePoint3dList.Clear();
-            //    //nodePoint3dList.AddRange(nodeList);
-
-            //    //double modeAbsoluteTolerance = RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
-
-            //    //// 向建好的类似DataTree结构中塞入数据
-            //    //// 因为Edge的输入是没有顺序的，这里是通过下面的计算，找到edge对应的起始点及对应关系
-            //    //foreach (Line line in uniqueLineList)
-            //    //{
-            //    //    if (EpsilonContains(nodePoint3dList, line.From, modeAbsoluteTolerance) & EpsilonContains(nodePoint3dList, line.To, modeAbsoluteTolerance))
-            //    //    {
-            //    //        int fromClosestIndex = nodePoint3dList.ClosestIndex(line.From);         // num2 -> fromClosestIndex
-            //    //        int toClosestIndex = nodePoint3dList.ClosestIndex(line.To);             // num3 -> toClosestIndex
-            //    //        if (!eachNodeConnectivity[fromClosestIndex].Contains(toClosestIndex) & fromClosestIndex != toClosestIndex)
-            //    //        {
-            //    //            eachNodeConnectivity[fromClosestIndex].Add(toClosestIndex);
-            //    //            eachNodeConnectivityLength[fromClosestIndex].Add(line.Length);
-            //    //        }
-            //    //        if (!eachNodeConnectivity[toClosestIndex].Contains(fromClosestIndex) & toClosestIndex != fromClosestIndex)
-            //    //        {
-            //    //            eachNodeConnectivity[toClosestIndex].Add(fromClosestIndex);
-            //    //            eachNodeConnectivityLength[toClosestIndex].Add(line.Length);
-            //    //        }
-
-            //    //    }
-            //    //}
-
-            //    //// 将连接关系变为DataTree形式输出
-            //    //DataTree<int> dataTree = new DataTree<int>();                               // dataTree -> 
-            //    //for (int i = 0; i < eachNodeConnectivity.Count; i++)
-            //    //{
-            //    //    // 按照Length的大小，给nodeConnectivity排序
-            //    //    Array.Sort(eachNodeConnectivityLength[i].ToArray(), eachNodeConnectivity[i].ToArray(), Comparer<double>.Default);
-            //    //}
-            //    //for (int i = 0; i < eachNodeConnectivity.Count; i++)
-            //    //{
-            //    //    // 先尝试将datatree的分支补满（如果有空分支的话）
-            //    //    dataTree.EnsurePath(new int[]
-            //    //    {
-            //    //        i
-            //    //    });
-            //    //    if (eachNodeConnectivity[i].Count > 0)
-            //    //    {
-            //    //        // 生成用来表示连接关系的dataTree
-            //    //        dataTree.Branch(i).AddRange(eachNodeConnectivity[i]);
-            //    //    }
-            //    //    else
-            //    //    {
-            //    //        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "There is a isolated point in the input. 输入的点中有一个孤立的点");
-            //    //    }
-            //    //}
-            //    //DA.SetDataTree(0, dataTree);
-
-
-            //    List<object> list10 = new List<object>();                                   // list10 -> 
-                
-            //    // double num4 = sphere.Radius / 10.0;                                         // num4 -> 
-            //    List<double> valuesForColor = new List<double>();                           // list11 ->valuesForColor
-            //    for (int i = 1; i <= nodeList.Count - 4; i++)
-            //    {
-            //        valuesForColor.Add((double)i / (double)(nodeList.Count - 4 + 1));
-            //    }
-                
-            //    // 如果标签列表是空的，或者数量跟nodeList匹配不上，就让标签列表变成序号式的，0,1,2,3...
-            //    if (volumeLabelList == null | volumeLabelList.Count != nodeList.Count - 4)
-            //    {
-            //        for (int i = 0; i <= nodeList.Count - 5; i++)
-            //        {
-            //            volumeLabelList.Add(Convert.ToString(i));
-            //        }
-            //    }
-            //    // 如果面积列表是空的，或者数量跟nodeList匹配不上，就让面积列表全部变成 Pi * R方 * 0.5 * nodeList.Count
-            //    if (volumeAreaAttributeList == null | volumeAreaAttributeList.Count != nodeList.Count - 4)
-            //    {
-            //        for (int i = 0; i <= nodeList.Count - 5; i++)
-            //        {
-            //            volumeAreaAttributeList.Add(3.141592653589793 * Math.Pow(sphere.Radius, 2.0) / (double)(2 * nodeList.Count));
-            //        }
-            //    }
-                
-
-
-            //    volumeLabelList.AddRange(new string[]
-            //    {
-            //        "N",
-            //        "E",
-            //        "W",
-            //        "S"
-            //    });
-            //    list10.Add(volumeLabelList);
-            //    double totalArea1 = Total(volumeAreaAttributeList);                          // num6 -> totalArea1
-            //    List<double> list12 = new List<double>();                                    // list12 -> 
-            //    for (int i = 0; i < volumeAreaAttributeList.Count; i++)
-            //    {
-            //        list12.Add(volumeAreaAttributeList[i] / totalArea1 * totalArea);
-            //    }
-            //    for (int i = 0; i < 4; i++)
-            //    {
-            //        list12.Add(3.141592653589793 * Math.Pow(sphere.Radius, 2.0) / (double)(4 * nodeList.Count));
-            //    }
-
-
-            //    //List<Color> list13 = RainbowColors(valuesForColor);
-            //    //for (int i = 0; i < 4; i++)
-            //    //{
-            //    //    list13.Add(Color.Black);
-            //    //}
-            //    //list10.Add(list12);
-            //    //list10.Add(list13);
-            //    //List<object> list14 = new List<object>();
-            //    //List<string> item2 = new List<string>();
-            //    //List<double> item3 = new List<double>();
-            //    //List<Color> item4 = new List<Color>();
-            //    //list14.Add(item2);
-            //    //list14.Add(item3);
-            //    //list14.Add(item4);
-            //    //DA.SetDataList(2, list10);
-            //}
-
-
         }
 
+        /// <summary>
+        /// 将点的列表按照这些点的中心点的顺时针方向排序
+        /// </summary>
+        /// <param name="vPoints"></param>
+        /// <param name="center"></param>
+        /// <returns></returns>
         public List<Point3d> SortPolyPoints(List<Point3d> vPoints, Point3d center)
         {
             List<Point3d> cloneList = new List<Point3d>();

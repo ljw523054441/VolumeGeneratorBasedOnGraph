@@ -24,6 +24,7 @@ namespace VolumeGeneratorBasedOnGraph
         {
             pManager.AddPointParameter("VolumeNodePoints", "", "", GH_ParamAccess.list);
             pManager.AddPointParameter("AdditionalBoundaryNodePoints", "", "", GH_ParamAccess.list);
+            pManager[1].Optional = true;
         }
 
         /// <summary>
@@ -43,9 +44,15 @@ namespace VolumeGeneratorBasedOnGraph
             List<Point3d> volumeNodes = new List<Point3d>();
             List<Point3d> additionalBoundaryNodes = new List<Point3d>();
 
-            if (DA.GetDataList<Point3d>("VolumeNodePoints", volumeNodes) & DA.GetDataList<Point3d>("AdditionalBoundaryNodePoints", additionalBoundaryNodes))
+            GlobalParameter globalParameter;
+
+            if (DA.GetDataList<Point3d>("VolumeNodePoints", volumeNodes))
             {
-                GlobalParameter globalParameter = new GlobalParameter(volumeNodes.Count, additionalBoundaryNodes.Count + 4);
+                if (DA.GetDataList<Point3d>("AdditionalBoundaryNodePoints", additionalBoundaryNodes))
+                {
+                    globalParameter = new GlobalParameter(volumeNodes.Count, additionalBoundaryNodes.Count + 4);
+                }
+                globalParameter = new GlobalParameter(volumeNodes.Count, 4);
                 
                 DA.SetData("GlobalParameter", globalParameter);
             }
