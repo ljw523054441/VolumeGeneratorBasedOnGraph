@@ -185,7 +185,7 @@ namespace VolumeGeneratorBasedOnGraph
                 Matrix P_inner = new Matrix(volumeNodeCount, 2);
                 P_inner = inverse_Inner_InnerLaplacianMatrix * inner_OuterAdjacencyMatrix * P_outer;
 
-
+                // 获得新的InnerPoints
                 List<Point3d> newInnerPoints = new List<Point3d>();                             // list23 -> newBoundaryPoints
                 Point3d innerPoint;
                 for (int i = 0; i < volumeNodeCount; i++)
@@ -193,9 +193,21 @@ namespace VolumeGeneratorBasedOnGraph
                     innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
                     newInnerPoints.Add(innerPoint);
                 }
-                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newInnerPoints, Plane.WorldXY, worldXY);
+
+                // 输出新的点列表，包括新的InnerPoints和原来的OuterPoints
+                for (int i = 0; i < volumeNodeIndexList.Count; i++)
+                {
+                    nodePoints[volumeNodeIndexList[i]] = newInnerPoints[i];
+                }
+
+                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
                 DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
 
+                
+                
+                // 对照原插件检查这个输出是不是想要的点
+                List<Point3d> subVerticesRelocated = UtilityFunctions.Relocate(newInnerPoints, Plane.WorldXY, worldXY);
+                DA.SetDataList("SubVertices", subVerticesRelocated);
 
 
 
@@ -217,11 +229,11 @@ namespace VolumeGeneratorBasedOnGraph
                 DA.SetDataTree(2, subGraph);
 
 
-                
+
 
                 //Matrix matrix5 = inverse_Inner_InnerLaplacianMatrix * MatrixXSum;                    // matrix5 ->
                 //Matrix matrix6 = inverse_Inner_InnerLaplacianMatrix * MatrixYSum;                    // matrix6 ->
-                
+
 
                 //Point3d point;
 
@@ -239,20 +251,19 @@ namespace VolumeGeneratorBasedOnGraph
 
                 //List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
                 //DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
-                
-                
-                
-                
-                
-                // DA.SetDataList("ConvexFaceBorders", GMeshFaceBoundaries(newNodePointsRelocated, GraphEdgeList(graph, newNodePointsRelocated, globalParameter), worldXY));
 
-                //List<Point3d> subVertices = new List<Point3d>();                             // list22 -> 
-                //for (int i = 0; i < nodePoints.Count; i++)
-                //{
-                //    subVertices.Add(nodePoints[i]);
-                //}
-                List<Point3d> subVerticesRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
-                DA.SetDataList("SubVertices", subVerticesRelocated);
+
+
+                List<Line> graphEdges = GraphEdgeList(wholeAdjacencyMatrix, newNodePointsRelocated, globalParameter);
+
+                // GMeshFaceBoundary函数需要重写
+                List<Polyline> graphFaceBoundaries = GMeshFaceBoundaries(newNodePointsRelocated, graphEdges, worldXY);
+
+                DA.SetDataList("ConvexFaceBorders", graphFaceBoundaries);
+
+                
+
+                
 
 
                 // subAttributes先不考虑
@@ -329,9 +340,10 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
         /// <summary>
-        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix
+        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix，NxN的方阵
         /// </summary>
         /// <param name="graphForNxN"></param>
+        /// /// <param name="globalParameter"></param>
         /// <returns></returns>
         public DataTree<int> GraphToAdjacencyMatrix_NxN(DataTree<int> graphForNxN, GlobalParameter globalParameter)
         {
@@ -375,6 +387,12 @@ namespace VolumeGeneratorBasedOnGraph
             return dataTreeForNxN;
         }
 
+        /// <summary>
+        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix，NxM非方阵
+        /// </summary>
+        /// <param name="graphForNxM"></param>
+        /// <param name="globalParameter"></param>
+        /// <returns></returns>
         public DataTree<int> GraphToAdjacencyMatrix_NxM(DataTree<int> graphForNxM, GlobalParameter globalParameter)
         {
             DataTree<int> dataTreeForNxM = new DataTree<int>();
@@ -506,27 +524,19 @@ namespace VolumeGeneratorBasedOnGraph
             return list2;
         }
 
-        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices, GlobalParameter globalParameter)
+        public List<Line> GraphEdgeList(Matrix adjacencyMatrix, List<Point3d> graphVertices, GlobalParameter globalParameter)
         {
             List<Line> list = new List<Line>();
 
-            for (int i = 0; i < graph.BranchCount; i++)
+            for (int i = 0; i < adjacencyMatrix.RowCount; i++)
             {
-                for (int j = 0; j < graph.Branch(i).Count; j++)
+                for (int j = 0; j < i; j++)
                 {
-                    if (graph.Branch(i)[j] >= 0)
+                    if (adjacencyMatrix[i,j] == 1)
                     {
-                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j]]);
+                        Line item = new Line(graphVertices[i], graphVertices[j]);
                         list.Add(item);
                     }
-                    else
-                    {
-                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j] + globalParameter.BoundaryNodeCount + globalParameter.VolumeNodeCount]);
-                        list.Add(item);
-                    }
-                    
-                    
-                    
                 }
             }
 
