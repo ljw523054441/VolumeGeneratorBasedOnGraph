@@ -70,19 +70,19 @@ namespace VolumeGeneratorBasedOnGraph
             List<Point3d> nodePoints = new List<Point3d>();                     // list -> nodePointList
 
             List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
-                // List<GH_ObjectWrapper> list2 = new List<GH_ObjectWrapper>();        // list2 -> nodeAttributes
+            // List<GH_ObjectWrapper> list2 = new List<GH_ObjectWrapper>();        // list2 -> nodeAttributes
 
             Plane worldXY = Plane.WorldXY;
             List<string> nodeLabels = new List<string>();                    // list3 -> nodeLabels
             List<double> nodeAreas = new List<double>();                    // list4 -> nodeAreas
             List<Color> nodeMatColor = new List<Color>();                      // list5 -> nodeMatColor
 
-                // bool flag = DA.GetDataTree<GH_Integer>("Graph", out gh_Structure) & DA.GetDataList<Point3d>("Vertices", list);
+            // bool flag = DA.GetDataTree<GH_Integer>("Graph", out gh_Structure) & DA.GetDataList<Point3d>("Vertices", list);
             if (DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph) & DA.GetDataList<Point3d>("NodePoints", nodePoints))
             {
                 DA.GetData<Plane>("BasePlane", ref worldXY);
 
-                    // List<List<int>> list6 = new List<List<int>>();          // list6 -> graph
+                // List<List<int>> list6 = new List<List<int>>();          // list6 -> graph
 
                 // // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
@@ -94,7 +94,7 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeNodeIndexList.Add(i);
                 }
 
-                    // List<int> list9 = new List<int>();                                      // list9 ->
+                // List<int> list9 = new List<int>();                                      // list9 ->
                 // 每个节点（包括Volume和Boundary）的度的列表
                 List<int> graphBranchCountList = new List<int>();                       // list10 -> graphBranchCountList
                 for (int i = 0; i < graph.BranchCount; i++)
@@ -109,7 +109,7 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeNodeDegreeList.Add(graphBranchCountList[volumeNodeIndexList[i]]);
                 }
 
-                    // List<List<int>> volumeNodeGraph = new List<List<int>>();         // list12 -> volumeNodeGraph
+                // List<List<int>> volumeNodeGraph = new List<List<int>>();         // list12 -> volumeNodeGraph
                 // 每个volume点与其他点的连接关系，包括其他volume点和boundary点，以及-5（表示不与任何boundary点连接）（-1 - boundaryNodeCount）
                 DataTree<int> volumeNodeGraph = new DataTree<int>();
                 for (int i = 0; i < volumeNodeCount; i++)
@@ -184,8 +184,9 @@ namespace VolumeGeneratorBasedOnGraph
                 // 求解矩阵 P(inner)
                 Matrix P_inner = new Matrix(volumeNodeCount, 2);
                 P_inner = inverse_Inner_InnerLaplacianMatrix * inner_OuterAdjacencyMatrix * P_outer;
+                P_inner.Scale(-1.0);
 
-                // 获得新的InnerPoints
+
                 List<Point3d> newInnerPoints = new List<Point3d>();                             // list23 -> newBoundaryPoints
                 Point3d innerPoint;
                 for (int i = 0; i < volumeNodeCount; i++)
@@ -193,21 +194,9 @@ namespace VolumeGeneratorBasedOnGraph
                     innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
                     newInnerPoints.Add(innerPoint);
                 }
-
-                // 输出新的点列表，包括新的InnerPoints和原来的OuterPoints
-                for (int i = 0; i < volumeNodeIndexList.Count; i++)
-                {
-                    nodePoints[volumeNodeIndexList[i]] = newInnerPoints[i];
-                }
-
-                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
+                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newInnerPoints, Plane.WorldXY, worldXY);
                 DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
 
-                
-                
-                // 对照原插件检查这个输出是不是想要的点
-                List<Point3d> subVerticesRelocated = UtilityFunctions.Relocate(newInnerPoints, Plane.WorldXY, worldXY);
-                DA.SetDataList("SubVertices", subVerticesRelocated);
 
 
 
@@ -254,16 +243,17 @@ namespace VolumeGeneratorBasedOnGraph
 
 
 
-                List<Line> graphEdges = GraphEdgeList(wholeAdjacencyMatrix, newNodePointsRelocated, globalParameter);
 
-                // GMeshFaceBoundary函数需要重写
-                List<Polyline> graphFaceBoundaries = GMeshFaceBoundaries(newNodePointsRelocated, graphEdges, worldXY);
 
-                DA.SetDataList("ConvexFaceBorders", graphFaceBoundaries);
+                // DA.SetDataList("ConvexFaceBorders", GMeshFaceBoundaries(newNodePointsRelocated, GraphEdgeList(graph, newNodePointsRelocated, globalParameter), worldXY));
 
-                
-
-                
+                //List<Point3d> subVertices = new List<Point3d>();                             // list22 -> 
+                //for (int i = 0; i < nodePoints.Count; i++)
+                //{
+                //    subVertices.Add(nodePoints[i]);
+                //}
+                List<Point3d> subVerticesRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
+                DA.SetDataList("SubVertices", subVerticesRelocated);
 
 
                 // subAttributes先不考虑
@@ -340,10 +330,9 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
         /// <summary>
-        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix，NxN的方阵
+        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix
         /// </summary>
         /// <param name="graphForNxN"></param>
-        /// /// <param name="globalParameter"></param>
         /// <returns></returns>
         public DataTree<int> GraphToAdjacencyMatrix_NxN(DataTree<int> graphForNxN, GlobalParameter globalParameter)
         {
@@ -387,12 +376,6 @@ namespace VolumeGeneratorBasedOnGraph
             return dataTreeForNxN;
         }
 
-        /// <summary>
-        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix，NxM非方阵
-        /// </summary>
-        /// <param name="graphForNxM"></param>
-        /// <param name="globalParameter"></param>
-        /// <returns></returns>
         public DataTree<int> GraphToAdjacencyMatrix_NxM(DataTree<int> graphForNxM, GlobalParameter globalParameter)
         {
             DataTree<int> dataTreeForNxM = new DataTree<int>();
@@ -414,7 +397,7 @@ namespace VolumeGeneratorBasedOnGraph
             }
             return dataTreeForNxM;
         }
-        
+
         /// <summary>
         /// 将DataTree<int>结构的矩阵转化为Rhino.Geometry.Matrix结构
         /// </summary>
@@ -524,19 +507,27 @@ namespace VolumeGeneratorBasedOnGraph
             return list2;
         }
 
-        public List<Line> GraphEdgeList(Matrix adjacencyMatrix, List<Point3d> graphVertices, GlobalParameter globalParameter)
+        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices, GlobalParameter globalParameter)
         {
             List<Line> list = new List<Line>();
 
-            for (int i = 0; i < adjacencyMatrix.RowCount; i++)
+            for (int i = 0; i < graph.BranchCount; i++)
             {
-                for (int j = 0; j < i; j++)
+                for (int j = 0; j < graph.Branch(i).Count; j++)
                 {
-                    if (adjacencyMatrix[i,j] == 1)
+                    if (graph.Branch(i)[j] >= 0)
                     {
-                        Line item = new Line(graphVertices[i], graphVertices[j]);
+                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j]]);
                         list.Add(item);
                     }
+                    else
+                    {
+                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j] + globalParameter.BoundaryNodeCount + globalParameter.VolumeNodeCount]);
+                        list.Add(item);
+                    }
+
+
+
                 }
             }
 
