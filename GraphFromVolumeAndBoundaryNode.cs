@@ -177,15 +177,13 @@ namespace VolumeGeneratorBasedOnGraph
                     List<int> sortedBoundaryNodeIndexList = new List<int>();
 
                     List<Point3d> SortedBoundaryNodeList = SortPolyPoints(boundaryNodeList, centerPoint);
-                    SortedBoundaryNodeList.Reverse();
+                    // SortedBoundaryNodeList.Reverse();
 
                     for (int i = 0; i < SortedBoundaryNodeList.Count; i++)
                     {
                         int boundaryPointsIndex = boundaryNodeList.IndexOf(SortedBoundaryNodeList[i]);
                         sortedBoundaryNodeIndexList.Add(boundaryPointsIndex);
                     }
-
-                    
 
                     DA.SetDataList("DebugIndex", sortedBoundaryNodeIndexList);
 
@@ -244,27 +242,26 @@ namespace VolumeGeneratorBasedOnGraph
                     {
                         graph.EnsurePath(i);
                         graph.AddRange(volumeConnectivityTree.Branches[i], graph.Path(i));
-                        graph.AddRange(boundaryAdjacencyTree.Branches[i], graph.Path(i));
+                        for (int j = 0; j < boundaryAdjacencyTree.Branches[i].Count; j++)
+                        {
+                            // 注意这里add的item应该是排过序后的NEWS对应的index
+                            graph.Add(sortedBoundaryNodeIndexList.IndexOf(boundaryAdjacencyTree.Branch(i)[j]) + volumeNodeCount, graph.Path(i));
+                        }
                     }
 
 
                     // 对每个boundary点（outer），向树形数据中添加新的path（BoundaryNode分支）
                     for (int i = 0; i < boundaryNodeCount; i++)
                     {
-                        graph.EnsurePath(volumeConnectivityTree.BranchCount + i);
+                        graph.EnsurePath(volumeNodeCount + i);
                     }
 
-                    // 每个BoundaryNode对于其他 inner 点的邻接关系，添加到每个BoundaryNode分支上
+                    // 每个BoundaryNode对于其他 inner 点的邻接关系，添加到每个BoundaryNode分支上，i相当于是volumeNode的序号了
                     for (int i = 0; i < boundaryAdjacencyTree.BranchCount; i++)
                     {
                         for (int j = 0; j < boundaryAdjacencyTree.Branch(i).Count; j++)
                         {
-                            // 等于空的情况
-                            if (boundaryAdjacencyTree.Branch(i)[j] + boundaryNodeCount < 0)
-                            {
-                                continue;
-                            }
-                            graph.Add(i, graph.Path(volumeNodeCount + (sortedBoundaryNodeIndexList.IndexOf(boundaryAdjacencyTree.Branch(i)[j] + boundaryNodeCount))));
+                            graph.Add(i, graph.Path(volumeNodeCount + (sortedBoundaryNodeIndexList.IndexOf(boundaryAdjacencyTree.Branch(i)[j]))));
                         }
                     }
 
@@ -273,19 +270,19 @@ namespace VolumeGeneratorBasedOnGraph
                     {
                         if (i == 0)
                         {
-                            graph.Add(sortedBoundaryNodeIndexList[sortedBoundaryNodeIndexList.Count - 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
-                            graph.Add(sortedBoundaryNodeIndexList[i + 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+                            graph.Add((sortedBoundaryNodeIndexList.Count - 1) + volumeNodeCount, graph.Path(volumeNodeCount + i));
+                            graph.Add((i + 1) + volumeNodeCount, graph.Path(volumeNodeCount + i));
                             continue;
                         }
                         if (i == sortedBoundaryNodeIndexList.Count - 1)
                         {
-                            graph.Add(sortedBoundaryNodeIndexList[i - 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
-                            graph.Add(sortedBoundaryNodeIndexList[0] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+                            graph.Add((i - 1) + volumeNodeCount, graph.Path(volumeNodeCount + i));
+                            graph.Add((0) + volumeNodeCount, graph.Path(volumeNodeCount + i));
                             continue;
                         }
 
-                        graph.Add(sortedBoundaryNodeIndexList[i - 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
-                        graph.Add(sortedBoundaryNodeIndexList[i + 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+                        graph.Add((i - 1) + volumeNodeCount, graph.Path(volumeNodeCount + i));
+                        graph.Add((i + 1) + volumeNodeCount, graph.Path(volumeNodeCount + i));
 
                     }
 
@@ -295,7 +292,7 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
         /// <summary>
-        /// 将点的列表按照这些点的中心点的顺时针方向排序
+        /// 将点的列表按照从正北开始，逆时针排序
         /// </summary>
         /// <param name="vPoints"></param>
         /// <param name="center"></param>
@@ -339,35 +336,38 @@ namespace VolumeGeneratorBasedOnGraph
             Vector3d vectorOA = new Vector3d(a) - new Vector3d(center);
             Vector3d vectorOB = new Vector3d(b) - new Vector3d(center);
 
-            if (vectorOA.X >= 0 && vectorOB.X < 0)
-            {
-                return true;
-            }
-            else if (vectorOA.X == 0 && vectorOB.X == 0)
-            {
-                return vectorOA.Y > vectorOB.Y;
-            }
-            // 向量OA和向量OB的叉积
+            // OA,OB分别与0,1,0的夹角的弧度值
+            double angleOA = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOA);
+            double angleOB = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOB);
+
+            //if (vectorOA.X >= 0 && vectorOB.X < 0)
+            //{
+            //    return true;
+            //}
+            //else if (vectorOA.X == 0 && vectorOB.X == 0)
+            //{
+            //    return vectorOA.Y > vectorOB.Y;
+            //}
             
-
-            // double det = (a.X - center.X) * (b.Y - center.Y) - (b.X - center.X) * (a.Y - center.Y);
-            double cross = vectorOA.X * vectorOB.Y - vectorOA.Y * vectorOB.X;
-
-            Vector3d vector = Vector3d.CrossProduct(vectorOA, vectorOB);
-
-            if (vector.Z < 0)
+            // 向量0,1,0和向量OA的叉积
+            Vector3d vectorZOA = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOA);
+            if (vectorZOA.Z < 0)
             {
-                return true;
+                angleOA = 2 * Math.PI - angleOA;
             }
-            if (vector.Z > 0)
+            Vector3d vectorZOB = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOB);
+            if (vectorZOB.Z < 0)
+            {
+                angleOB = 2 * Math.PI - angleOB;
+            }
+
+
+            if (angleOA < angleOB)
             {
                 return false;
             }
-
-            // 这里出了问题，E和W，叉积为0，并且两个的d是一样的
-            double d1 = Math.Pow((a.X - center.X), 2.0) + Math.Pow((a.Y - center.Y), 2.0);
-            double d2 = Math.Pow((b.X - center.X), 2.0) + Math.Pow((b.Y - center.Y), 2.0);
-            return d1 > d2;
+            return true;
+            
         }
 
         /// <summary>

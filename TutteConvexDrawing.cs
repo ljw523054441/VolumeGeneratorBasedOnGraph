@@ -49,6 +49,7 @@ namespace VolumeGeneratorBasedOnGraph
             pManager.AddPointParameter("SubVertices", "SubVertices", "A list of points containing inner vertices only, excluding NEWS vertices", GH_ParamAccess.list);
             pManager.AddGenericParameter("SubAttributes", "SubAttributes", "A list of lists of attributes pertaining to the main vertices only", GH_ParamAccess.list);
 
+
         }
 
         /// <summary>
@@ -94,23 +95,23 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeNodeIndexList.Add(i);
                 }
 
-                // List<int> list9 = new List<int>();                                      // list9 ->
-                // 每个节点（包括Volume和Boundary）的度的列表
-                List<int> graphBranchCountList = new List<int>();                       // list10 -> graphBranchCountList
-                for (int i = 0; i < graph.BranchCount; i++)
-                {
-                    graphBranchCountList.Add(graph.Branch(i).Count);
-                }
+                //// List<int> list9 = new List<int>();                                      // list9 ->
+                //// 每个节点（包括Volume和Boundary）的度的列表
+                //List<int> graphBranchCountList = new List<int>();                       // list10 -> graphBranchCountList
+                //for (int i = 0; i < graph.BranchCount; i++)
+                //{
+                //    graphBranchCountList.Add(graph.Branch(i).Count);
+                //}
 
                 // 每个volume点，其连接的数量，即该节点的度
                 List<int> volumeNodeDegreeList = new List<int>();                     // list11 -> volumeNodeBranchCountList
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
-                    volumeNodeDegreeList.Add(graphBranchCountList[volumeNodeIndexList[i]]);
+                    volumeNodeDegreeList.Add(graph.Branch(i).Count);
                 }
 
                 // List<List<int>> volumeNodeGraph = new List<List<int>>();         // list12 -> volumeNodeGraph
-                // 每个volume点与其他点的连接关系，包括其他volume点和boundary点，以及-5（表示不与任何boundary点连接）（-1 - boundaryNodeCount）
+                // 每个volume点与其他点的连接关系，包括其他volume点和boundary点
                 DataTree<int> volumeNodeGraph = new DataTree<int>();
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
@@ -118,15 +119,13 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeNodeGraph.Branch(i).AddRange(graph.Branch(volumeNodeIndexList[i]));
                 }
 
-                // boundaryNodeIndexList :  NEWSAB  -6,-5,-4,-3,-2,-1
-                //                          NEWS    -4,-3,-2,-1
-                List<int> boundaryNodeIndexList = new List<int>();                     // list13 -> boundaryNodeIndexList
+                //List<int> boundaryNodeIndexList = new List<int>();                     // list13 -> boundaryNodeIndexList
 
-                for (int i = 0; i < boundaryNodeCount; i++)
-                {
-                    // 让boundaryNodeIndexList中的元素都是设定好的负值，以便后面的元素匹配
-                    boundaryNodeIndexList.Add(i - boundaryNodeCount);
-                }
+                //for (int i = 0; i < boundaryNodeCount; i++)
+                //{
+                //    // 让boundaryNodeIndexList中的元素都是 volumeNodeCount + i,以便后面的元素匹配。N:9(0)  E:10(1)  W:11(2)  S:12(3)  以此类推....
+                //    boundaryNodeIndexList.Add(volumeNodeCount + i);
+                //}
 
                 // List<int> list14 = new List<int>();                     // list14 ->
                 // List<List<int>> list15 = new List<List<int>>();         // list15 -> volumeAdjacencyBoundary
@@ -144,11 +143,14 @@ namespace VolumeGeneratorBasedOnGraph
                     P_outer[i, 1] = nodePoints[volumeNodeCount + i].Y;
                 }
 
+                
 
 
                 // 整个大的矩阵，包含四个部分  inner行-inner列  inner行-outer列：Q  outer行-inner列：Q(上标T)  outer行-outer列
                 DataTree<int> wholeAdjacencyDataTree = GraphToAdjacencyMatrix_NxN(graph, globalParameter);
                 Matrix wholeAdjacencyMatrix = ToGHMatrix(wholeAdjacencyDataTree);
+
+
 
                 // 矩阵Q：inner_OuterAdjacencyMatrix
                 DataTree<int> volumeBoundaryGraph = new DataTree<int>();
@@ -157,12 +159,10 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeBoundaryGraph.EnsurePath(i);
                     for (int j = 0; j < volumeNodeGraph.Branch(i).Count; j++)
                     {
-                        if (volumeNodeGraph.Branch(i)[j] < 0)
+                        // 选出outer的部分
+                        if (volumeNodeGraph.Branch(i)[j] >= volumeNodeCount)
                         {
-                            if (volumeNodeGraph.Branch(i)[j] != -1 - boundaryNodeCount)
-                            {
-                                volumeBoundaryGraph.Branch(i).Add(volumeNodeGraph.Branch(i)[j]);
-                            }
+                            volumeBoundaryGraph.Branch(i).Add(volumeNodeGraph.Branch(i)[j]);
                         }
                     }
                 }
@@ -171,20 +171,28 @@ namespace VolumeGeneratorBasedOnGraph
                 Matrix inner_OuterAdjacencyMatrix = ToGHMatrix(inner_OuterAdjacencyDataTree);
                 inner_OuterAdjacencyMatrix.Transpose();
 
+
+
                 DataTree<int> inner_InnerAdjacencyDataTree = SubAdjacencyMatrix(wholeAdjacencyDataTree, volumeNodeIndexList);
                 Matrix inner_InnerAdjacencyMatrix = ToGHMatrix(inner_InnerAdjacencyDataTree);
                 // 矩阵L(下标1)：inner_InnerLaplacianMatrix
                 DataTree<int> inner_InnerLaplacianDataTree = LaplacianMatrix(inner_InnerAdjacencyDataTree, volumeNodeDegreeList);
                 Matrix inner_InnerLaplacianMatrix = ToGHMatrix(inner_InnerLaplacianDataTree);       // matrix3 -> volumeAndVolumeLaplacianMatrix
 
+
+
                 inner_InnerLaplacianMatrix.Invert(0.0);
                 // 拉普拉斯矩阵的逆 L(下标1)(上标-1)：inverse_Inner_InnerLaplacianMatrix
                 Matrix inverse_Inner_InnerLaplacianMatrix = inner_InnerLaplacianMatrix;                              // matrix4 -> inverseLaplacianMatrix
 
+
+
                 // 求解矩阵 P(inner)
                 Matrix P_inner = new Matrix(volumeNodeCount, 2);
                 P_inner = inverse_Inner_InnerLaplacianMatrix * inner_OuterAdjacencyMatrix * P_outer;
-                P_inner.Scale(-1.0);
+                // 原插件这里没乘负号
+                // P_inner.Scale(-1.0);
+
 
 
                 List<Point3d> newInnerPoints = new List<Point3d>();                             // list23 -> newBoundaryPoints
@@ -196,6 +204,19 @@ namespace VolumeGeneratorBasedOnGraph
                 }
                 List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newInnerPoints, Plane.WorldXY, worldXY);
                 DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -252,8 +273,11 @@ namespace VolumeGeneratorBasedOnGraph
                 //{
                 //    subVertices.Add(nodePoints[i]);
                 //}
-                List<Point3d> subVerticesRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
-                DA.SetDataList("SubVertices", subVerticesRelocated);
+
+
+
+                //List<Point3d> subVerticesRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
+                //DA.SetDataList("SubVertices", newNodePointsRelocated);
 
 
                 // subAttributes先不考虑
@@ -343,34 +367,45 @@ namespace VolumeGeneratorBasedOnGraph
                 dataTreeForNxN.EnsurePath(i);
                 for (int j = 0; j < graphForNxN.BranchCount; j++)
                 {
-                    // connectivity连接关系时
-                    if (j < globalParameter.VolumeNodeCount)
+                    if (graphForNxN.Branch(i).Contains(j))
                     {
-                        if (graphForNxN.Branch(i).Contains(j))
-                        {
-                            //list[i].Add(1);
-                            dataTreeForNxN.Branch(i).Add(1);
-                        }
-                        else
-                        {
-                            //list[i].Add(0);
-                            dataTreeForNxN.Branch(i).Add(0);
-                        }
+                        //list[i].Add(1);
+                        dataTreeForNxN.Branch(i).Add(1);
                     }
-                    // adjacency连接关系时
                     else
                     {
-                        if (graphForNxN.Branch(i).Contains(j - globalParameter.VolumeNodeCount - globalParameter.BoundaryNodeCount))
-                        {
-                            //list[i].Add(1);
-                            dataTreeForNxN.Branch(i).Add(1);
-                        }
-                        else
-                        {
-                            //list[i].Add(0);
-                            dataTreeForNxN.Branch(i).Add(0);
-                        }
+                        //list[i].Add(0);
+                        dataTreeForNxN.Branch(i).Add(0);
                     }
+
+                    //// connectivity连接关系时
+                    //if (j < globalParameter.VolumeNodeCount)
+                    //{
+                    //    if (graphForNxN.Branch(i).Contains(j))
+                    //    {
+                    //        //list[i].Add(1);
+                    //        dataTreeForNxN.Branch(i).Add(1);
+                    //    }
+                    //    else
+                    //    {
+                    //        //list[i].Add(0);
+                    //        dataTreeForNxN.Branch(i).Add(0);
+                    //    }
+                    //}
+                    //// adjacency连接关系时
+                    //else
+                    //{
+                    //    if (graphForNxN.Branch(i).Contains(j))
+                    //    {
+                    //        //list[i].Add(1);
+                    //        dataTreeForNxN.Branch(i).Add(1);
+                    //    }
+                    //    else
+                    //    {
+                    //        //list[i].Add(0);
+                    //        dataTreeForNxN.Branch(i).Add(0);
+                    //    }
+                    //}
                 }
             }
             return dataTreeForNxN;
@@ -385,7 +420,7 @@ namespace VolumeGeneratorBasedOnGraph
                 dataTreeForNxM.EnsurePath(i);
                 for (int j = 0; j < globalParameter.BoundaryNodeCount; j++)
                 {
-                    if (graphForNxM.Branch(i).Contains(j - globalParameter.BoundaryNodeCount))
+                    if (graphForNxM.Branch(i).Contains(j + globalParameter.VolumeNodeCount))
                     {
                         dataTreeForNxM.Branch(i).Add(1);
                     }

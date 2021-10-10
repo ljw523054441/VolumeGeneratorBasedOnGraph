@@ -119,14 +119,19 @@ namespace VolumeGeneratorBasedOnGraph
                 string[] adjacency = rowData[3].Split('-');
                 for (int j = 0; j < adjacency.Length; j++)
                 {
+                    // 如果是空，就跳过它继续后面的循环
                     if (adjacency[j] == "")
                     {
-                        volumeBoundaryAdjacencyDataTree.Add(-1 - boundaryNodeCount, path);
+                        volumeBoundaryAdjacencyDataTree.AddRange(new List<int>(), path);
                         continue;
                     }
                     else if (Convert.ToInt32(adjacency[j]) >= boundaryNodeCount)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "请检查adjacency在csv文件中的输入。");
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "请检查adjacency中序号的输入，是否超过了BoundaryNode数量的上限。");
+                    }
+                    else if (Convert.ToInt32(adjacency[j]) < 0)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "请检查adjacency中序号的输入，是否超过了BoundaryNode数量的下限。");
                     }
                     //else if (adjacency[j] == "N")
                     //{
@@ -150,7 +155,7 @@ namespace VolumeGeneratorBasedOnGraph
                     //}
                     else
                     {
-                        volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]) - boundaryNodeCount, path);
+                        volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
                     }
                     // volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
                 }
