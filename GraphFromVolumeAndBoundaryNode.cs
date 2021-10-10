@@ -136,8 +136,6 @@ namespace VolumeGeneratorBasedOnGraph
             List<Point3d> nodePoints = new List<Point3d>();
             List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
 
-            //List<NodeAttribute> volumeNodeAttributes = new List<NodeAttribute>();
-            //List<NodeAttribute> boundaryNodeAttributes = new List<NodeAttribute>();
 
 
             // 获取NEWS四个方向的Region，同时将四个Region的中心添加到节点列表nodeList中
@@ -145,7 +143,6 @@ namespace VolumeGeneratorBasedOnGraph
             {
                 // 获取NEWS四个方向的Region，同时将四个Region的中心添加到节点列表nodeList中
                 SketchBoxNEWS(PadSquare(volumeNodeList, Plane.WorldXY), ref NEWS_Regions, ref NEWS_Vertices);
-
 
                 
                 if (DA.GetDataList<string>("VolumeLabelList", volumeLabelList) && volumeLabelList.Count != volumeNodeList.Count)
@@ -164,71 +161,11 @@ namespace VolumeGeneratorBasedOnGraph
                     return;
                 }
 
-                //// 获取NodeAttribute中的NodeArea信息
-                //for (int i = 0; i < volumeNodeAttributeList.Count; i++)
-                //{
-                //    volumeAreaAttributeList.Add(volumeNodeAttributeList[i].NodeArea);
-                //}
-
-                //// 计算总面积
-                //totalArea = Total(volumeAreaAttributeList);
-                //// 面积修正
-                //List<double> modifiedAreaAttributeList = new List<double>();
-                //for (int i = 0; i < volumeAreaAttributeList.Count; i++)
-                //{
-                //    modifiedAreaAttributeList.Add(volumeAreaAttributeList[i] / totalArea * totalArea);
-                //}
-
-                //// 构造NodeAttribute列表
-                //volumeNodeAttributeList.Clear();
-                //for (int i = 0; i < volumeLabelList.Count; i++)
-                //{
-                //    NodeAttribute nodeAttribute = new NodeAttribute(volumeLabelList[i], modifiedAreaAttributeList[i]);
-                //    volumeNodeAttributes.Add(nodeAttribute);
-                //}
-
-                
-
-
-
 
                 // 输出Graph的树形结构
                 if (DA.GetDataTree<GH_Integer>("VolumeConnectivityTree", out gh_Structure_ConnectivityTree)
                 & DA.GetDataTree<GH_Integer>("BoundaryAdjacencyTree", out gh_Structure_AdjacencyTree))
                 {
-                    // 将ConnectivityTree从GH_Structure<GH_Integer>转化为DataTree<int>
-                    UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_ConnectivityTree, ref volumeConnectivityTree);
-                    // 将AdjacencyTree从GH_Structure<GH_Integer>转化为DataTree<int>
-                    UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_AdjacencyTree, ref boundaryAdjacencyTree);
-
-                    
-                    // 将每个volumeNode的邻接表添加到树形数据中volumeNode对应的那一支上
-                    for (int i = 0; i < volumeConnectivityTree.BranchCount; i++)
-                    {
-                        graph.EnsurePath(i);
-                        graph.AddRange(volumeConnectivityTree.Branches[i], graph.Path(i));
-                        graph.AddRange(boundaryAdjacencyTree.Branches[i], graph.Path(i));
-                    }
-
-                    // 对每个boundary点，向树形数据中添加新的path
-                    for (int i = 0; i < boundaryNodeCount; i++)
-                    {
-                        graph.EnsurePath(volumeConnectivityTree.BranchCount + i);
-                    }
-
-                    // 将每个volume点对于boundary点的邻接表，转化成boundary对于volume的，并且添加到上面新增的boundary的对应path中
-                    for (int i = 0; i < boundaryAdjacencyTree.BranchCount; i++)
-                    {
-                        for (int j = 0; j < boundaryAdjacencyTree.Branch(i).Count; j++)
-                        {
-                            if (boundaryAdjacencyTree.Branch(i)[j] + boundaryNodeCount < 0)
-                            {
-                                continue;
-                            }
-                            graph.Add(i, graph.Path(volumeConnectivityTree.BranchCount + (boundaryAdjacencyTree.Branch(i)[j] + boundaryNodeCount)));
-                        }
-                    }
-
                     // 自定义的boundary节点按照角度进行排序，插入到NEWS中，得到所有boundary点之间的邻接关系
                     Sphere NEWSSphere = Sphere.FitSphereToPoints(NEWS_Vertices);
                     Point3d centerPoint = NEWSSphere.Center;
@@ -237,39 +174,20 @@ namespace VolumeGeneratorBasedOnGraph
                     boundaryNodeList.AddRange(NEWS_Vertices);
                     boundaryNodeList.AddRange(boundaryNodeListExceptNEWS);
 
-                    List<int> indexList = new List<int>();
+                    List<int> sortedBoundaryNodeIndexList = new List<int>();
 
                     List<Point3d> SortedBoundaryNodeList = SortPolyPoints(boundaryNodeList, centerPoint);
                     SortedBoundaryNodeList.Reverse();
 
                     for (int i = 0; i < SortedBoundaryNodeList.Count; i++)
                     {
-                        int index = boundaryNodeList.IndexOf(SortedBoundaryNodeList[i]);
-                        indexList.Add(index);
+                        int boundaryPointsIndex = boundaryNodeList.IndexOf(SortedBoundaryNodeList[i]);
+                        sortedBoundaryNodeIndexList.Add(boundaryPointsIndex);
                     }
 
-                    for (int i = 0; i < indexList.Count; i++)
-                    {
-                        if (i == 0)
-                        {
-                            graph.Add(indexList[indexList.Count - 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                            graph.Add(indexList[i + 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                            continue;
-                        }
-                        if (i == indexList.Count - 1)
-                        {
-                            graph.Add(indexList[i - 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                            graph.Add(indexList[0] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                            continue;
-                        }
+                    
 
-                        graph.Add(indexList[i - 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                        graph.Add(indexList[i + 1] - boundaryNodeCount, graph.Path(volumeConnectivityTree.BranchCount + indexList[i]));
-                    }
-
-                    DA.SetDataList("DebugIndex", indexList);
-                    DA.SetDataTree(0, graph);
-
+                    DA.SetDataList("DebugIndex", sortedBoundaryNodeIndexList);
 
 
                     // 构造包含所有node节点的列表，顺序是 inner node + outer node
@@ -280,7 +198,6 @@ namespace VolumeGeneratorBasedOnGraph
 
                     // 输出NodePoints
                     DA.SetDataList("NodePoints", nodePoints);
-
 
 
                     List<Point3d> volumeAndNEWSNodes = volumeNodeList;
@@ -304,11 +221,10 @@ namespace VolumeGeneratorBasedOnGraph
 
                     // 用前面生成的对于Boundary点的排序列表来对BoundaryAttribute列表进行对应的排序
                     List<NodeAttribute> SortedBoundaryNodeAttributes = new List<NodeAttribute>();
-                    foreach (int index in indexList)
+                    foreach (int index in sortedBoundaryNodeIndexList)
                     {
                         SortedBoundaryNodeAttributes.Add(boundaryNodeAttributeList[index]);
                     }
-
 
                     // 构造包含所有node节点的属性列表，顺序是 inner node + outer node
                     nodeAttributes.AddRange(volumeNodeAttributeList);
@@ -316,6 +232,64 @@ namespace VolumeGeneratorBasedOnGraph
                     // 输出NodeAttributes
                     DA.SetDataList("NodeAttributes", nodeAttributes);
 
+
+
+                    // 将ConnectivityTree从GH_Structure<GH_Integer>转化为DataTree<int>
+                    UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_ConnectivityTree, ref volumeConnectivityTree);
+                    // 将AdjacencyTree从GH_Structure<GH_Integer>转化为DataTree<int>
+                    UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_AdjacencyTree, ref boundaryAdjacencyTree);
+
+                    // 将每个VolumeNode对于其他 inner + outer 点的邻接关系，添加到每个VolumeNode分支上
+                    for (int i = 0; i < volumeConnectivityTree.BranchCount; i++)
+                    {
+                        graph.EnsurePath(i);
+                        graph.AddRange(volumeConnectivityTree.Branches[i], graph.Path(i));
+                        graph.AddRange(boundaryAdjacencyTree.Branches[i], graph.Path(i));
+                    }
+
+
+                    // 对每个boundary点（outer），向树形数据中添加新的path（BoundaryNode分支）
+                    for (int i = 0; i < boundaryNodeCount; i++)
+                    {
+                        graph.EnsurePath(volumeConnectivityTree.BranchCount + i);
+                    }
+
+                    // 每个BoundaryNode对于其他 inner 点的邻接关系，添加到每个BoundaryNode分支上
+                    for (int i = 0; i < boundaryAdjacencyTree.BranchCount; i++)
+                    {
+                        for (int j = 0; j < boundaryAdjacencyTree.Branch(i).Count; j++)
+                        {
+                            // 等于空的情况
+                            if (boundaryAdjacencyTree.Branch(i)[j] + boundaryNodeCount < 0)
+                            {
+                                continue;
+                            }
+                            graph.Add(i, graph.Path(volumeNodeCount + (sortedBoundaryNodeIndexList.IndexOf(boundaryAdjacencyTree.Branch(i)[j] + boundaryNodeCount))));
+                        }
+                    }
+
+                    // 每个BoundaryNode对于其他 outer 点的邻接关系（outer点顺时针排序，每个outer点与其左右的两个outer点分别连接），添加到每个BoundaryNode分支上
+                    for (int i = 0; i < sortedBoundaryNodeIndexList.Count; i++)
+                    {
+                        if (i == 0)
+                        {
+                            graph.Add(sortedBoundaryNodeIndexList[sortedBoundaryNodeIndexList.Count - 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+                            graph.Add(sortedBoundaryNodeIndexList[i + 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+                            continue;
+                        }
+                        if (i == sortedBoundaryNodeIndexList.Count - 1)
+                        {
+                            graph.Add(sortedBoundaryNodeIndexList[i - 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+                            graph.Add(sortedBoundaryNodeIndexList[0] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+                            continue;
+                        }
+
+                        graph.Add(sortedBoundaryNodeIndexList[i - 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+                        graph.Add(sortedBoundaryNodeIndexList[i + 1] - boundaryNodeCount, graph.Path(volumeNodeCount + i));
+
+                    }
+
+                    DA.SetDataTree(0, graph);
                 }
             }
         }
