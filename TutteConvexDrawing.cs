@@ -49,7 +49,7 @@ namespace VolumeGeneratorBasedOnGraph
             pManager.AddPointParameter("SubVertices", "SubVertices", "A list of points containing inner vertices only, excluding NEWS vertices", GH_ParamAccess.list);
             pManager.AddGenericParameter("SubAttributes", "SubAttributes", "A list of lists of attributes pertaining to the main vertices only", GH_ParamAccess.list);
 
-
+            pManager.AddLineParameter("graphEdge", "", "", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -202,14 +202,23 @@ namespace VolumeGeneratorBasedOnGraph
                     innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
                     newInnerPoints.Add(innerPoint);
                 }
-                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newInnerPoints, Plane.WorldXY, worldXY);
+
+                List<Point3d> newNodePoints = new List<Point3d>();
+                newNodePoints.AddRange(newInnerPoints);
+                for (int i = 0; i < boundaryNodeCount; i++)
+                {
+                    newNodePoints.Add(nodePoints[volumeNodeCount + i]);
+                }
+                
+
+                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newNodePoints, Plane.WorldXY, worldXY);
                 DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
 
 
 
+                List<Line> graphEdge = GraphEdgeList(graph, newNodePointsRelocated, globalParameter);
 
-
-
+                DA.SetDataList("graphEdge", graphEdge);
 
 
 
@@ -550,19 +559,8 @@ namespace VolumeGeneratorBasedOnGraph
             {
                 for (int j = 0; j < graph.Branch(i).Count; j++)
                 {
-                    if (graph.Branch(i)[j] >= 0)
-                    {
-                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j]]);
-                        list.Add(item);
-                    }
-                    else
-                    {
-                        Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j] + globalParameter.BoundaryNodeCount + globalParameter.VolumeNodeCount]);
-                        list.Add(item);
-                    }
-
-
-
+                    Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j]]);
+                    list.Add(item);
                 }
             }
 
