@@ -33,6 +33,33 @@ namespace VolumeGeneratorBasedOnGraph
             }
         }
 
+        public static void GraphToSubGraph(DataTree<int> graph, GlobalParameter globalParameter, out DataTree<int> connectivityGraph, out DataTree<int> adjacencyGraph)
+        {
+            connectivityGraph = new DataTree<int>();
+            adjacencyGraph = new DataTree<int>();
+
+            for (int i = 0; i < graph.BranchCount; i++)
+            {
+                for (int j = 0; j < graph.Branch(i).Count; j++)
+                {
+                    if (i < globalParameter.VolumeNodeCount)
+                    {
+                        connectivityGraph.EnsurePath(i);
+                        if (graph.Branch(i)[j] < globalParameter.VolumeNodeCount)
+                        {
+                            connectivityGraph.Branch(i).Add(graph.Branch(i)[j]);
+                        }
+                    }
+                    else
+                    {
+                        adjacencyGraph.EnsurePath(i - globalParameter.VolumeNodeCount);
+                        adjacencyGraph.Branch(i - globalParameter.VolumeNodeCount).Add(graph.Branch(i)[j]);
+                    }
+                }
+            }
+        }
+
+
         /// <summary>
         /// 将Connectivity图结构中的Edge转化为可以显示的Line线段
         /// </summary>
@@ -81,6 +108,8 @@ namespace VolumeGeneratorBasedOnGraph
 
             return lineList;
         }
+
+
 
         /// <summary>
         /// 将一个列表的点，由一个坐标系整体平移到另一个坐标系

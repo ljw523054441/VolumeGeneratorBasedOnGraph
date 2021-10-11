@@ -62,6 +62,7 @@
     <Compile Include="GlobalParameters.cs" />
     <Compile Include="GlobalParameterStruct.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
+    <Compile Include="GraphToDiskDrawing.cs" />
     <Compile Include="NodeAttributeStruct.cs" />
     <Compile Include="TutteConvexDrawing.cs" />
     <Compile Include="UtilityFunctions.cs" />
