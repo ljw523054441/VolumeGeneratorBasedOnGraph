@@ -64,6 +64,7 @@
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
     <Compile Include="GraphToDiskDrawing.cs" />
     <Compile Include="NodeAttributeStruct.cs" />
+    <Compile Include="Triangulate.cs" />
     <Compile Include="TutteConvexDrawing.cs" />
     <Compile Include="UtilityFunctions.cs" />
     <Compile Include="VolumeGeneratorBasedOnGraphInfo.cs" />
