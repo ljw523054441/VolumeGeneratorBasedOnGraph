@@ -85,7 +85,7 @@ namespace VolumeGeneratorBasedOnGraph
                 DA.GetData<int>("IndexOfTriangulation", ref index);
                 DA.GetData<bool>("ExcludeDegenerateTINS", ref flag);
 
-                List<Mesh> list4 = EnumerateAllTINs()
+                List<Mesh> list4 = EnumerateAllTINs();
             }
         }
 
@@ -139,11 +139,27 @@ namespace VolumeGeneratorBasedOnGraph
                 List<List<Mesh>> list = new List<List<Mesh>>();
                 foreach (Polyline polyline in Polygons)
                 {
-                    Trangulate
+                    PolygonFace polygonFace = new PolygonFace(polyline);
+                    List<Mesh> tins = MeshTriangulations(polygonFace.TriangulatePolygonFace(), polyline.GetRange(0,polyline.Count-1));
+                    List<Mesh> item = 
                 }
             }
         }
 
+        public List<Mesh> MeshTriangulations(List<List<MeshFace>> Triangulations, IEnumerable<Point3d> vertices)
+        {
+            List<Mesh> list = new List<Mesh>();
+
+            foreach (List<MeshFace> list2 in Triangulations)
+            {
+                Mesh mesh = new Mesh();
+                mesh.Vertices.AddVertices(vertices);
+                mesh.Faces.AddFaces(list2);
+                list.Add(mesh);
+            }
+
+            return list;
+        }
 
         public class PolygonFace : List<int>
         {
@@ -224,11 +240,50 @@ namespace VolumeGeneratorBasedOnGraph
                     //result = list;
                     return list;
                 }
-
-                for (int i = 0; i < indices.Count; i++)
+                else
                 {
-                    List<PolygonFace> list4 = 
+                    for (int i = 2; i < indices.Count; i++)
+                    {
+                        List<PolygonFace> list4 = DividePolygonFace(i);
+
+                        if (list4.Count == 1)
+                        {
+                            PolygonFace polygonFace = list4[0];
+                            List<List<MeshFace>> list5 = polygonFace.TriangulatePolygonFace();
+                            foreach (List<MeshFace> collection in list5)
+                            {
+                                List<MeshFace> list6 = new List<MeshFace>();
+                                List<MeshFace> list7 = list6;
+                                MeshFace item = new MeshFace(indices[0], indices[1], indices[i]);
+                                list7.Add(item);
+                                list6.AddRange(collection);
+                                list.Add(list6);
+                            }
+                        }
+                        else
+                        {
+                            PolygonFace polygonFace2 = list4[0];
+                            PolygonFace polygonFace3 = list4[1];
+                            List<List<MeshFace>> list8 = polygonFace2.TriangulatePolygonFace();
+                            List<List<MeshFace>> list9 = polygonFace3.TriangulatePolygonFace();
+
+                            foreach (List<MeshFace> collection2 in list8)
+                            {
+                                foreach (List<MeshFace> collection3 in list9)
+                                {
+                                    List<MeshFace> list10 = new List<MeshFace>();
+                                    List<MeshFace> list11 = list10;
+                                    MeshFace item = new MeshFace(indices[0], indices[1], indices[i]);
+                                    list11.Add(item);
+                                    list10.AddRange(collection2);
+                                    list10.AddRange(collection3);
+                                    list.Add(list10);
+                                }
+                            }
+                        }
+                    }
                 }
+                return list;
             }
 
             public List<PolygonFace> DividePolygonFace(int ear)
@@ -250,7 +305,44 @@ namespace VolumeGeneratorBasedOnGraph
                     list2.Add(indices[i]);
                 }
 
+                PolygonFace polygonFace = null;
+                PolygonFace polygonFace2 = null;
 
+                if (list.Count >= 3)
+                {
+                    polygonFace = new PolygonFace(list);
+                    polygonFace2 = new PolygonFace(list2);
+
+                    return new PolygonFace[]
+                    {
+                        polygonFace,
+                        polygonFace2
+                    }.ToList<PolygonFace>();
+                }
+                else
+                {
+                    if (polygonFace == null)
+                    {
+                        return new PolygonFace[]
+                        {
+                            polygonFace2
+                        }.ToList<PolygonFace>();
+                    }
+                    else
+                    {
+                        if (polygonFace2 == null)
+                        {
+                            return new PolygonFace[]
+                            {
+                                polygonFace
+                            }.ToList<PolygonFace>();
+                        }
+                        else
+                        {
+                            return null;
+                        }
+                    }
+                }
             }
             
         }
