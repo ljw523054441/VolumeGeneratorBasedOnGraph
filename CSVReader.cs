@@ -49,125 +49,129 @@ namespace VolumeGeneratorBasedOnGraph
         {
             // 全局参数传递
             GlobalParameter globalParameter = new GlobalParameter();
-            DA.GetData("GlobalParameter", ref globalParameter);
-            int volumeNodeCount = globalParameter.VolumeNodeCount;
-            int boundaryNodeCount = globalParameter.BoundaryNodeCount;
+            
 
-            // Receive input 接收输入
-            string csvPath = null;
-            DA.GetData("CSVFilePath", ref csvPath);
-
-            // int number = 0;
-            // DA.GetData("NumberOfCustomBoundaryNode", ref number);
-
-            // Initialize variables 初始化变量
-            List<string> nodeLabelList = new List<string>();
-            //List<double> volumeAreaAttributeList = new List<double>();
-            List<NodeAttribute> nodeAttributesList = new List<NodeAttribute>();
-            DataTree<int> volumeConnectivityArributeDataTree = new DataTree<int>();
-            DataTree<int> volumeBoundaryAdjacencyDataTree = new DataTree<int>();
-
-
-            // Read the data of the CSV files as individual lines 按行读取csv文件中的数据
-            string[] csvLines = System.IO.File.ReadAllLines(csvPath);
-            // Parse all lines 解析所有行的数据
-            for (int i = 1; i < csvLines.Length; i++)
+            if (DA.GetData("GlobalParameter", ref globalParameter))
             {
-                // Split rowData with "," 按逗号分隔每一行的字符串
-                string[] rowData = csvLines[i].Split(',');
+                int volumeNodeCount = globalParameter.VolumeNodeCount;
+                int boundaryNodeCount = globalParameter.BoundaryNodeCount;
 
-                if (rowData[0] == "")
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have a Label, please check csv file.");
-                    return;
-                }
-                if (rowData[1] == "")
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have attribute, please check csv file.");
-                    return;
-                }
-                // Add first and second colume data into corresponding list 将得到的第一列和第二列数据分别添加到对应的列表中
-                nodeLabelList.Add(rowData[0]);
-                nodeAttributesList.Add(new NodeAttribute(rowData[0], Convert.ToDouble(rowData[1])));
-                //volumeAreaAttributeList.Add(Convert.ToDouble(rowData[1]));
+                // Receive input 接收输入
+                string csvPath = null;
+                DA.GetData("CSVFilePath", ref csvPath);
 
-                // Split ConnectivityArribute with "-" and add it to corresponding datatree with correct path 用-号将第三列数据分隔，并按照对应的路径添加到树形结构中
-                string[] connectivity = rowData[2].Split('-');
-                GH_Path path = new GH_Path(0, i - 1);
-                for (int j = 0; j < connectivity.Length; j++)
+                // int number = 0;
+                // DA.GetData("NumberOfCustomBoundaryNode", ref number);
+
+                // Initialize variables 初始化变量
+                List<string> nodeLabelList = new List<string>();
+                //List<double> volumeAreaAttributeList = new List<double>();
+                List<NodeAttribute> nodeAttributesList = new List<NodeAttribute>();
+                DataTree<int> volumeConnectivityArributeDataTree = new DataTree<int>();
+                DataTree<int> volumeBoundaryAdjacencyDataTree = new DataTree<int>();
+
+
+                // Read the data of the CSV files as individual lines 按行读取csv文件中的数据
+                string[] csvLines = System.IO.File.ReadAllLines(csvPath);
+                // Parse all lines 解析所有行的数据
+                for (int i = 1; i < csvLines.Length; i++)
                 {
-                    if (connectivity[j] == "")
+                    // Split rowData with "," 按逗号分隔每一行的字符串
+                    string[] rowData = csvLines[i].Split(',');
+
+                    if (rowData[0] == "")
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have connectivity, please check csv file.");
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have a Label, please check csv file.");
                         return;
                     }
-                    if (Convert.ToInt32(connectivity[j]) >= csvLines.Length - 1)
+                    if (rowData[1] == "")
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, connectivity[j].ToString()+"节点的连接对象的序号不在节点列表中");
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have attribute, please check csv file.");
+                        return;
                     }
-                    else
+                    // Add first and second colume data into corresponding list 将得到的第一列和第二列数据分别添加到对应的列表中
+                    nodeLabelList.Add(rowData[0]);
+                    nodeAttributesList.Add(new NodeAttribute(rowData[0], Convert.ToDouble(rowData[1])));
+                    //volumeAreaAttributeList.Add(Convert.ToDouble(rowData[1]));
+
+                    // Split ConnectivityArribute with "-" and add it to corresponding datatree with correct path 用-号将第三列数据分隔，并按照对应的路径添加到树形结构中
+                    string[] connectivity = rowData[2].Split('-');
+                    GH_Path path = new GH_Path(0, i - 1);
+                    for (int j = 0; j < connectivity.Length; j++)
                     {
-                        volumeConnectivityArributeDataTree.Add(Convert.ToInt32(connectivity[j]), path);
+                        if (connectivity[j] == "")
+                        {
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have connectivity, please check csv file.");
+                            return;
+                        }
+                        if (Convert.ToInt32(connectivity[j]) >= csvLines.Length - 1)
+                        {
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, connectivity[j].ToString() + "节点的连接对象的序号不在节点列表中");
+                        }
+                        else
+                        {
+                            volumeConnectivityArributeDataTree.Add(Convert.ToInt32(connectivity[j]), path);
+                        }
+                    }
+
+                    // 边界邻接点的数量，先设置成4，可以继续增加，比如8
+                    // NodeAttribute.NEWSCount
+                    // NodeAttribute.BoundaryNodeCount = 4 + number;
+                    // NodeAttribute.VolumeNodeCount = csvLines.Length - 1;
+
+                    string[] adjacency = rowData[3].Split('-');
+                    for (int j = 0; j < adjacency.Length; j++)
+                    {
+                        // 如果是空，就跳过它继续后面的循环
+                        if (adjacency[j] == "")
+                        {
+                            volumeBoundaryAdjacencyDataTree.AddRange(new List<int>(), path);
+                            continue;
+                        }
+                        else if (Convert.ToInt32(adjacency[j]) >= boundaryNodeCount)
+                        {
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "请检查adjacency中序号的输入，是否超过了BoundaryNode数量的上限。");
+                        }
+                        else if (Convert.ToInt32(adjacency[j]) < 0)
+                        {
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "请检查adjacency中序号的输入，是否超过了BoundaryNode数量的下限。");
+                        }
+                        //else if (adjacency[j] == "N")
+                        //{
+                        //    volumeBoundaryAdjacencyDataTree.Add(0 - NodeAttribute.NEWSCount, path);
+                        //    continue;
+                        //}
+                        //else if (adjacency[j] == "E")
+                        //{
+                        //    volumeBoundaryAdjacencyDataTree.Add(1 - NodeAttribute.NEWSCount, path);
+                        //    continue;
+                        //}
+                        //else if (adjacency[j] == "W")
+                        //{
+                        //    volumeBoundaryAdjacencyDataTree.Add(2 - NodeAttribute.NEWSCount, path);
+                        //    continue;
+                        //}
+                        //else if (adjacency[j] == "S")
+                        //{
+                        //    volumeBoundaryAdjacencyDataTree.Add(3 - NodeAttribute.NEWSCount, path);
+                        //    continue;
+                        //}
+                        else
+                        {
+                            volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
+                        }
+                        // volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
                     }
                 }
 
-                // 边界邻接点的数量，先设置成4，可以继续增加，比如8
-                // NodeAttribute.NEWSCount
-                // NodeAttribute.BoundaryNodeCount = 4 + number;
-                // NodeAttribute.VolumeNodeCount = csvLines.Length - 1;
 
-                string[] adjacency = rowData[3].Split('-');
-                for (int j = 0; j < adjacency.Length; j++)
-                {
-                    // 如果是空，就跳过它继续后面的循环
-                    if (adjacency[j] == "")
-                    {
-                        volumeBoundaryAdjacencyDataTree.AddRange(new List<int>(), path);
-                        continue;
-                    }
-                    else if (Convert.ToInt32(adjacency[j]) >= boundaryNodeCount)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "请检查adjacency中序号的输入，是否超过了BoundaryNode数量的上限。");
-                    }
-                    else if (Convert.ToInt32(adjacency[j]) < 0)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "请检查adjacency中序号的输入，是否超过了BoundaryNode数量的下限。");
-                    }
-                    //else if (adjacency[j] == "N")
-                    //{
-                    //    volumeBoundaryAdjacencyDataTree.Add(0 - NodeAttribute.NEWSCount, path);
-                    //    continue;
-                    //}
-                    //else if (adjacency[j] == "E")
-                    //{
-                    //    volumeBoundaryAdjacencyDataTree.Add(1 - NodeAttribute.NEWSCount, path);
-                    //    continue;
-                    //}
-                    //else if (adjacency[j] == "W")
-                    //{
-                    //    volumeBoundaryAdjacencyDataTree.Add(2 - NodeAttribute.NEWSCount, path);
-                    //    continue;
-                    //}
-                    //else if (adjacency[j] == "S")
-                    //{
-                    //    volumeBoundaryAdjacencyDataTree.Add(3 - NodeAttribute.NEWSCount, path);
-                    //    continue;
-                    //}
-                    else
-                    {
-                        volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
-                    }
-                    // volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
-                }
+
+                // Output 输出
+                DA.SetDataTree(0, volumeConnectivityArributeDataTree);
+                DA.SetDataTree(1, volumeBoundaryAdjacencyDataTree);
+                DA.SetDataList("LabelList", nodeLabelList);
+                DA.SetDataList("AttributeList", nodeAttributesList);
             }
-
-
-
-            // Output 输出
-            DA.SetDataTree(0, volumeConnectivityArributeDataTree);
-            DA.SetDataTree(1, volumeBoundaryAdjacencyDataTree);
-            DA.SetDataList("LabelList", nodeLabelList);
-            DA.SetDataList("AttributeList", nodeAttributesList);
         }
 
         /// <summary>

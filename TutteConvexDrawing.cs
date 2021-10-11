@@ -194,7 +194,7 @@ namespace VolumeGeneratorBasedOnGraph
                 // P_inner.Scale(-1.0);
 
 
-
+                // 从P_inner矩阵中生成新的inner点的坐标
                 List<Point3d> newInnerPoints = new List<Point3d>();                             // list23 -> newBoundaryPoints
                 Point3d innerPoint;
                 for (int i = 0; i < volumeNodeCount; i++)
@@ -202,33 +202,34 @@ namespace VolumeGeneratorBasedOnGraph
                     innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
                     newInnerPoints.Add(innerPoint);
                 }
+                DA.SetDataList("SubVertices", newInnerPoints);
 
+                // 将新的inner点与原来的outer点合并成一个新的列表
                 List<Point3d> newNodePoints = new List<Point3d>();
                 newNodePoints.AddRange(newInnerPoints);
+                List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
                 for (int i = 0; i < boundaryNodeCount; i++)
                 {
-                    newNodePoints.Add(nodePoints[volumeNodeCount + i]);
+                    sortedBoundaryNodePoints.Add(nodePoints[volumeNodeCount + i]);
                 }
+                newNodePoints.AddRange(sortedBoundaryNodePoints);
                 
-
+                // 将新的inner+outer列表重新定位在基于worldXY变量的另一个地方
                 List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newNodePoints, Plane.WorldXY, worldXY);
                 DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
-
-
-
+                
+                // Graph的所有Edge，在新的位置上画Edge
                 List<Line> graphEdge = GraphEdgeList(graph, newNodePointsRelocated, globalParameter);
-
                 DA.SetDataList("graphEdge", graphEdge);
 
-
-
-
-
-
-
-
-
-
+                // Graph形成的每个convex，在新的位置上画Convex
+                List<Point3d> sortedBoundaryNodePointsRelocated = new List<Point3d>();
+                for (int i = volumeNodeCount; i < newNodePointsRelocated.Count; i++)
+                {
+                    sortedBoundaryNodePointsRelocated.Add(newNodePointsRelocated[i]);
+                }
+                List<Polyline> allSplitFaceBoundarys = GMeshFaceBoundaries(sortedBoundaryNodePointsRelocated, graphEdge, worldXY);
+                DA.SetDataList("ConvexFaceBorders", allSplitFaceBoundarys);
 
                 // subGraph的每一支表示一个volumeNode与哪些其他的volumeNode相连
                 DataTree<int> subGraph = new DataTree<int>();            // dataTree -> volumeConnectivityVolume
@@ -246,6 +247,17 @@ namespace VolumeGeneratorBasedOnGraph
                 }
                 // SubGraph输出
                 DA.SetDataTree(2, subGraph);
+
+
+                // SubAttribute输出
+                DA.GetDataList("NodeAttributes", nodeAttributes);
+                List<NodeAttribute> innerNodeAttributes = new List<NodeAttribute>();
+                for (int i = 0; i < volumeNodeCount; i++)
+                {
+                    innerNodeAttributes.Add(nodeAttributes[i]);
+                }
+                DA.SetDataList("SubAttributes", innerNodeAttributes);
+
 
 
 
@@ -319,16 +331,16 @@ namespace VolumeGeneratorBasedOnGraph
             return sum;
         }
 
-        //public List<NodeAttribute> SubAttributes(List<NodeAttribute> attributes, List<int> subIndices)
-        //{
-        //    List<NodeAttribute> list = new List<NodeAttribute>();
+        public List<NodeAttribute> SubAttributes(List<NodeAttribute> attributes, List<int> subIndices)
+        {
+            List<NodeAttribute> list = new List<NodeAttribute>();
 
 
 
 
 
-        //    return list;
-        //}
+            return list;
+        }
 
         /// <summary>
         /// 从一个矩阵中，取出与indices有关的那几行和几列数据，形成一个子矩阵
@@ -513,42 +525,61 @@ namespace VolumeGeneratorBasedOnGraph
             return laplacianMatrix;
         }
 
-        public Curve ConvexBorder(List<Point3d> vertices, Plane basePlane)
+        /// <summary>
+        /// 将排好序的点连接成多段线（NurbsCurve类型）
+        /// </summary>
+        /// <param name="sortedBoundaryPoints"></param>
+        /// <param name="basePlane"></param>
+        /// <returns></returns>
+        public Polyline SortedPointsToPolyline(List<Point3d> sortedBoundaryPoints, Plane basePlane)
         {
-            Point3dList point3dList = new Point3dList(vertices);
-            point3dList.Sort();
-            Plane plane = basePlane;
-            // 旋转 PI / 4
-            plane.Rotate(0.7853981633974483, plane.ZAxis);
-            Rectangle3d rectangle3d = new Rectangle3d(plane, point3dList.First, point3dList.Last);
-            return rectangle3d.ToNurbsCurve();
+            // 把startPoint放到最后作为endPoint，这样polyline才会闭合
+            sortedBoundaryPoints.Add(sortedBoundaryPoints[0]);
+
+            Polyline convex = new Polyline(sortedBoundaryPoints);
+            return convex;
         }
 
-        public List<Polyline> GMeshFaceBoundaries(List<Point3d> vertices, List<Line> edges, Plane basePlane)
+
+        //public Curve ConvexBorder(List<Point3d> vertices, Plane basePlane)
+        //{
+        //    Point3dList point3dList = new Point3dList(vertices);
+        //    point3dList.Sort();
+        //    Plane plane = basePlane;
+        //    // 旋转 PI / 4
+        //    plane.Rotate(0.7853981633974483, plane.ZAxis);
+        //    Rectangle3d rectangle3d = new Rectangle3d(plane, point3dList.First, point3dList.Last);
+        //    return rectangle3d.ToNurbsCurve();
+        //}
+
+        public List<Polyline> GMeshFaceBoundaries(List<Point3d> sortedBoundaryPoints, List<Line> edges, Plane basePlane)
         {
-            List<Curve> list = new List<Curve>();
+            List<Curve> splitLines = new List<Curve>();
             foreach (Line line in edges)
             {
-                list.Add(line.ToNurbsCurve());
+                splitLines.Add(line.ToNurbsCurve());
             }
 
-            Curve curve = ConvexBorder(vertices, basePlane);
-            Brep brep = Brep.CreatePlanarBreps(curve, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance)[0];
-            BrepFace brepFace = brep.Faces[0];
-            Brep brep2 = brepFace.Split(list, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
-            List<Polyline> list2 = new List<Polyline>();
+            Polyline polyline = SortedPointsToPolyline(sortedBoundaryPoints, basePlane);
+            Curve curve = polyline.ToNurbsCurve();
 
-            foreach (BrepFace brepFace2 in brep2.Faces)
+            Brep[] PlanarBrepArray = Brep.CreatePlanarBreps(curve, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+            Brep planarBreps = PlanarBrepArray[0];
+            BrepFace planarBrepFace = planarBreps.Faces[0];
+            Brep splittedPlanarBrepFaces = planarBrepFace.Split(splitLines, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+            
+            List<Polyline> allConvexPolyline = new List<Polyline>();
+            foreach (BrepFace brepFace in splittedPlanarBrepFaces.Faces)
             {
-                Brep brep3 = brepFace2.DuplicateFace(true);
-                Point3d[] array = brep3.DuplicateVertices();
-                Curve curve2 = Curve.JoinCurves(brep3.Faces[0].DuplicateFace(true).DuplicateEdgeCurves())[0];
-                Polyline item = null;
-                curve2.TryGetPolyline(out item);
-                list2.Add(item);
+                Brep singleSplitFaceBrep = brepFace.DuplicateFace(true);
+                Point3d[] singleSplitFaceVertices = singleSplitFaceBrep.DuplicateVertices();
+                Curve splitFaceConvexCure = Curve.JoinCurves(singleSplitFaceBrep.Faces[0].DuplicateFace(true).DuplicateEdgeCurves())[0];
+                Polyline splitFaceConvexPolyline = null;
+                splitFaceConvexCure.TryGetPolyline(out splitFaceConvexPolyline);
+                allConvexPolyline.Add(splitFaceConvexPolyline);
             }
 
-            return list2;
+            return allConvexPolyline;
         }
 
         public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices, GlobalParameter globalParameter)
