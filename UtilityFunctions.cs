@@ -33,19 +33,6 @@ namespace VolumeGeneratorBasedOnGraph
             }
         }
 
-        // public static void 
-
-        //public static void DataTreeMerge_Int(ref DataTree<int> mainDataTree, DataTree<int> secondaryDataTree)
-        //{
-        //    if (mainDataTree.BranchCount == secondaryDataTree.BranchCount)
-        //    {
-        //        foreach (GH_Path gh_Path in mainDataTree.Paths)
-        //        {
-        //            mainDataTree.AddRange(secondaryDataTree.Branch(gh_Path), gh_Path);
-        //        }
-        //    }
-        //}
-
         /// <summary>
         /// 将Connectivity图结构中的Edge转化为可以显示的Line线段
         /// </summary>
@@ -118,6 +105,76 @@ namespace VolumeGeneratorBasedOnGraph
                 list.Add(item);
             }
             return list;
+        }
+
+        /// <summary>
+        /// 将点的列表按照从正北开始，逆时针排序
+        /// </summary>
+        /// <param name="vPoints"></param>
+        /// <param name="center"></param>
+        /// <returns></returns>
+        public static List<Point3d> SortPolyPoints(List<Point3d> vPoints, Point3d center)
+        {
+            List<Point3d> cloneList = new List<Point3d>();
+            cloneList.AddRange(vPoints);
+
+
+            if (cloneList == null || cloneList.Count == 0)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < cloneList.Count - 1; i++)
+            {
+                for (int j = 0; j < cloneList.Count - i - 1; j++)
+                {
+                    bool flag = PointCompare(cloneList[j], cloneList[j + 1], center);
+                    if (flag)
+                    {
+                        Point3d tmp = cloneList[j];
+                        cloneList[j] = cloneList[j + 1];
+                        cloneList[j + 1] = tmp;
+                    }
+                }
+            }
+            return cloneList;
+        }
+
+        /// <summary>
+        /// 若点a大于点b，即点a在点b的顺时针方向，返回true，否则返回false
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="center"></param>
+        /// <returns></returns>
+        private static bool PointCompare(Point3d a, Point3d b, Point3d center)
+        {
+            Vector3d vectorOA = new Vector3d(a) - new Vector3d(center);
+            Vector3d vectorOB = new Vector3d(b) - new Vector3d(center);
+
+            // OA,OB分别与0,1,0的夹角的弧度值
+            double angleOA = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOA);
+            double angleOB = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOB);
+
+            // 向量0,1,0和向量OA的叉积
+            Vector3d vectorZOA = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOA);
+            if (vectorZOA.Z < 0)
+            {
+                angleOA = 2 * Math.PI - angleOA;
+            }
+            Vector3d vectorZOB = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOB);
+            if (vectorZOB.Z < 0)
+            {
+                angleOB = 2 * Math.PI - angleOB;
+            }
+
+
+            if (angleOA < angleOB)
+            {
+                return false;
+            }
+            return true;
+
         }
     }
 }

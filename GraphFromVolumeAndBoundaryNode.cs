@@ -176,7 +176,7 @@ namespace VolumeGeneratorBasedOnGraph
 
                     List<int> sortedBoundaryNodeIndexList = new List<int>();
 
-                    List<Point3d> SortedBoundaryNodeList = SortPolyPoints(boundaryNodeList, centerPoint);
+                    List<Point3d> SortedBoundaryNodeList = UtilityFunctions.SortPolyPoints(boundaryNodeList, centerPoint);
                     // SortedBoundaryNodeList.Reverse();
 
                     for (int i = 0; i < SortedBoundaryNodeList.Count; i++)
@@ -297,78 +297,69 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="vPoints"></param>
         /// <param name="center"></param>
         /// <returns></returns>
-        public List<Point3d> SortPolyPoints(List<Point3d> vPoints, Point3d center)
-        {
-            List<Point3d> cloneList = new List<Point3d>();
-            cloneList.AddRange(vPoints);
+        //public List<Point3d> SortPolyPoints(List<Point3d> vPoints, Point3d center)
+        //{
+        //    List<Point3d> cloneList = new List<Point3d>();
+        //    cloneList.AddRange(vPoints);
 
 
-            if (cloneList == null || cloneList.Count == 0)
-            {
-                return null;
-            }
+        //    if (cloneList == null || cloneList.Count == 0)
+        //    {
+        //        return null;
+        //    }
 
-            for (int i = 0; i < cloneList.Count - 1; i++)
-            {
-                for (int j = 0; j < cloneList.Count - i - 1; j++)
-                {
-                    bool flag = PointCmp(cloneList[j], cloneList[j + 1], center);
-                    if (flag)
-                    {
-                        Point3d tmp = cloneList[j];
-                        cloneList[j] = cloneList[j + 1];
-                        cloneList[j + 1] = tmp;
-                    }
-                }
-            }
-            return cloneList;
-        }
+        //    for (int i = 0; i < cloneList.Count - 1; i++)
+        //    {
+        //        for (int j = 0; j < cloneList.Count - i - 1; j++)
+        //        {
+        //            bool flag = PointCmp(cloneList[j], cloneList[j + 1], center);
+        //            if (flag)
+        //            {
+        //                Point3d tmp = cloneList[j];
+        //                cloneList[j] = cloneList[j + 1];
+        //                cloneList[j + 1] = tmp;
+        //            }
+        //        }
+        //    }
+        //    return cloneList;
+        //}
 
-        /// <summary>
-        /// 若点a大于点b，即点a在点b的顺时针方向，返回true，否则返回false
-        /// </summary>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
-        /// <param name="center"></param>
-        /// <returns></returns>
-        private bool PointCmp(Point3d a, Point3d b, Point3d center)
-        {
-            Vector3d vectorOA = new Vector3d(a) - new Vector3d(center);
-            Vector3d vectorOB = new Vector3d(b) - new Vector3d(center);
+        ///// <summary>
+        ///// 若点a大于点b，即点a在点b的顺时针方向，返回true，否则返回false
+        ///// </summary>
+        ///// <param name="a"></param>
+        ///// <param name="b"></param>
+        ///// <param name="center"></param>
+        ///// <returns></returns>
+        //private bool PointCmp(Point3d a, Point3d b, Point3d center)
+        //{
+        //    Vector3d vectorOA = new Vector3d(a) - new Vector3d(center);
+        //    Vector3d vectorOB = new Vector3d(b) - new Vector3d(center);
 
-            // OA,OB分别与0,1,0的夹角的弧度值
-            double angleOA = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOA);
-            double angleOB = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOB);
-
-            //if (vectorOA.X >= 0 && vectorOB.X < 0)
-            //{
-            //    return true;
-            //}
-            //else if (vectorOA.X == 0 && vectorOB.X == 0)
-            //{
-            //    return vectorOA.Y > vectorOB.Y;
-            //}
+        //    // OA,OB分别与0,1,0的夹角的弧度值
+        //    double angleOA = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOA);
+        //    double angleOB = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOB);
             
-            // 向量0,1,0和向量OA的叉积
-            Vector3d vectorZOA = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOA);
-            if (vectorZOA.Z < 0)
-            {
-                angleOA = 2 * Math.PI - angleOA;
-            }
-            Vector3d vectorZOB = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOB);
-            if (vectorZOB.Z < 0)
-            {
-                angleOB = 2 * Math.PI - angleOB;
-            }
+        //    // 向量0,1,0和向量OA的叉积
+        //    Vector3d vectorZOA = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOA);
+        //    if (vectorZOA.Z < 0)
+        //    {
+        //        angleOA = 2 * Math.PI - angleOA;
+        //    }
+        //    Vector3d vectorZOB = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOB);
+        //    if (vectorZOB.Z < 0)
+        //    {
+        //        angleOB = 2 * Math.PI - angleOB;
+        //    }
 
 
-            if (angleOA < angleOB)
-            {
-                return false;
-            }
-            return true;
+        //    if (angleOA < angleOB)
+        //    {
+        //        return false;
+        //    }
+        //    return true;
             
-        }
+        //}
 
         /// <summary>
         /// 输入skechpad正方形，得到对应的NEWS四个区域及NEWS四个中心点
