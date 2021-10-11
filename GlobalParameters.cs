@@ -52,7 +52,11 @@ namespace VolumeGeneratorBasedOnGraph
                 {
                     globalParameter = new GlobalParameter(volumeNodes.Count, additionalBoundaryNodes.Count + 4);
                 }
-                globalParameter = new GlobalParameter(volumeNodes.Count, 4);
+                else
+                {
+                    globalParameter = new GlobalParameter(volumeNodes.Count, 4);
+                }
+
                 
                 DA.SetData("GlobalParameter", globalParameter);
             }
