@@ -1,6 +1,4 @@
-﻿using Grasshopper;
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
+﻿using Grasshopper.Kernel;
 using Rhino.Collections;
 using Rhino.Geometry;
 using Rhino.Geometry.Collections;
@@ -89,10 +87,10 @@ namespace VolumeGeneratorBasedOnGraph
                 DA.GetData<int>("IndexOfTriangulation", ref index);
                 DA.GetData<bool>("ExcludeDegenerateTINS", ref flag);
 
-                List<Mesh> list4 = EnumerateAllTriangleMeshList(ClosedPolylineToTriangleMesh(convexFaceBorderPolylines));
+                List<Mesh> triangleMeshList = EnumerateAllTriangleMeshList(ClosedPolylineToTriangleMesh(convexFaceBorderPolylines));
                 List<Mesh> list5 = new List<Mesh>();
 
-                foreach (Mesh firstMesh in list4)
+                foreach (Mesh firstMesh in triangleMeshList)
                 {
                     list5.Add(RegenerateMesh(nodePoints, firstMesh));
                 }
@@ -112,39 +110,39 @@ namespace VolumeGeneratorBasedOnGraph
             }
         }
 
-        public List<Mesh> EnumerateAllTriangleMeshList(List<List<Mesh>> triangleMeshList)
+        public List<Mesh> EnumerateAllTriangleMeshList(List<List<Mesh>> allPolylineCorrespondTriangleMesh)
         {
             List<Mesh> result;
 
-            if (triangleMeshList.Count <= 1)
+            if (allPolylineCorrespondTriangleMesh.Count <= 1)
             {
                 result = null;
             }
             else
             {
-                while (triangleMeshList.Count > 1)
+                while (allPolylineCorrespondTriangleMesh.Count > 1)
                 {
                     List<Mesh> list = new List<Mesh>();
-                    List<Mesh> list2 = triangleMeshList[0];
-                    List<Mesh> list3 = triangleMeshList[1];
+                    List<Mesh> polyline_0_CorrespondTriangleMesh = allPolylineCorrespondTriangleMesh[0];
+                    List<Mesh> polyline_1_CorrespondTriangleMesh = allPolylineCorrespondTriangleMesh[1];
 
-                    foreach (Mesh other in list2)
+                    foreach (Mesh polyline_0_TriangleMeshType in polyline_0_CorrespondTriangleMesh)
                     {
-                        foreach (Mesh other2 in list3)
+                        foreach (Mesh polyline_1_TriangleMeshType in polyline_1_CorrespondTriangleMesh)
                         {
                             Mesh mesh = new Mesh();
-                            mesh.Append(other);
-                            mesh.Append(other2);
+                            mesh.Append(polyline_0_TriangleMeshType);
+                            mesh.Append(polyline_1_TriangleMeshType);
                             mesh.Vertices.CombineIdentical(true, true);
                             list.Add(mesh);
                         }
                     }
-                    triangleMeshList.RemoveAt(0);
-                    triangleMeshList.RemoveAt(0);
-                    triangleMeshList.Insert(0, list);
+                    allPolylineCorrespondTriangleMesh.RemoveAt(0);
+                    allPolylineCorrespondTriangleMesh.RemoveAt(0);
+                    allPolylineCorrespondTriangleMesh.Insert(0, list);
                 }
                 
-                result = triangleMeshList[0];
+                result = allPolylineCorrespondTriangleMesh[0];
             }
             return result;
         }
@@ -162,16 +160,18 @@ namespace VolumeGeneratorBasedOnGraph
             }
             else
             {
-                List<List<Mesh>> triangleMeshList = new List<List<Mesh>>();
+                List<List<Mesh>> allPolylineCorrespondTriangleMesh = new List<List<Mesh>>();
                 foreach (Polyline polyline in closedPolylines)
                 {
                     // Polyline类型转化为ConvexPolygon
                     ConvexPolygon eachConvexPolygon = new ConvexPolygon(polyline);
-                    List<Mesh> triangleConvexPolygonMeshList = GenerateMeshOfTriangleConvexPolygon(eachConvexPolygon.TriangulateConvexPolygon(), polyline.GetRange(0, polyline.Count - 1));
-                    List<Mesh> cleanedTriangleConvexPolygonMeshList = RemoveInvaildTriangleMesh(triangleConvexPolygonMeshList);
-                    triangleMeshList.Add(cleanedTriangleConvexPolygonMeshList);
+                    // 将每个polyline对应的ConvexPolygon进行三角剖分后的的LoLMeshFace，添加上vertice信息，形成真正的mesh。
+                    // 列表中每一个元素，是由这个polyline形成的对应的一种三角形网格（即三角剖分方式）
+                    List<Mesh> polylineCorrespondTrianglationType = GenerateMeshOfTriangleConvexPolygon(eachConvexPolygon.TriangulateConvexPolygon(), polyline.GetRange(0, polyline.Count - 1));
+                    List<Mesh> cleanedPolylineCorrespondTrianglationType = RemoveInvaildTriangleMesh(polylineCorrespondTrianglationType);
+                    allPolylineCorrespondTriangleMesh.Add(cleanedPolylineCorrespondTrianglationType);
                 }
-                return triangleMeshList;
+                return allPolylineCorrespondTriangleMesh;
             }
         }
 
@@ -187,6 +187,7 @@ namespace VolumeGeneratorBasedOnGraph
             List<Mesh> generatedTriangleMesh = new List<Mesh>();
 
             // 对于整个大的ConvexPolygon进行三角化后，形成的树形结构的每一支，每支上有好多子MeshFace，把它们按支组合成一个Mesh
+            // LoLConvexPolygonMeshFace中的每支上表示不同的对ConvexPolygon的三角剖分方式，每一支上的每个meshFace表示这种剖分方式下的一个三角形
             foreach (List<MeshFace> subTriangleConvexMeshFaceList in LoLConvexPolygonMeshFace)
             {
                 Mesh mesh = new Mesh();
@@ -239,7 +240,7 @@ namespace VolumeGeneratorBasedOnGraph
             return resultTriangleMeshList;
         }
 
-        public Mesh RegenerateMesh(List<Point3d> vertices,Mesh firstMesh)
+        public Mesh RegenerateMesh(List<Point3d> vertices, Mesh firstMesh)
         {
             Point3d[] array = firstMesh.Vertices.ToPoint3dArray();
             Point3dList point3dList = new Point3dList(vertices);
