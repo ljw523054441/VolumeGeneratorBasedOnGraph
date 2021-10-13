@@ -24,6 +24,11 @@ namespace VolumeGeneratorBasedOnGraph
             ConvexPolylinesPoints = new List<List<Point3d>>();
             SelectedTriangleMeshEdges = new List<Line>();
 
+            InnerNodePoints = new List<Point3d>();
+            OuterNodePoints = new List<Point3d>();
+
+            InnerNodeTextDot = new List<TextDot>();
+            OuterNodeTextDot = new List<TextDot>();
         }
 
         private int Thickness;
@@ -34,7 +39,11 @@ namespace VolumeGeneratorBasedOnGraph
         private List<List<Point3d>> ConvexPolylinesPoints;
         private List<Line> SelectedTriangleMeshEdges;
 
+        private List<Point3d> InnerNodePoints;
+        private List<Point3d> OuterNodePoints;
 
+        private List<TextDot> InnerNodeTextDot;
+        private List<TextDot> OuterNodeTextDot;
 
 
         /// <summary>
@@ -85,24 +94,36 @@ namespace VolumeGeneratorBasedOnGraph
             if (DA.GetDataList<Point3d>("TutteOutputVertices", nodePoints)
                 & DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
             {
-                //// 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
-                //foreach (Curve curve in convexFaceBorderCurves)
-                //{
-                //    Polyline polyline = null;
-                //    if (curve.TryGetPolyline(out polyline))
-                //    {
-                //        if (polyline.IsClosed)
-                //        {
-                //            convexFaceBorderPolylines.Add(polyline);
-
-                //            ConvexPolylinesPoints[i].AddRange(polyline);
-                //            ConvexPolylinesPoints[i].RemoveAt(ConvexPolylinesPoints[i].Count - 1);
-                //        }
-                //    }
-                //}
-
                 ConvexPolylinesPoints.Clear();
                 SelectedTriangleMeshEdges.Clear();
+                InnerNodePoints.Clear();
+                OuterNodePoints.Clear();
+                InnerNodeTextDot.Clear();
+                OuterNodeTextDot.Clear();
+
+                for (int i = 0; i < nodePoints.Count; i++)
+                {
+                    if (i < volumeNodeCount)
+                    {
+                        InnerNodePoints.Add(nodePoints[i]);
+                    }
+                    else
+                    {
+                        OuterNodePoints.Add(nodePoints[i]);
+                    }
+                }
+
+                for (int i = 0; i < InnerNodePoints.Count; i++)
+                {
+                    TextDot textDot = new TextDot(string.Format("Inner {0}", i), InnerNodePoints[i]);
+                    InnerNodeTextDot.Add(textDot);
+                }
+                for (int i = 0; i < OuterNodePoints.Count; i++)
+                {
+                    TextDot textDot = new TextDot(string.Format("Outer {0}", i), OuterNodePoints[i]);
+                    OuterNodeTextDot.Add(textDot);
+                }
+
 
                 // 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
                 for (int i = 0; i < convexFaceBorderCurves.Count; i++)
@@ -116,7 +137,7 @@ namespace VolumeGeneratorBasedOnGraph
 
                             ConvexPolylinesPoints.Add(new List<Point3d>());
                             ConvexPolylinesPoints[i].AddRange(polyline);
-                            ConvexPolylinesPoints[i].RemoveAt(ConvexPolylinesPoints[i].Count - 1);
+                            // ConvexPolylinesPoints[i].RemoveAt(ConvexPolylinesPoints[i].Count - 1);
                         }
                     }
                 }
@@ -156,15 +177,23 @@ namespace VolumeGeneratorBasedOnGraph
                 }
 
                 DA.SetDataList("AllTriangularMeshes", result);
+
+                if (index >= result.Count)
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "输入的序号超过了所有三角形网格的总数");
+                    return;
+                }
                 DA.SetData("TheChosenTriangularMesh", result[index]);
 
+                // 在DrawViewportMeshes绘制选中的mesh
                 SelectedIsomorphismTriangleMesh = result[index];
-
-
+                // 在DrawViewportWires绘制mesh的edge
                 for (int i = 0; i < SelectedIsomorphismTriangleMesh.TopologyEdges.Count; i++)
                 {
                     SelectedTriangleMeshEdges.Add(SelectedIsomorphismTriangleMesh.TopologyEdges.EdgeLine(i));
                 }
+
+
 
                 
             }
@@ -364,33 +393,72 @@ namespace VolumeGeneratorBasedOnGraph
             return removedTriangleMesh;
         }
 
-
+        /// <summary>
+        /// 预览模式为WireFrame模式时，调用此函数
+        /// </summary>
+        /// <param name="args"></param>
         public override void DrawViewportWires(IGH_PreviewArgs args)
         {
             // 屏蔽掉电池原本的预览
             // base.DrawViewportWires(args);
 
+            args.Display.EnableDepthTesting(true);
+            args.Display.EnableColorWriting(true);
+
             // 先画虚线
             for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
             {
-                args.Display.DrawDottedLine(SelectedTriangleMeshEdges[i], Color.Chocolate);
+                args.Display.DrawDottedLine(SelectedTriangleMeshEdges[i], Color.DarkGreen);
             }
-
             // 后画实线
             for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
             {
-                args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.Black, Thickness);
+                args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.BlueViolet, Thickness);
+            }
+
+            for (int i = 0; i < InnerNodePoints.Count; i++)
+            {
+                args.Display.DrawDot(InnerNodeTextDot[i], Color.Black, Color.White, Color.White);
+            }
+            for (int i = 0; i < OuterNodePoints.Count; i++)
+            {
+                args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
             }
         }
 
+        /// <summary>
+        /// 预览模式为Shaded模式时，调用此函数
+        /// </summary>
+        /// <param name="args"></param>
         public override void DrawViewportMeshes(IGH_PreviewArgs args)
         {
             // 屏蔽掉电池原本的预览
             // base.DrawViewportMeshes(args);
 
-            
-            args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.DarkGray));
-            
+            args.Display.EnableDepthTesting(true);
+            args.Display.EnableColorWriting(true);
+
+            // 先画虚线
+            for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
+            {
+                args.Display.DrawDottedLine(SelectedTriangleMeshEdges[i], Color.DarkGreen);
+            }
+            // 后画实线
+            for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
+            {
+                args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.BlueViolet, Thickness);
+            }
+
+            for (int i = 0; i < InnerNodePoints.Count; i++)
+            {
+                args.Display.DrawDot(InnerNodeTextDot[i], Color.Black, Color.White, Color.White);
+            }
+            for (int i = 0; i < OuterNodePoints.Count; i++)
+            {
+                args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
+            }
+
+            args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0.9));
         }
 
 
