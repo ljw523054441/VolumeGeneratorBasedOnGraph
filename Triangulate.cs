@@ -29,7 +29,7 @@ namespace VolumeGeneratorBasedOnGraph
 
             pManager.AddPointParameter("TutteOutputVertices", "NGV", "The set of locations of vertices as resulted from Tutte algorithm", GH_ParamAccess.list);
             pManager.AddCurveParameter("ConvexFaceBorders", "CFB", "Convex face borders of the Tutte algorithm as a list of polyline curves.", GH_ParamAccess.list);
-            pManager.AddIntegerParameter("IndexOfTriangulation", "I", "Index of a triangulation to be visualized from the list of all triangulations", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("IndexOfTriangularMesh", "I", "Index of a triangulation to be visualized from the list of all triangulations", GH_ParamAccess.item);
             pManager.AddBooleanParameter("ExcludeDegenerateTINS", "ExT", "排除那些产生三角形房间的三角剖分 Exclude those triangulations that give rise to triangular rooms", GH_ParamAccess.item);
             pManager[3].Optional = true;
             pManager[4].Optional = true;
@@ -84,65 +84,73 @@ namespace VolumeGeneratorBasedOnGraph
                     this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "the ConvexFaceBorders are supposed to be closed polylines or polygons, but apparently at least one is not closed or is not a polyline!");
                 }
 
-                DA.GetData<int>("IndexOfTriangulation", ref index);
+                DA.GetData<int>("IndexOfTriangularMesh", ref index);
                 DA.GetData<bool>("ExcludeDegenerateTINS", ref flag);
 
-                List<Mesh> triangleMeshList = EnumerateAllTriangleMeshList(ClosedPolylineToTriangleMesh(convexFaceBorderPolylines));
-                List<Mesh> list5 = new List<Mesh>();
+                // 得到这样一个图结构下，所有的同形异构的整体的三角形网格
+                List<Mesh> allPolylineCorrespondIsomorphismTriangleMeshes = GetAllIsomorphismTriangleMeshes(ClosedPolylineToTriangleMesh(convexFaceBorderPolylines));
 
-                foreach (Mesh firstMesh in triangleMeshList)
+                // 对于新生成的三角网格，其中的顶点顺序是跟原来的nodePoints列表中的点的顺序不同的，需要重新匹配
+                List<Mesh> regeneratedIsomorphismMeshes = new List<Mesh>();
+                foreach (Mesh IsomorphismMesh in allPolylineCorrespondIsomorphismTriangleMeshes)
                 {
-                    list5.Add(RegenerateMesh(nodePoints, firstMesh));
+                    regeneratedIsomorphismMeshes.Add(MatchVerticesIndex(nodePoints, IsomorphismMesh));
                 }
 
-                List<Mesh> list6;
+                List<Mesh> result;
                 if (flag)
                 {
-                    list6 = RemoveTriangularDuals(list5);
+                    result = RemoveTriangularDuals(regeneratedIsomorphismMeshes);
                 }
                 else
                 {
-                    list6 = list5;
+                    result = regeneratedIsomorphismMeshes;
                 }
 
-                DA.SetDataList("AllTriangularMeshes", list6);
-                DA.SetData("TheChosenTriangularMesh", list6[index]);
+                DA.SetDataList("AllTriangularMeshes", result);
+                DA.SetData("TheChosenTriangularMesh", result[index]);
             }
         }
 
-        public List<Mesh> EnumerateAllTriangleMeshList(List<List<Mesh>> allPolylineCorrespondTriangleMesh)
+        /// <summary>
+        /// 将每个polyline所对应的一列表代表所有可能的连接方式的小的Convex形状的三角网格，穷尽所有的排列组合，合成一列表大的三角网格
+        /// </summary>
+        /// <param name="allPolylineCorrespondIsomorphismTriangleMeshes"></param>
+        /// <returns></returns>
+        public List<Mesh> GetAllIsomorphismTriangleMeshes(List<List<Mesh>> allPolylineCorrespondIsomorphismTriangleMeshes)
         {
             List<Mesh> result;
 
-            if (allPolylineCorrespondTriangleMesh.Count <= 1)
+            if (allPolylineCorrespondIsomorphismTriangleMeshes.Count <= 1)
             {
                 result = null;
             }
             else
             {
-                while (allPolylineCorrespondTriangleMesh.Count > 1)
+                while (allPolylineCorrespondIsomorphismTriangleMeshes.Count > 1)
                 {
-                    List<Mesh> list = new List<Mesh>();
-                    List<Mesh> polyline_0_CorrespondTriangleMesh = allPolylineCorrespondTriangleMesh[0];
-                    List<Mesh> polyline_1_CorrespondTriangleMesh = allPolylineCorrespondTriangleMesh[1];
+                    List<Mesh> combinedMeshTypes = new List<Mesh>();
+                    List<Mesh> polyline_0_CorrespondIsomorphismTriangleMeshes = allPolylineCorrespondIsomorphismTriangleMeshes[0];
+                    List<Mesh> polyline_1_CorrespondIsomorphismTriangleMeshes = allPolylineCorrespondIsomorphismTriangleMeshes[1];
 
-                    foreach (Mesh polyline_0_TriangleMeshType in polyline_0_CorrespondTriangleMesh)
+                    // 穷尽所有组合，将每个convex的同形异构的三角形网格，组合形成一堆同形异构的整体的三角形网格
+                    foreach (Mesh polyline_0_IsomorphismTriangleMeshes in polyline_0_CorrespondIsomorphismTriangleMeshes)
                     {
-                        foreach (Mesh polyline_1_TriangleMeshType in polyline_1_CorrespondTriangleMesh)
+                        foreach (Mesh polyline_1_IsomorphismTriangleMeshes in polyline_1_CorrespondIsomorphismTriangleMeshes)
                         {
                             Mesh mesh = new Mesh();
-                            mesh.Append(polyline_0_TriangleMeshType);
-                            mesh.Append(polyline_1_TriangleMeshType);
+                            mesh.Append(polyline_0_IsomorphismTriangleMeshes);
+                            mesh.Append(polyline_1_IsomorphismTriangleMeshes);
                             mesh.Vertices.CombineIdentical(true, true);
-                            list.Add(mesh);
+                            combinedMeshTypes.Add(mesh);
                         }
                     }
-                    allPolylineCorrespondTriangleMesh.RemoveAt(0);
-                    allPolylineCorrespondTriangleMesh.RemoveAt(0);
-                    allPolylineCorrespondTriangleMesh.Insert(0, list);
+                    allPolylineCorrespondIsomorphismTriangleMeshes.RemoveAt(0);
+                    allPolylineCorrespondIsomorphismTriangleMeshes.RemoveAt(0);
+                    allPolylineCorrespondIsomorphismTriangleMeshes.Insert(0, combinedMeshTypes);
                 }
                 
-                result = allPolylineCorrespondTriangleMesh[0];
+                result = allPolylineCorrespondIsomorphismTriangleMeshes[0];
             }
             return result;
         }
@@ -240,48 +248,65 @@ namespace VolumeGeneratorBasedOnGraph
             return resultTriangleMeshList;
         }
 
-        public Mesh RegenerateMesh(List<Point3d> vertices, Mesh firstMesh)
+        /// <summary>
+        /// 让新生成的同构异形三角网格顶点序号，与原来的nodePoints的序号做匹配。点的坐标是一样的，只是序号要重新匹配
+        /// </summary>
+        /// <param name="vertices"></param>
+        /// <param name="isomorphismMesh"></param>
+        /// <returns></returns>
+        public Mesh MatchVerticesIndex(List<Point3d> vertices, Mesh isomorphismMesh)
         {
-            Point3d[] array = firstMesh.Vertices.ToPoint3dArray();
-            Point3dList point3dList = new Point3dList(vertices);
-            List<int> list = new List<int>();
-            foreach (Point3d testPoint in array)
+            Point3d[] isomorphismMeshVerticesArray = isomorphismMesh.Vertices.ToPoint3dArray();
+            Point3dList nodeVertices = new Point3dList(vertices);
+            List<int> indexList = new List<int>();
+            foreach (Point3d testPoint in isomorphismMeshVerticesArray)
             {
-                list.Add(point3dList.ClosestIndex(testPoint));
+                indexList.Add(nodeVertices.ClosestIndex(testPoint));
             }
 
-            List<MeshFace> list2 = new List<MeshFace>();
-            foreach (MeshFace meshFace in firstMesh.Faces)
+            List<MeshFace> regeneratedMeshFaces = new List<MeshFace>();
+            foreach (MeshFace meshFace in isomorphismMesh.Faces)
             {
-                MeshFace item = new MeshFace(list[meshFace.A], list[meshFace.B], list[meshFace.C]);
-                list2.Add(item);
+                MeshFace regeneratedMeshFace = new MeshFace(indexList[meshFace.A], indexList[meshFace.B], indexList[meshFace.C]);
+                regeneratedMeshFaces.Add(regeneratedMeshFace);
             }
 
-            Mesh mesh = new Mesh();
-            mesh.Vertices.AddVertices(vertices);
-            mesh.Faces.AddFaces(list2);
-            return mesh;
+            Mesh regeneratedMesh = new Mesh();
+            regeneratedMesh.Vertices.AddVertices(vertices);
+            regeneratedMesh.Faces.AddFaces(regeneratedMeshFaces);
+            return regeneratedMesh;
         }
 
-        public List<Mesh> RemoveTriangularDuals(List<Mesh> TINs)
+        /// <summary>
+        /// 通过顶点的度与生成的对偶图多边形边数的对应关系，来删除对偶图中出现三角形的情况（即该顶点的度为3的情况）
+        /// </summary>
+        /// <param name="triangleMeshes"></param>
+        /// <returns></returns>
+        public List<Mesh> RemoveTriangularDuals(List<Mesh> triangleMeshes)
         {
-            List<Mesh> list = new List<Mesh>();
+            List<Mesh> removedTriangleMesh = new List<Mesh>();
 
-            foreach (Mesh mesh in TINs)
+            foreach (Mesh triangleMesh in triangleMeshes)
             {
-                List<int> list2 = new List<int>();
-                for (int i = 0; i < mesh.TopologyVertices.Count; i++)
+                List<int> verticeDegrees = new List<int>();
+                for (int i = 0; i < triangleMesh.TopologyVertices.Count; i++)
                 {
-                    list2.Add(Enumerable.Count<int>(mesh.TopologyVertices.ConnectedTopologyVertices(i)));
-                }
+                    int verticeDegree = triangleMesh.TopologyVertices.ConnectedTopologyVertices(i).Length;
 
-                if (!list2.Contains(3))
+                    // list2.Add(Enumerable.Count<int>(triangleMesh.TopologyVertices.ConnectedTopologyVertices(i)));
+                    verticeDegrees.Add(verticeDegree);
+
+                }
+                  
+                if (!verticeDegrees.Contains(3))
                 {
-                    list.Add(mesh);
+                    removedTriangleMesh.Add(triangleMesh);
                 }
             }
-            return list;
+            return removedTriangleMesh;
         }
+
+
 
         /// <summary>
         /// 凸包类
@@ -533,6 +558,9 @@ namespace VolumeGeneratorBasedOnGraph
                 return dividedConvexPolygonList;
             }
         }
+
+
+
 
 
 
