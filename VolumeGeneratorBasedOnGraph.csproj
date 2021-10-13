@@ -59,6 +59,7 @@
     <Compile Include="CoinGraph.cs" />
     <Compile Include="CoinGraphToDiskDrawing.cs" />
     <Compile Include="CSVReader.cs" />
+    <Compile Include="DualGraph.cs" />
     <Compile Include="GlobalParameters.cs" />
     <Compile Include="GlobalParameterStruct.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />

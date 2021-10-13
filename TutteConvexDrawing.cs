@@ -20,7 +20,7 @@ namespace VolumeGeneratorBasedOnGraph
         public TutteConvexDrawing()
           : base("TutteConvexDrawing", "TutteDrawing",
               "Finds a unique convex drawing of a bi-connected graph. A bi-connected graph is a graph in which every vertex(node) is connected to others at least through two edges (links)",
-              "VolumeGeneratorBasedOnGraph", "Graph")
+              "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
         {
         }
 
@@ -331,17 +331,6 @@ namespace VolumeGeneratorBasedOnGraph
             return sum;
         }
 
-        public List<NodeAttribute> SubAttributes(List<NodeAttribute> attributes, List<int> subIndices)
-        {
-            List<NodeAttribute> list = new List<NodeAttribute>();
-
-
-
-
-
-            return list;
-        }
-
         /// <summary>
         /// 从一个矩阵中，取出与indices有关的那几行和几列数据，形成一个子矩阵
         /// </summary>
@@ -540,17 +529,6 @@ namespace VolumeGeneratorBasedOnGraph
             return convex;
         }
 
-
-        //public Curve ConvexBorder(List<Point3d> vertices, Plane basePlane)
-        //{
-        //    Point3dList point3dList = new Point3dList(vertices);
-        //    point3dList.Sort();
-        //    Plane plane = basePlane;
-        //    // 旋转 PI / 4
-        //    plane.Rotate(0.7853981633974483, plane.ZAxis);
-        //    Rectangle3d rectangle3d = new Rectangle3d(plane, point3dList.First, point3dList.Last);
-        //    return rectangle3d.ToNurbsCurve();
-        //}
 
         public List<Polyline> GMeshFaceBoundaries(List<Point3d> sortedBoundaryPoints, List<Line> edges, Plane basePlane)
         {

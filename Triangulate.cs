@@ -17,7 +17,7 @@ namespace VolumeGeneratorBasedOnGraph
         public Triangulate()
           : base("Triangulate", "Triangulate",
               "Finds all possible triangulations of a [convex] mesh",
-              "VolumeGeneratorBasedOnGraph", "Graph")
+              "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
         {
             SelectedIsomorphismTriangleMesh = new Mesh();
 
