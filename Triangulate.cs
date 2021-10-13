@@ -4,6 +4,7 @@ using Rhino.Geometry;
 using Rhino.Geometry.Collections;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 
 namespace VolumeGeneratorBasedOnGraph
@@ -18,7 +19,23 @@ namespace VolumeGeneratorBasedOnGraph
               "Finds all possible triangulations of a [convex] mesh",
               "VolumeGeneratorBasedOnGraph", "Graph")
         {
+            SelectedIsomorphismTriangleMesh = new Mesh();
+
+            ConvexPolylinesPoints = new List<List<Point3d>>();
+            SelectedTriangleMeshEdges = new List<Line>();
+
         }
+
+        private int Thickness;
+
+        private Mesh SelectedIsomorphismTriangleMesh;
+        // private int IndexOfTriangularMesh;
+
+        private List<List<Point3d>> ConvexPolylinesPoints;
+        private List<Line> SelectedTriangleMeshEdges;
+
+
+
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -63,21 +80,48 @@ namespace VolumeGeneratorBasedOnGraph
             int index = 0;
             bool flag = false;
 
+            Thickness = 2;
+
             if (DA.GetDataList<Point3d>("TutteOutputVertices", nodePoints)
                 & DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
             {
+                //// 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
+                //foreach (Curve curve in convexFaceBorderCurves)
+                //{
+                //    Polyline polyline = null;
+                //    if (curve.TryGetPolyline(out polyline))
+                //    {
+                //        if (polyline.IsClosed)
+                //        {
+                //            convexFaceBorderPolylines.Add(polyline);
+
+                //            ConvexPolylinesPoints[i].AddRange(polyline);
+                //            ConvexPolylinesPoints[i].RemoveAt(ConvexPolylinesPoints[i].Count - 1);
+                //        }
+                //    }
+                //}
+
+                ConvexPolylinesPoints.Clear();
+                SelectedTriangleMeshEdges.Clear();
+
                 // 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
-                foreach (Curve curve in convexFaceBorderCurves)
+                for (int i = 0; i < convexFaceBorderCurves.Count; i++)
                 {
                     Polyline polyline = null;
-                    if (curve.TryGetPolyline(out polyline))
+                    if (convexFaceBorderCurves[i].TryGetPolyline(out polyline))
                     {
                         if (polyline.IsClosed)
                         {
                             convexFaceBorderPolylines.Add(polyline);
+
+                            ConvexPolylinesPoints.Add(new List<Point3d>());
+                            ConvexPolylinesPoints[i].AddRange(polyline);
+                            ConvexPolylinesPoints[i].RemoveAt(ConvexPolylinesPoints[i].Count - 1);
                         }
                     }
                 }
+
+
 
                 if (convexFaceBorderCurves.Count != convexFaceBorderPolylines.Count)
                 {
@@ -86,6 +130,10 @@ namespace VolumeGeneratorBasedOnGraph
 
                 DA.GetData<int>("IndexOfTriangularMesh", ref index);
                 DA.GetData<bool>("ExcludeDegenerateTINS", ref flag);
+
+                //IndexOfTriangularMesh = 0;
+                //IndexOfTriangularMesh = index;
+
 
                 // 得到这样一个图结构下，所有的同形异构的整体的三角形网格
                 List<Mesh> allPolylineCorrespondIsomorphismTriangleMeshes = GetAllIsomorphismTriangleMeshes(ClosedPolylineToTriangleMesh(convexFaceBorderPolylines));
@@ -109,6 +157,16 @@ namespace VolumeGeneratorBasedOnGraph
 
                 DA.SetDataList("AllTriangularMeshes", result);
                 DA.SetData("TheChosenTriangularMesh", result[index]);
+
+                SelectedIsomorphismTriangleMesh = result[index];
+
+
+                for (int i = 0; i < SelectedIsomorphismTriangleMesh.TopologyEdges.Count; i++)
+                {
+                    SelectedTriangleMeshEdges.Add(SelectedIsomorphismTriangleMesh.TopologyEdges.EdgeLine(i));
+                }
+
+                
             }
         }
 
@@ -306,6 +364,34 @@ namespace VolumeGeneratorBasedOnGraph
             return removedTriangleMesh;
         }
 
+
+        public override void DrawViewportWires(IGH_PreviewArgs args)
+        {
+            // 屏蔽掉电池原本的预览
+            // base.DrawViewportWires(args);
+
+            // 先画虚线
+            for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
+            {
+                args.Display.DrawDottedLine(SelectedTriangleMeshEdges[i], Color.Chocolate);
+            }
+
+            // 后画实线
+            for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
+            {
+                args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.Black, Thickness);
+            }
+        }
+
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            // 屏蔽掉电池原本的预览
+            // base.DrawViewportMeshes(args);
+
+            
+            args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.DarkGray));
+            
+        }
 
 
         /// <summary>
