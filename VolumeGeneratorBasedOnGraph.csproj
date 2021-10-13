@@ -56,6 +56,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CellGraph.cs" />
     <Compile Include="CoinGraph.cs" />
     <Compile Include="CoinGraphToDiskDrawing.cs" />
     <Compile Include="CSVReader.cs" />
