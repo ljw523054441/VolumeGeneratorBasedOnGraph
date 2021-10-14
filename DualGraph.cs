@@ -50,8 +50,8 @@ namespace VolumeGeneratorBasedOnGraph
         {
             pManager.AddPointParameter("DualVertices", "DV", "Vertices of the dual mesh", GH_ParamAccess.list);
             pManager.AddTextParameter("DualFaces", "DF", "Faces of the dual mesh as a list of General_Graph meshface", GH_ParamAccess.list);
-            pManager.AddCurveParameter("DualFaceBorders", "DFB", "Face borders of the dual mesh as a list of closed polyline curves", GH_ParamAccess.list);
-            pManager.AddGenericParameter("DualFaceColors", "DFC", "Face colors as a list of materials based on the colors ", GH_ParamAccess.list);
+            pManager.AddCurveParameter("DualConvexPolygon", "DFB", "Face borders of the dual mesh as a list of closed polyline curves", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("DualFaceColors", "DFC", "Face colors as a list of materials based on the colors ", GH_ParamAccess.list);
         }
 
         /// <summary>

@@ -14,8 +14,8 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         public CellGraph()
           : base("CellGraph", "CellGraph",
-              "Description",
-              "Constructs a graph from a set of adjacent polygoncells", "Graph")
+              "Cells to be represnted as graph nodes, whose adjacencies to be represented as graph links",
+              "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
         {
         }
 
@@ -24,7 +24,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddCurveParameter("Cell", "Cell", "Cells to be represnted as graph nodes, whose adjacencies to be represented as graph links", GH_ParamAccess.item);
+            pManager.AddCurveParameter("DualConvexPolygon", "DualConvexPolygon", "Cells to be represnted as graph nodes, whose adjacencies to be represented as graph links", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -32,8 +32,8 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddIntegerParameter("Graph", "Graph", "A graph representation as an adjacency list datatree", GH_ParamAccess.list);
-            pManager.AddPointParameter("GraphVertices", "GraphVertices", "Graph vertices as [edge] centrpoids of cells", GH_ParamAccess.list);
+            pManager.AddIntegerParameter("DualConvexConnectivityGraph", "Graph", "A graph representation as an adjacency list datatree", GH_ParamAccess.list);
+            pManager.AddPointParameter("PointsRespresentDualConvex", "GraphVertices", "Graph vertices as [edge] centrpoids of cells", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -42,58 +42,57 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<Curve> list = new List<Curve>();
+            List<Curve> dualConvexPolygonCurve = new List<Curve>();
 
-            if (DA.GetDataList<Curve>("Cell", list))
+            // 判断输入的DualConvexPolygon是不是闭合的
+            if (DA.GetDataList<Curve>("DualConvexPolygon", dualConvexPolygonCurve))
             {
                 int count = 0;
-                foreach (Curve curve in list)
+                foreach (Curve curve in dualConvexPolygonCurve)
                 {
                     if (!curve.IsClosed)
                     {
                         count++;
                     }
                 }
-
-                bool flag = count > 0;
-                if (flag)
+                if (count > 0)
                 {
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "All curves must be closed!");
                 }
             }
 
-            DataTree<int> dataTree = new DataTree<int>();
-            List<Point3d> list2 = new List<Point3d>();
 
-            for (int i = 0; i < list.Count; i++)
+            // 用对偶ConvexPolygon的中心点来代表这个ConvexPolygon
+            DataTree<int> dualConvexPolygonConnectivityDT = new DataTree<int>();
+            List<Point3d> dualConvexCenterPoints = new List<Point3d>();
+
+            for (int i = 0; i < dualConvexPolygonCurve.Count; i++)
             {
-                dataTree.EnsurePath(new int[]
-                {
-                    i
-                });
+                dualConvexPolygonConnectivityDT.EnsurePath(i);
 
                 Polyline polyline = null;
-                if (list[i].TryGetPolyline(out polyline))
+                if (dualConvexPolygonCurve[i].TryGetPolyline(out polyline))
                 {
-                    list2.Add(polyline.CenterPoint());
+                    dualConvexCenterPoints.Add(polyline.CenterPoint());
                 }
 
-                for (int j = 0; j < list.Count; j++)
+                for (int j = 0; j < dualConvexPolygonCurve.Count; j++)
                 {
                     if (j != i)
                     {
-                        RegionContainment regionContainment = Curve.PlanarClosedCurveRelationship(list[i], list[j], Plane.WorldXY, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+                        // 判断两条Polyline是否相交，如果是，那么它俩有邻接关系
+                        RegionContainment regionContainment = Curve.PlanarClosedCurveRelationship(dualConvexPolygonCurve[i], dualConvexPolygonCurve[j], Plane.WorldXY, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
 
                         if (regionContainment == RegionContainment.MutualIntersection)
                         {
-                            dataTree.Branch(i).Add(j);
+                            dualConvexPolygonConnectivityDT.Branch(i).Add(j);
                         }
                     }
                 }
             }
 
-            DA.SetDataTree(0, dataTree);
-            DA.SetDataList("GraphVertices", list2);
+            DA.SetDataTree(0, dualConvexPolygonConnectivityDT);
+            DA.SetDataList("PointsRespresentDualConvex", dualConvexCenterPoints);
         }
 
         /// <summary>
