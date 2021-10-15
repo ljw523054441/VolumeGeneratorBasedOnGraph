@@ -95,14 +95,6 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeNodeIndexList.Add(i);
                 }
 
-                //// List<int> list9 = new List<int>();                                      // list9 ->
-                //// 每个节点（包括Volume和Boundary）的度的列表
-                //List<int> graphBranchCountList = new List<int>();                       // list10 -> graphBranchCountList
-                //for (int i = 0; i < graph.BranchCount; i++)
-                //{
-                //    graphBranchCountList.Add(graph.Branch(i).Count);
-                //}
-
                 // 每个volume点，其连接的数量，即该节点的度
                 List<int> volumeNodeDegreeList = new List<int>();                     // list11 -> volumeNodeBranchCountList
                 for (int i = 0; i < volumeNodeCount; i++)
@@ -119,38 +111,27 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeNodeGraph.Branch(i).AddRange(graph.Branch(volumeNodeIndexList[i]));
                 }
 
-                //List<int> boundaryNodeIndexList = new List<int>();                     // list13 -> boundaryNodeIndexList
 
-                //for (int i = 0; i < boundaryNodeCount; i++)
-                //{
-                //    // 让boundaryNodeIndexList中的元素都是 volumeNodeCount + i,以便后面的元素匹配。N:9(0)  E:10(1)  W:11(2)  S:12(3)  以此类推....
-                //    boundaryNodeIndexList.Add(volumeNodeCount + i);
-                //}
-
-                // List<int> list14 = new List<int>();                     // list14 ->
-                // List<List<int>> list15 = new List<List<int>>();         // list15 -> volumeAdjacencyBoundary
-
-
-
-                //List<List<double>> list16 = new List<List<double>>();   // list16 -> volumeAdjacencyBoundaryPointX
-                //List<List<double>> list17 = new List<List<double>>();   // list17 -> volumeAdjacencyBoundaryPointY
+                // 回0,0,0附近进行计算
+                Point3d boundaryCenter = new Point3d(0.0, 0.0, 0.0);
+                for (int i = 0; i < boundaryNodeCount; i++)
+                {
+                    boundaryCenter = boundaryCenter + nodePoints[volumeNodeCount + i];
+                }
+                boundaryCenter = boundaryCenter / boundaryNodeCount;
 
                 //矩阵 P(outer)
+                // 回0,0,0附近进行计算
                 Matrix P_outer = new Matrix(boundaryNodeCount, 2);
                 for (int i = 0; i < boundaryNodeCount; i++)
                 {
-                    P_outer[i, 0] = nodePoints[volumeNodeCount + i].X;
-                    P_outer[i, 1] = nodePoints[volumeNodeCount + i].Y;
+                    P_outer[i, 0] = nodePoints[volumeNodeCount + i].X - boundaryCenter.X;
+                    P_outer[i, 1] = nodePoints[volumeNodeCount + i].Y - boundaryCenter.Y;
                 }
-
-                
-
 
                 // 整个大的矩阵，包含四个部分  inner行-inner列  inner行-outer列：Q  outer行-inner列：Q(上标T)  outer行-outer列
                 DataTree<int> wholeAdjacencyDataTree = GraphToAdjacencyMatrix_NxN(graph, globalParameter);
                 Matrix wholeAdjacencyMatrix = ToGHMatrix(wholeAdjacencyDataTree);
-
-
 
                 // 矩阵Q：inner_OuterAdjacencyMatrix
                 DataTree<int> volumeBoundaryGraph = new DataTree<int>();
@@ -171,21 +152,15 @@ namespace VolumeGeneratorBasedOnGraph
                 Matrix inner_OuterAdjacencyMatrix = ToGHMatrix(inner_OuterAdjacencyDataTree);
                 inner_OuterAdjacencyMatrix.Transpose();
 
-
-
                 DataTree<int> inner_InnerAdjacencyDataTree = SubAdjacencyMatrix(wholeAdjacencyDataTree, volumeNodeIndexList);
                 Matrix inner_InnerAdjacencyMatrix = ToGHMatrix(inner_InnerAdjacencyDataTree);
                 // 矩阵L(下标1)：inner_InnerLaplacianMatrix
                 DataTree<int> inner_InnerLaplacianDataTree = LaplacianMatrix(inner_InnerAdjacencyDataTree, volumeNodeDegreeList);
                 Matrix inner_InnerLaplacianMatrix = ToGHMatrix(inner_InnerLaplacianDataTree);       // matrix3 -> volumeAndVolumeLaplacianMatrix
 
-
-
                 inner_InnerLaplacianMatrix.Invert(0.0);
                 // 拉普拉斯矩阵的逆 L(下标1)(上标-1)：inverse_Inner_InnerLaplacianMatrix
                 Matrix inverse_Inner_InnerLaplacianMatrix = inner_InnerLaplacianMatrix;                              // matrix4 -> inverseLaplacianMatrix
-
-
 
                 // 求解矩阵 P(inner)
                 Matrix P_inner = new Matrix(volumeNodeCount, 2);
@@ -193,13 +168,12 @@ namespace VolumeGeneratorBasedOnGraph
                 // 原插件这里没乘负号
                 // P_inner.Scale(-1.0);
 
-
                 // 从P_inner矩阵中生成新的inner点的坐标
                 List<Point3d> newInnerPoints = new List<Point3d>();                             // list23 -> newBoundaryPoints
                 Point3d innerPoint;
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
-                    innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
+                    innerPoint = new Point3d(P_inner[i, 0] + boundaryCenter.X, P_inner[i, 1] + boundaryCenter.Y, 0.0);
                     newInnerPoints.Add(innerPoint);
                 }
                 DA.SetDataList("SubVertices", newInnerPoints);
@@ -258,57 +232,6 @@ namespace VolumeGeneratorBasedOnGraph
                 }
                 DA.SetDataList("SubAttributes", innerNodeAttributes);
 
-
-
-
-
-                //Matrix matrix5 = inverse_Inner_InnerLaplacianMatrix * MatrixXSum;                    // matrix5 ->
-                //Matrix matrix6 = inverse_Inner_InnerLaplacianMatrix * MatrixYSum;                    // matrix6 ->
-
-
-                //Point3d point;
-
-                //for (int i = 0; i < volumeNodeDegreeList.Count; i++)
-                //{
-                //    // List<Point3d> list24 = newBoundaryPoints;                                      // list24 ->
-                //    point = new Point3d(matrix5[i, 0], matrix6[i, 0], 0.0);
-                //    newInnerPoints.Add(point);
-                //}
-
-                //for (int i = 0; i < volumeNodeIndexList.Count; i++)
-                //{
-                //    nodePoints[volumeNodeIndexList[i]] = newInnerPoints[i];
-                //}
-
-                //List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
-                //DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
-
-
-
-
-
-                // DA.SetDataList("ConvexFaceBorders", GMeshFaceBoundaries(newNodePointsRelocated, GraphEdgeList(graph, newNodePointsRelocated, globalParameter), worldXY));
-
-                //List<Point3d> subVertices = new List<Point3d>();                             // list22 -> 
-                //for (int i = 0; i < nodePoints.Count; i++)
-                //{
-                //    subVertices.Add(nodePoints[i]);
-                //}
-
-
-
-                //List<Point3d> subVerticesRelocated = UtilityFunctions.Relocate(nodePoints, Plane.WorldXY, worldXY);
-                //DA.SetDataList("SubVertices", newNodePointsRelocated);
-
-
-                // subAttributes先不考虑
-
-
-                //if (DA.GetDataList("NodeAttributes", list2))
-                //{
-                //    List<NodeAttribute> list26 = ;
-                //    DA.SetDataList("SubAttributes", list26);
-                //}
             }
 
         }
