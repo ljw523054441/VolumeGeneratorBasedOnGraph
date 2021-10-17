@@ -118,7 +118,7 @@ namespace VolumeGeneratorBasedOnGraph
 
                 DA.SetDataList("DualVertices", centerPoints);
                 DA.SetDataList("DualFaces", faceDescriptions);
-                DA.SetDataList("DualFaceBorders", dualConvexPolygon);
+                DA.SetDataList("DualConvexPolygon", dualConvexPolygon);
 
                 DualVertices.Clear();
                 DualConvexPolygon.Clear();
