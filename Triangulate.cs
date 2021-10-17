@@ -29,6 +29,8 @@ namespace VolumeGeneratorBasedOnGraph
 
             InnerNodeTextDot = new List<TextDot>();
             OuterNodeTextDot = new List<TextDot>();
+
+            DottedCurve = new List<Curve>();
         }
 
         private int Thickness;
@@ -44,6 +46,8 @@ namespace VolumeGeneratorBasedOnGraph
 
         private List<TextDot> InnerNodeTextDot;
         private List<TextDot> OuterNodeTextDot;
+
+        private List<Curve> DottedCurve;
 
 
         /// <summary>
@@ -193,8 +197,18 @@ namespace VolumeGeneratorBasedOnGraph
                     SelectedTriangleMeshEdges.Add(SelectedIsomorphismTriangleMesh.TopologyEdges.EdgeLine(i));
                 }
 
+                DottedCurve.Clear();
 
-
+                double[] pattern = { 1.0 };
+                for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
+                {
+                    IEnumerable<Curve> segments = UtilityFunctions.ApplyDashPattern(SelectedTriangleMeshEdges[i].ToNurbsCurve(), pattern);
+                    foreach (Curve segment in segments)
+                    {
+                        DottedCurve.Add(segment);
+                    }
+                }
+                
                 
             }
         }
@@ -393,6 +407,11 @@ namespace VolumeGeneratorBasedOnGraph
             return removedTriangleMesh;
         }
 
+
+        
+
+
+
         /// <summary>
         /// 预览模式为WireFrame模式时，调用此函数
         /// </summary>
@@ -402,27 +421,25 @@ namespace VolumeGeneratorBasedOnGraph
             // 屏蔽掉电池原本的预览
             // base.DrawViewportWires(args);
 
-            args.Display.EnableDepthTesting(true);
-            args.Display.EnableColorWriting(true);
-
             // 先画虚线
-            for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
+            //for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
+            //{
+            //    args.Display.EnableDepthTesting(false);
+            //    args.Display.DrawDottedLine(SelectedTriangleMeshEdges[i], Color.DarkGreen);
+            //    args.Display.EnableDepthTesting(true);
+            //}
+
+            //args.Display.EnableDepthTesting(false);
+            for (int i = 0; i < DottedCurve.Count; i++)
             {
-                args.Display.DrawDottedLine(SelectedTriangleMeshEdges[i], Color.DarkGreen);
+                args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
             }
+            //args.Display.EnableDepthTesting(true);
+
             // 后画实线
             for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
             {
                 args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.BlueViolet, Thickness);
-            }
-
-            for (int i = 0; i < InnerNodePoints.Count; i++)
-            {
-                args.Display.DrawDot(InnerNodeTextDot[i], Color.Black, Color.White, Color.White);
-            }
-            for (int i = 0; i < OuterNodePoints.Count; i++)
-            {
-                args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
             }
         }
 
@@ -435,32 +452,22 @@ namespace VolumeGeneratorBasedOnGraph
             // 屏蔽掉电池原本的预览
             // base.DrawViewportMeshes(args);
 
-            args.Display.EnableDepthTesting(true);
-            args.Display.EnableColorWriting(true);
-
-            args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0.9));
-
-            // 先画虚线
-            for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
-            {
-                args.Display.DrawDottedLine(SelectedTriangleMeshEdges[i], Color.DarkGreen);
-            }
-            // 后画实线
-            for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
-            {
-                args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.BlueViolet, Thickness);
-            }
+            args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0));
 
             for (int i = 0; i < InnerNodePoints.Count; i++)
             {
+                args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(InnerNodeTextDot[i], Color.Black, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
             }
             for (int i = 0; i < OuterNodePoints.Count; i++)
             {
+                args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
             }
 
-            
+
         }
 
 
