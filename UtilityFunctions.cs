@@ -109,6 +109,60 @@ namespace VolumeGeneratorBasedOnGraph
             return lineList;
         }
 
+        /// <summary>
+        /// 用来画虚线，详见Triangulate电池
+        /// </summary>
+        /// <param name="curve"></param>
+        /// <param name="pattern"></param>
+        /// <returns></returns>
+        public static IEnumerable<Curve> ApplyDashPattern(Curve curve, double[] pattern)
+        {
+            if (pattern == null || pattern.Length == 0)
+            {
+                return new Curve[] { curve };
+            }
+
+            double curveLength = curve.GetLength();
+            List<Curve> dashes = new List<Curve>();
+
+            double offset0 = 0.0;
+            int index = 0;
+            while (true)
+            {
+                double dashLength = pattern[index++];
+                if (index >= pattern.Length)
+                    index = 0;
+
+                // Compute the offset of the current dash from the curve start.
+                double offset1 = offset0 + dashLength;
+                if (offset1 > curveLength)
+                    offset1 = curveLength;
+
+                // Solve the curve parameters at the current dash start and end.
+                double t0, t1;
+                curve.LengthParameter(offset0, out t0);
+                curve.LengthParameter(offset1, out t1);
+
+                Curve dash = curve.Trim(t0, t1);
+                if (dash != null)
+                    dashes.Add(dash);
+
+                // Get the current gap length.
+                double gapLength = pattern[index++];
+                if (index >= pattern.Length)
+                    index = 0;
+
+                // Set the start of the next dash to be the end of the current
+                // dash + the length of the adjacent gap.
+                offset0 = offset1 + gapLength;
+
+                // Abort when we've reached the end of the curve.
+                if (offset0 >= curveLength)
+                    break;
+            }
+
+            return dashes;
+        }
 
 
         /// <summary>
