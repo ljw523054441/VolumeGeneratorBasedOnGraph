@@ -333,7 +333,9 @@ namespace VolumeGeneratorBasedOnGraph
 
             for (int i = 0; i < DualVertices.Count; i++)
             {
+                args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(DualVertexTextDots[i], Color.DarkOrange, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
             }
         }
 
