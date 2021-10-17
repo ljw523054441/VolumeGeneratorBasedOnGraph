@@ -438,6 +438,8 @@ namespace VolumeGeneratorBasedOnGraph
             args.Display.EnableDepthTesting(true);
             args.Display.EnableColorWriting(true);
 
+            args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0.9));
+
             // 先画虚线
             for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
             {
@@ -458,7 +460,7 @@ namespace VolumeGeneratorBasedOnGraph
                 args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
             }
 
-            args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0.9));
+            
         }
 
 
