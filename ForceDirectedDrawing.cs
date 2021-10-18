@@ -147,7 +147,7 @@ namespace VolumeGeneratorBasedOnGraph
 
                 if (ActiveFlag == false)
                 {
-                    // ResultPoints.Clear();
+                    ResultPoints.Clear();
                     return;
                 }
 

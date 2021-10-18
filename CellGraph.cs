@@ -17,7 +17,16 @@ namespace VolumeGeneratorBasedOnGraph
               "Cells to be represnted as graph nodes, whose adjacencies to be represented as graph links",
               "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
         {
+            ResultPoints = new List<Point3d>();
+            
+            GraphEdges = new List<Line>();
+            NodeTextDots = new List<TextDot>();
         }
+
+        private int Thickness;
+        private List<Point3d> ResultPoints;
+        private List<Line> GraphEdges;
+        private List<TextDot> NodeTextDots;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -43,6 +52,8 @@ namespace VolumeGeneratorBasedOnGraph
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Curve> dualConvexPolygonCurve = new List<Curve>();
+
+            ResultPoints.Clear();
 
             // 判断输入的DualConvexPolygon是不是闭合的
             if (DA.GetDataList<Curve>("DualConvexPolygon", dualConvexPolygonCurve))
@@ -93,7 +104,34 @@ namespace VolumeGeneratorBasedOnGraph
 
             DA.SetDataTree(0, dualConvexPolygonConnectivityDT);
             DA.SetDataList("PointsRespresentDualConvex", dualConvexCenterPoints);
+            ResultPoints.AddRange(dualConvexCenterPoints);
+
+
+            List<Line> edges = new List<Line>();
+            for (int i = 0; i < dualConvexPolygonConnectivityDT.BranchCount; i++)
+            {
+                for (int j = 0; j < dualConvexPolygonConnectivityDT.Branch(i).Count; j++)
+                {
+                    edges.Add(new Line(ResultPoints[i], ResultPoints[dualConvexPolygonConnectivityDT.Branch(i)[j]]));
+                }
+            }
+
+            List<TextDot> texts = new List<TextDot>();
+
+
         }
+
+        public override void DrawViewportWires(IGH_PreviewArgs args)
+        {
+            // base.DrawViewportWires(args);
+        }
+
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            // base.DrawViewportMeshes(args);
+        }
+
+
 
         /// <summary>
         /// Provides an Icon for the component.

@@ -1,4 +1,5 @@
-﻿using Grasshopper.Kernel;
+﻿using Grasshopper;
+using Grasshopper.Kernel;
 using Rhino;
 using Rhino.Collections;
 using Rhino.Geometry;
@@ -23,13 +24,21 @@ namespace VolumeGeneratorBasedOnGraph
             DualVertices = new List<Point3d>();
             DualConvexPolygon = new List<List<Point3d>>();
             DualVertexTextDots = new List<TextDot>();
-    }
+
+            ResultPoints = new List<Point3d>();
+            GraphEdges = new List<Line>();
+            NodeTextDots = new List<TextDot>();
+        }
 
         private int Thickness;
 
         private List<Point3d> DualVertices;
         private List<List<Point3d>> DualConvexPolygon;
         private List<TextDot> DualVertexTextDots;
+
+        private List<Point3d> ResultPoints;
+        private List<Line> GraphEdges;
+        private List<TextDot> NodeTextDots;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -51,7 +60,9 @@ namespace VolumeGeneratorBasedOnGraph
             pManager.AddPointParameter("DualVertices", "DV", "Vertices of the dual mesh", GH_ParamAccess.list);
             pManager.AddTextParameter("DualFaces", "DF", "Faces of the dual mesh as a list of General_Graph meshface", GH_ParamAccess.list);
             pManager.AddCurveParameter("DualConvexPolygon", "DFB", "Face borders of the dual mesh as a list of closed polyline curves", GH_ParamAccess.list);
-            // pManager.AddGenericParameter("DualFaceColors", "DFC", "Face colors as a list of materials based on the colors ", GH_ParamAccess.list);
+
+            pManager.AddIntegerParameter("DualConvexConnectivityGraph", "Graph", "A graph representation as an adjacency list datatree", GH_ParamAccess.list);
+            pManager.AddPointParameter("PointsRespresentDualConvex", "GraphVertices", "Graph vertices as [edge] centrpoids of cells", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -69,7 +80,7 @@ namespace VolumeGeneratorBasedOnGraph
             Thickness = 2;
 
             Mesh mesh = new Mesh();
-            List<NodeAttribute> list = new List<NodeAttribute>();
+            List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
 
             if (DA.GetData<Mesh>("TriangleMesh",ref mesh))
             {
@@ -138,11 +149,89 @@ namespace VolumeGeneratorBasedOnGraph
                 }
 
 
+                DA.GetDataList<NodeAttribute>("SubAttributes", nodeAttributes);
 
-                if (DA.GetDataList<NodeAttribute>("SubAttributes", list))
+                
+
+                List<Curve> dualConvexPolygonCurve = new List<Curve>();
+                for (int i = 0; i < dualConvexPolygon.Count; i++)
                 {
-                    // List<Color> list7 = (List<Color>)list[2].Value;
+                    dualConvexPolygonCurve.Add(dualConvexPolygon[i].ToNurbsCurve());
                 }
+
+                // 判断对偶的ConvexPolygon是否有没闭合的
+                int count = 0;
+                foreach (Curve curve in dualConvexPolygonCurve)
+                {
+                    if (!curve.IsClosed)
+                    {
+                        count++;
+                    }
+                }
+                if (count > 0)
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "All dual Convex must be closed!");
+                }
+
+                // 用对偶ConvexPolygon的中心点来代表这个ConvexPolygon
+                DataTree<int> dualConvexPolygonConnectivityDT = new DataTree<int>();
+                List<Point3d> dualConvexCenterPoints = new List<Point3d>();
+
+                for (int i = 0; i < dualConvexPolygonCurve.Count; i++)
+                {
+                    dualConvexPolygonConnectivityDT.EnsurePath(i);
+
+                    Polyline polyline = null;
+                    if (dualConvexPolygonCurve[i].TryGetPolyline(out polyline))
+                    {
+                        dualConvexCenterPoints.Add(polyline.CenterPoint());
+                    }
+
+                    for (int j = 0; j < dualConvexPolygonCurve.Count; j++)
+                    {
+                        if (j != i)
+                        {
+                            // 判断两条Polyline是否相交，如果是，那么它俩有邻接关系
+                            RegionContainment regionContainment = Curve.PlanarClosedCurveRelationship(dualConvexPolygonCurve[i], dualConvexPolygonCurve[j], Plane.WorldXY, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+
+                            if (regionContainment == RegionContainment.MutualIntersection)
+                            {
+                                dualConvexPolygonConnectivityDT.Branch(i).Add(j);
+                            }
+                        }
+                    }
+                }
+
+
+
+
+
+
+
+
+                DA.SetDataTree(3, dualConvexPolygonConnectivityDT);
+                DA.SetDataList("PointsRespresentDualConvex", dualConvexCenterPoints);
+                ResultPoints.Clear();
+                ResultPoints.AddRange(dualConvexCenterPoints);
+
+                GraphEdges.Clear();
+                List<Line> edges = new List<Line>();
+                for (int i = 0; i < dualConvexPolygonConnectivityDT.BranchCount; i++)
+                {
+                    for (int j = 0; j < dualConvexPolygonConnectivityDT.Branch(i).Count; j++)
+                    {
+                        edges.Add(new Line(ResultPoints[i], ResultPoints[dualConvexPolygonConnectivityDT.Branch(i)[j]]));
+                    }
+                }
+                GraphEdges.AddRange(edges);
+
+                NodeTextDots.Clear();
+                List<TextDot> nodeTextDots = new List<TextDot>();
+                for (int i = 0; i < nodeAttributes.Count; i++)
+                {
+                    nodeTextDots.Add(new TextDot(string.Format("{0} ", i) + nodeAttributes[i].NodeLabel, ResultPoints[i]));
+                }
+                NodeTextDots.AddRange(nodeTextDots);
 
 
             }
@@ -315,10 +404,7 @@ namespace VolumeGeneratorBasedOnGraph
                 args.Display.DrawPolyline(DualConvexPolygon[i], Color.DarkOrange, Thickness);
             }
 
-            for (int i = 0; i < DualVertices.Count; i++)
-            {
-                args.Display.DrawDot(DualVertexTextDots[i], Color.DarkOrange, Color.White, Color.White);
-            }
+            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
         }
 
         public override void DrawViewportMeshes(IGH_PreviewArgs args)
@@ -326,15 +412,18 @@ namespace VolumeGeneratorBasedOnGraph
             // 屏蔽掉电池原本的预览
             // base.DrawViewportMeshes(args);
 
-            for (int i = 0; i < DualConvexPolygon.Count; i++)
-            {
-                args.Display.DrawPolyline(DualConvexPolygon[i], Color.DarkOrange, Thickness);
-            }
 
             for (int i = 0; i < DualVertices.Count; i++)
             {
                 args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(DualVertexTextDots[i], Color.DarkOrange, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+
+            for (int i = 0; i < NodeTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(NodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
             }
         }
