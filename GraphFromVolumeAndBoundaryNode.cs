@@ -70,7 +70,7 @@ namespace VolumeGeneratorBasedOnGraph
             //pManager.AddGenericParameter("BoundaryNodeAttributes", "BoundaryAttributes", "边界节点所包含的属性", GH_ParamAccess.list);
             pManager.AddPointParameter("NodePoints", "GraphNode", "用抽象点（point）表示的图结构节点（node）", GH_ParamAccess.list);
             pManager.AddGenericParameter("NodeAttributes", "NodeAttributes", "图结构中节点所包含的属性", GH_ParamAccess.list);
-            pManager.AddIntegerParameter("DebugIndex", "index", "", GH_ParamAccess.list);
+            // pManager.AddIntegerParameter("DebugIndex", "index", "", GH_ParamAccess.list);
 
 
         }
@@ -187,7 +187,7 @@ namespace VolumeGeneratorBasedOnGraph
                         sortedBoundaryNodeIndexList.Add(boundaryPointsIndex);
                     }
 
-                    DA.SetDataList("DebugIndex", sortedBoundaryNodeIndexList);
+                    // DA.SetDataList("DebugIndex", sortedBoundaryNodeIndexList);
 
 
                     // 构造包含所有node节点的列表，顺序是 inner node + outer node
@@ -204,6 +204,11 @@ namespace VolumeGeneratorBasedOnGraph
                     volumeAndNEWSNodes.AddRange(NEWS_Vertices);
                     // 包含volume节点和NEWS节点的大球
                     Sphere sphere = Sphere.FitSphereToPoints(volumeAndNEWSNodes);
+
+                    // 计算每个volume点的面积占比
+                    UtilityFunctions.CalculateAreaProportion(volumeNodeAttributeList);
+                    
+
 
                     // NEWS节点的属性列表
                     for (int i = 0; i < NEWS_Vertices.Count; i++)
