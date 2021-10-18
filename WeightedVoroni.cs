@@ -16,7 +16,15 @@ namespace VolumeGeneratorBasedOnGraph
               "Draws a Voroni diagram for points with various radii on a base plane; this diagram will be sort of a bubble diagram",
               "VolumeGeneratorBasedOnGraph", "Graph")
         {
+            Vertices = new List<Point3d>();
+            Indices = new List<int>();
+            Height = 1.0;
+            base.Message = "开发中";
         }
+
+        private List<Point3d> Vertices;
+        private List<int> Indices;
+        private double Height;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -69,6 +77,51 @@ namespace VolumeGeneratorBasedOnGraph
             ref DataTree<int> adjacencyGraph)
         {
             bool flag = !bp.IsValid || v == null || r == null;
+
+            List<Curve> result;
+            if (flag)
+            {
+                result = null;
+            }
+            else
+            {
+                flag = (r.FindAll((double lambda) => lambda <= 0.0).Count > 0);
+                if (flag)
+                {
+                    result = null;
+                }
+                else
+                {
+                    flag = v.Count != r.Count;
+                    if (flag)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "the number of radii and vertices do not match!");
+                        result = null;
+                    }
+                    else
+                    {
+                        Vertices.Clear();
+                        Indices.Clear();
+
+                        List<Curve> list = new List<Curve>();
+                        List<List<Curve>> list2 = new List<List<Curve>>();
+                        DataTree<int> dataTree = new DataTree<int>();
+                        List<List<bool>> list3 = new List<List<bool>>();
+                        List<Curve> list4 = new List<Curve>();
+                        List<Line> list5 = new List<Line>();
+
+                        BoundingBox boundingBox = new BoundingBox(v);
+
+                        for (int i = 0; i < v.Count; i++)
+                        {
+                            Plane worldXY = Plane.WorldXY;
+                            worldXY.Origin = v[i];
+                            List<Curve> list6 = list;
+                            Circle circle = new Circle(worldXY, r[i]);
+                        }
+                    }
+                }
+            }
         }
 
 

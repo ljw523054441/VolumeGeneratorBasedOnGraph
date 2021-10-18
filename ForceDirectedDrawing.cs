@@ -33,6 +33,8 @@ namespace VolumeGeneratorBasedOnGraph
             // NodeTextSize = new List<double>();
 
             ResultPoints = new List<Point3d>();
+
+            base.Message = "开发中";
         }
 
         private bool ActiveFlag;
