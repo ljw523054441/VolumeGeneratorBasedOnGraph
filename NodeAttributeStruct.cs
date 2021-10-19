@@ -34,10 +34,10 @@ namespace VolumeGeneratorBasedOnGraph
             NodeAreaProportion = 0;
         }
 
-        public void SetNodeAreaProportion(double x)
-        {
-            this.NodeAreaProportion = x;
-        }
+        //public void SetNodeAreaProportion(double x)
+        //{
+        //    this.NodeAreaProportion = x;
+        //}
 
 
     }
