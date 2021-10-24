@@ -59,10 +59,12 @@
     <Compile Include="CellGraph.cs" />
     <Compile Include="CoinGraph.cs" />
     <Compile Include="CoinGraphToDiskDrawing.cs" />
+    <Compile Include="ConstructGraph.cs" />
     <Compile Include="CSVReader.cs" />
     <Compile Include="DualGraph.cs" />
     <Compile Include="ForceDirectedDrawing.cs" />
     <Compile Include="GlobalParameters.cs" />
+    <Compile Include="测试2\GlobalParameters2.cs" />
     <Compile Include="GlobalParameterStruct.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
     <Compile Include="GraphToDiskDrawing.cs" />
