@@ -54,7 +54,7 @@ namespace VolumeGeneratorBasedOnGraph
             pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
 
             // pManager.AddPointParameter("TutteOutputVertices", "NGV", "The set of locations of vertices as resulted from Tutte algorithm", GH_ParamAccess.list);
-            pManager.AddCurveParameter("ConvexFaceBorders", "CFB", "Convex face borders of the Tutte algorithm as a list of polyline curves.", GH_ParamAccess.list);
+            pManager.AddCurveParameter("ConvexFaceBorders", "CFBorders", "Convex face borders of the Tutte algorithm as a list of polyline curves.", GH_ParamAccess.list);
             pManager.AddIntegerParameter("IndexOfTriangularMesh", "I", "Index of a triangulation to be visualized from the list of all triangulations", GH_ParamAccess.item);
             pManager.AddBooleanParameter("ExcludeDegenerateTINS", "ExT", "排除那些产生三角形房间的三角剖分 Exclude those triangulations that give rise to triangular rooms", GH_ParamAccess.item);
             pManager[3].Optional = true;
@@ -66,8 +66,8 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddMeshParameter("AllTriangularMeshes", "TMS", "All Computed triangulations; these triangulations describe all possible planar topologies for your plan diagram, the added links are those of adjacencies not connectivities", GH_ParamAccess.list);
-            pManager.AddMeshParameter("TheChosenTriangularMesh", "TMI", "The one you have chosen with index I", GH_ParamAccess.item);
+            pManager.AddMeshParameter("AllTriangularMeshes", "AllTMesh", "所有可能的三角形剖分结果。All Computed triangulations; these triangulations describe all possible planar topologies for your plan diagram, the added links are those of adjacencies not connectivities", GH_ParamAccess.list);
+            pManager.AddMeshParameter("TheChosenTriangularMesh", "TMesh", "所选择的那个三角形剖分结果。The one you have chosen with index I", GH_ParamAccess.item);
         }
 
         /// <summary>
