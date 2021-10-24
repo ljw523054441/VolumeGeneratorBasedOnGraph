@@ -89,15 +89,16 @@ namespace VolumeGeneratorBasedOnGraph
                 & DA.GetDataList<NodeAttribute>("Attributes", nodeAttributes))
             {
                 DA.GetData<Plane>("BasePlane", ref basePlace);
-                // DA.GetData<Curve>("BoundingCurve", ref boundingCurve);
+                DA.GetData<Curve>("BoundingCurve", ref boundingCurve);
                 DA.GetData("Scale", ref scale);
 
                 for (int i = 0; i < nodeAttributes.Count; i++)
                 {
-                    radius.Add(Math.Sqrt(nodeAttributes[i].NodeAreaProportion * groundArea / Math.PI) * scale);
+                    // radius.Add(Math.Sqrt(nodeAttributes[i].NodeAreaProportion * groundArea / Math.PI) * scale);
+                    radius.Add(Math.Sqrt(nodeAttributes[i].NodeAreaProportion * groundArea / Math.PI));
                 }
 
-                List<Curve> cellCurve = AlphaVoronoi(basePlace, pointList, radius, boundingCurve, ref adjacencyGraph);
+                List<Curve> cellCurve = AlphaVoronoi(basePlace, pointList, radius, boundingCurve, ref adjacencyGraph, scale);
 
                 DA.SetDataList("VoronoiCells", cellCurve);
                 DA.SetDataTree(0, adjacencyGraph);
@@ -119,7 +120,8 @@ namespace VolumeGeneratorBasedOnGraph
             List<Point3d> points, 
             List<double> radius, 
             Curve boundingCurve, 
-            ref DataTree<int> adjacencyGraph)
+            ref DataTree<int> adjacencyGraph,
+            double scale)
         {
             List<Curve> result;
 
@@ -160,7 +162,7 @@ namespace VolumeGeneratorBasedOnGraph
                         {
                             worldXY.Origin = points[i];
                             // List<Curve> list6 = list;
-                            Circle bubble = new Circle(worldXY, radius[i]);
+                            Circle bubble = new Circle(worldXY, radius[i] * scale);
                             // Circle circle2 = circle;
                             pointBubbleCurves.Add(bubble.ToNurbsCurve());
 
@@ -236,8 +238,8 @@ namespace VolumeGeneratorBasedOnGraph
                                         points[i], 
                                         points[j], 
                                         boundingCurve, 
-                                        verticalLine, 
-                                        0.01, 
+                                        verticalLine,
+                                        Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance, 
                                         distanceBetweenP1andVertical, 
                                         dominated));
                                     dominatedFlagaLoL[i].Add(dominated);
