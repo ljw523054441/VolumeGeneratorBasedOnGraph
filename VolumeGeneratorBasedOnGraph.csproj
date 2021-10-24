@@ -64,7 +64,6 @@
     <Compile Include="DualGraph.cs" />
     <Compile Include="ForceDirectedDrawing.cs" />
     <Compile Include="GlobalParameters.cs" />
-    <Compile Include="测试2\GlobalParameters2.cs" />
     <Compile Include="GlobalParameterStruct.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
     <Compile Include="GraphToDiskDrawing.cs" />
@@ -75,6 +74,9 @@
     <Compile Include="VolumeGeneratorBasedOnGraphInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WeightedVoroni.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="测试2\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
