@@ -15,7 +15,7 @@ namespace VolumeGeneratorBasedOnGraph
         public CSVReader()
           : base("CSVReader", "CSVReader",
               "读取CSV文件",
-              "VolumeGeneratorBasedOnGraph", "CSV Import")
+              "VolumeGeneratorBasedOnGraph", "Construct Graph")
         {
         }
 
@@ -37,7 +37,7 @@ namespace VolumeGeneratorBasedOnGraph
         {
             pManager.AddIntegerParameter("ConnectivityArributeTree", "ConnectivityTree", "体量连接关系树", GH_ParamAccess.tree);
             pManager.AddIntegerParameter("BoundaryAdjacencyTree", "BoundaryAdjacencyTree", "体量与边界的邻接关系树", GH_ParamAccess.tree);
-            pManager.AddGenericParameter("LabelList", "LabelList", "体量标签列表", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("LabelList", "LabelList", "体量标签列表", GH_ParamAccess.list);
             pManager.AddGenericParameter("AttributeList", "AttributeList", "体量属性列表", GH_ParamAccess.list);
         }
 
@@ -113,6 +113,7 @@ namespace VolumeGeneratorBasedOnGraph
                             volumeConnectivityArributeDataTree.Add(Convert.ToInt32(connectivity[j]), path);
                         }
                     }
+                    nodeAttributesList[i].ConnectivityTable = volumeConnectivityArributeDataTree.Branch(path);
 
                     // 边界邻接点的数量，先设置成4，可以继续增加，比如8
                     // NodeAttribute.NEWSCount
@@ -162,6 +163,7 @@ namespace VolumeGeneratorBasedOnGraph
                         }
                         // volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
                     }
+                    nodeAttributesList[i].AdjacencyTabel = volumeBoundaryAdjacencyDataTree.Branch(path);
                 }
 
 
@@ -169,7 +171,7 @@ namespace VolumeGeneratorBasedOnGraph
                 // Output 输出
                 DA.SetDataTree(0, volumeConnectivityArributeDataTree);
                 DA.SetDataTree(1, volumeBoundaryAdjacencyDataTree);
-                DA.SetDataList("LabelList", nodeLabelList);
+                // DA.SetDataList("LabelList", nodeLabelList);
                 DA.SetDataList("AttributeList", nodeAttributesList);
             }
         }
