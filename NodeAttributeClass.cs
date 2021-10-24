@@ -28,11 +28,6 @@ namespace VolumeGeneratorBasedOnGraph
         public double NodeAreaProportion { get; set; }
 
         /// <summary>
-        /// 代表节点的当前点的坐标
-        /// </summary>
-        public Point3d NodeLocation { get; set; }
-
-        /// <summary>
         /// 节点的Connectivity表
         /// </summary>
         public int[] ConnectivityTable { get; set; }

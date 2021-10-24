@@ -67,7 +67,8 @@
     <Compile Include="GlobalParameterStruct.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
     <Compile Include="GraphToDiskDrawing.cs" />
-    <Compile Include="NodeAttributeStruct.cs" />
+    <Compile Include="NodeClass.cs" />
+    <Compile Include="NodeAttributeClass.cs" />
     <Compile Include="Triangulate.cs" />
     <Compile Include="TutteConvexDrawing.cs" />
     <Compile Include="UtilityFunctions.cs" />
@@ -76,6 +77,7 @@
     <Compile Include="WeightedVoroni.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="测试文件夹\1024Test.csv" />
     <None Include="测试文件夹\1024_test.gh" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

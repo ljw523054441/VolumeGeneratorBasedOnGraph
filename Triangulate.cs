@@ -24,9 +24,6 @@ namespace VolumeGeneratorBasedOnGraph
             ConvexPolylinesPoints = new List<List<Point3d>>();
             SelectedTriangleMeshEdges = new List<Line>();
 
-            InnerNodePoints = new List<Point3d>();
-            OuterNodePoints = new List<Point3d>();
-
             InnerNodeTextDot = new List<TextDot>();
             OuterNodeTextDot = new List<TextDot>();
 
@@ -41,9 +38,6 @@ namespace VolumeGeneratorBasedOnGraph
         private List<List<Point3d>> ConvexPolylinesPoints;
         private List<Line> SelectedTriangleMeshEdges;
 
-        private List<Point3d> InnerNodePoints;
-        private List<Point3d> OuterNodePoints;
-
         private List<TextDot> InnerNodeTextDot;
         private List<TextDot> OuterNodeTextDot;
 
@@ -57,7 +51,9 @@ namespace VolumeGeneratorBasedOnGraph
         {
             pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
 
-            pManager.AddPointParameter("TutteOutputVertices", "NGV", "The set of locations of vertices as resulted from Tutte algorithm", GH_ParamAccess.list);
+            pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+
+            // pManager.AddPointParameter("TutteOutputVertices", "NGV", "The set of locations of vertices as resulted from Tutte algorithm", GH_ParamAccess.list);
             pManager.AddCurveParameter("ConvexFaceBorders", "CFB", "Convex face borders of the Tutte algorithm as a list of polyline curves.", GH_ParamAccess.list);
             pManager.AddIntegerParameter("IndexOfTriangularMesh", "I", "Index of a triangulation to be visualized from the list of all triangulations", GH_ParamAccess.item);
             pManager.AddBooleanParameter("ExcludeDegenerateTINS", "ExT", "排除那些产生三角形房间的三角剖分 Exclude those triangulations that give rise to triangular rooms", GH_ParamAccess.item);
@@ -83,51 +79,42 @@ namespace VolumeGeneratorBasedOnGraph
             // 全局参数传递
             GlobalParameter globalParameter = new GlobalParameter();
             DA.GetData("GlobalParameter", ref globalParameter);
-            int volumeNodeCount = globalParameter.VolumeNodeCount;
-            int boundaryNodeCount = globalParameter.BoundaryNodeCount;
+            int innerNodeCount = globalParameter.VolumeNodeCount;
+            int outerNodeCount = globalParameter.BoundaryNodeCount;
 
             List<Point3d> nodePoints = new List<Point3d>();           // list -> nodePoints
             List<Curve> convexFaceBorderCurves = new List<Curve>();              // list2 -> convexFaceBorderCurves
             List<Polyline> convexFaceBorderPolylines = new List<Polyline>();        // list3 -> convexFaceBorderPolylines
+
+            List<Node> nodes = new List<Node>();
 
             int index = 0;
             bool flag = false;
 
             Thickness = 2;
 
-            if (DA.GetDataList<Point3d>("TutteOutputVertices", nodePoints)
-                & DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
+            if (DA.GetDataList<Node>("GraphNode", nodes)
+                && DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
             {
                 ConvexPolylinesPoints.Clear();
                 SelectedTriangleMeshEdges.Clear();
-                InnerNodePoints.Clear();
-                OuterNodePoints.Clear();
                 InnerNodeTextDot.Clear();
                 OuterNodeTextDot.Clear();
 
-                for (int i = 0; i < nodePoints.Count; i++)
+                // 设置用于可视化的TextDot
+                for (int i = 0; i < nodes.Count; i++)
                 {
-                    if (i < volumeNodeCount)
+                    if (i < innerNodeCount)
                     {
-                        InnerNodePoints.Add(nodePoints[i]);
+                        TextDot textDot = new TextDot(string.Format("{0} {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
+                        InnerNodeTextDot.Add(textDot);
                     }
                     else
                     {
-                        OuterNodePoints.Add(nodePoints[i]);
+                        TextDot textDot = new TextDot(string.Format("{0} {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
+                        OuterNodeTextDot.Add(textDot);
                     }
                 }
-
-                for (int i = 0; i < InnerNodePoints.Count; i++)
-                {
-                    TextDot textDot = new TextDot(string.Format("Inner {0}", i), InnerNodePoints[i]);
-                    InnerNodeTextDot.Add(textDot);
-                }
-                for (int i = 0; i < OuterNodePoints.Count; i++)
-                {
-                    TextDot textDot = new TextDot(string.Format("Outer {0}", i), OuterNodePoints[i]);
-                    OuterNodeTextDot.Add(textDot);
-                }
-
 
                 // 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
                 for (int i = 0; i < convexFaceBorderCurves.Count; i++)
@@ -146,6 +133,11 @@ namespace VolumeGeneratorBasedOnGraph
                     }
                 }
 
+
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    nodePoints.Add(nodes[i].NodeVertex);
+                }
 
 
                 if (convexFaceBorderCurves.Count != convexFaceBorderPolylines.Count)
@@ -441,6 +433,19 @@ namespace VolumeGeneratorBasedOnGraph
             {
                 args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.BlueViolet, Thickness);
             }
+
+            for (int i = 0; i < InnerNodeTextDot.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(InnerNodeTextDot[i], Color.Black, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+            for (int i = 0; i < OuterNodeTextDot.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
         }
 
         /// <summary>
@@ -454,13 +459,25 @@ namespace VolumeGeneratorBasedOnGraph
 
             args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0));
 
-            for (int i = 0; i < InnerNodePoints.Count; i++)
+            for (int i = 0; i < DottedCurve.Count; i++)
+            {
+                args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+            }
+            //args.Display.EnableDepthTesting(true);
+
+            // 后画实线
+            for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
+            {
+                args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.BlueViolet, Thickness);
+            }
+
+            for (int i = 0; i < InnerNodeTextDot.Count; i++)
             {
                 args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(InnerNodeTextDot[i], Color.Black, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
             }
-            for (int i = 0; i < OuterNodePoints.Count; i++)
+            for (int i = 0; i < OuterNodeTextDot.Count; i++)
             {
                 args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);

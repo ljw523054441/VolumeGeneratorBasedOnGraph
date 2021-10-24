@@ -31,11 +31,14 @@ namespace VolumeGeneratorBasedOnGraph
         {
             pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
 
-            pManager.AddPlaneParameter("BasePlane", "BasePlane", "A plane on which you want to get the Tutte convex drawing", GH_ParamAccess.item, Plane.WorldXY);
-            pManager.AddIntegerParameter("Graph", "Graph", "A graph describing which node is connected to which other nodes", GH_ParamAccess.tree);
-            pManager.AddPointParameter("NodePoints", "Vertices", "用抽象点（point）表示的图结构节点（node）", GH_ParamAccess.list);
-            pManager.AddGenericParameter("NodeAttributes", "Attributes", "图结构中节点所包含的属性", GH_ParamAccess.list);
-            pManager[4].Optional = true;
+            pManager.AddPlaneParameter("BasePlane", "BP", "生成Tutte嵌入的平面", GH_ParamAccess.item, Plane.WorldXY);
+            pManager.AddIntegerParameter("Graph", "G", "描述VolumeNode和BoundaryNode的所有连接关系的图结构", GH_ParamAccess.tree);
+
+            pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+
+            // pManager.AddPointParameter("GraphNodePoints", "GNode", "用抽象点（point）表示的图结构节点（node）", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("GraphNodeAttributes", "GNodeAttributes", "图结构中节点所包含的属性", GH_ParamAccess.list);
+            // pManager[4].Optional = true;
         }
 
         /// <summary>
@@ -43,13 +46,15 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddPointParameter("New Graph Vertices", "New Graph Vertices", "A set of new vertices on which a neat coin/kissing disk drawing can be drawn", GH_ParamAccess.list);
-            pManager.AddCurveParameter("ConvexFaceBorders", "ConvexFaceBorders", "A list of convex polylines represening the boundaries of Tutte convex faces.", GH_ParamAccess.list);
-            pManager.AddIntegerParameter("SubGraph", "SubGraph", "A graph describing the relations of main nodes only, without NEWS nodes", GH_ParamAccess.tree);
-            pManager.AddPointParameter("SubVertices", "SubVertices", "A list of points containing inner vertices only, excluding NEWS vertices", GH_ParamAccess.list);
-            pManager.AddGenericParameter("SubAttributes", "SubAttributes", "A list of lists of attributes pertaining to the main vertices only", GH_ParamAccess.list);
+            pManager.AddGenericParameter("GraphNode", "GNode", "经过Tutte嵌入后得到的节点", GH_ParamAccess.list);
+            pManager.AddCurveParameter("ConvexFaceBorders", "CFBorders", "Tutte嵌入后得到的TutteConvex列表", GH_ParamAccess.list);
 
-            pManager.AddLineParameter("graphEdge", "", "", GH_ParamAccess.list);
+            pManager.AddIntegerParameter("SubGraph", "SubG", "InnerNode内部点之间的连接关系", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("SubGraphNode", "SubGNode", "InnerNode内部节点", GH_ParamAccess.list);
+            // pManager.AddPointParameter("SubGraphNodePoints", "SubGNode", "InnerNode内部点", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("SubGraphNodeAttributes", "SubGNodeAttributes", "InnerNodeAttributes内部点的属性", GH_ParamAccess.list);
+
+            pManager.AddLineParameter("GraphEdge", "GEdge", "用直线来代表图结构中的连接关系", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -68,18 +73,17 @@ namespace VolumeGeneratorBasedOnGraph
             GH_Structure<GH_Integer> gh_Structure_graph = null;
             DataTree<int> graph = new DataTree<int>();
 
-            List<Point3d> nodePoints = new List<Point3d>();                     // list -> nodePointList
+            List<Node> nodes = new List<Node>();
+            List<Node> subNodes = new List<Node>();
 
-            List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
-            // List<GH_ObjectWrapper> list2 = new List<GH_ObjectWrapper>();        // list2 -> nodeAttributes
+            // List<Point3d> nodePoints = new List<Point3d>();                     // list -> nodePointList
+
+            // List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
 
             Plane worldXY = Plane.WorldXY;
-            List<string> nodeLabels = new List<string>();                    // list3 -> nodeLabels
-            List<double> nodeAreas = new List<double>();                    // list4 -> nodeAreas
-            List<Color> nodeMatColor = new List<Color>();                      // list5 -> nodeMatColor
 
-            // bool flag = DA.GetDataTree<GH_Integer>("Graph", out gh_Structure) & DA.GetDataList<Point3d>("Vertices", list);
-            if (DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph) & DA.GetDataList<Point3d>("NodePoints", nodePoints))
+            if (DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph) 
+                && DA.GetDataList<Node>("GraphNode", nodes))
             {
                 DA.GetData<Plane>("BasePlane", ref worldXY);
 
@@ -88,7 +92,7 @@ namespace VolumeGeneratorBasedOnGraph
                 // // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
 
-                List<int> volumeNodeIndexList = new List<int>();                      // list8 -> volumeNodeIndexList
+                List<int> volumeNodeIndexList = new List<int>();
 
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
@@ -96,19 +100,18 @@ namespace VolumeGeneratorBasedOnGraph
                 }
 
                 // 每个volume点，其连接的数量，即该节点的度
-                List<int> volumeNodeDegreeList = new List<int>();                     // list11 -> volumeNodeBranchCountList
+                List<int> volumeNodeDegreeList = new List<int>();
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
                     volumeNodeDegreeList.Add(graph.Branch(i).Count);
                 }
 
-                // List<List<int>> volumeNodeGraph = new List<List<int>>();         // list12 -> volumeNodeGraph
                 // 每个volume点与其他点的连接关系，包括其他volume点和boundary点
                 DataTree<int> volumeNodeGraph = new DataTree<int>();
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
                     volumeNodeGraph.EnsurePath(i);
-                    volumeNodeGraph.Branch(i).AddRange(graph.Branch(volumeNodeIndexList[i]));
+                    volumeNodeGraph.Branch(i).AddRange(graph.Branch(i));
                 }
 
 
@@ -116,7 +119,7 @@ namespace VolumeGeneratorBasedOnGraph
                 Point3d boundaryCenter = new Point3d(0.0, 0.0, 0.0);
                 for (int i = 0; i < boundaryNodeCount; i++)
                 {
-                    boundaryCenter = boundaryCenter + nodePoints[volumeNodeCount + i];
+                    boundaryCenter = boundaryCenter + nodes[volumeNodeCount + i].NodeVertex;
                 }
                 boundaryCenter = boundaryCenter / boundaryNodeCount;
 
@@ -125,8 +128,8 @@ namespace VolumeGeneratorBasedOnGraph
                 Matrix P_outer = new Matrix(boundaryNodeCount, 2);
                 for (int i = 0; i < boundaryNodeCount; i++)
                 {
-                    P_outer[i, 0] = nodePoints[volumeNodeCount + i].X - boundaryCenter.X;
-                    P_outer[i, 1] = nodePoints[volumeNodeCount + i].Y - boundaryCenter.Y;
+                    P_outer[i, 0] = nodes[volumeNodeCount + i].NodeVertex.X - boundaryCenter.X;
+                    P_outer[i, 1] = nodes[volumeNodeCount + i].NodeVertex.Y - boundaryCenter.Y;
                 }
 
                 // 整个大的矩阵，包含四个部分  inner行-inner列  inner行-outer列：Q  outer行-inner列：Q(上标T)  outer行-outer列
@@ -156,11 +159,11 @@ namespace VolumeGeneratorBasedOnGraph
                 Matrix inner_InnerAdjacencyMatrix = ToGHMatrix(inner_InnerAdjacencyDataTree);
                 // 矩阵L(下标1)：inner_InnerLaplacianMatrix
                 DataTree<int> inner_InnerLaplacianDataTree = LaplacianMatrix(inner_InnerAdjacencyDataTree, volumeNodeDegreeList);
-                Matrix inner_InnerLaplacianMatrix = ToGHMatrix(inner_InnerLaplacianDataTree);       // matrix3 -> volumeAndVolumeLaplacianMatrix
+                Matrix inner_InnerLaplacianMatrix = ToGHMatrix(inner_InnerLaplacianDataTree);
 
                 inner_InnerLaplacianMatrix.Invert(0.0);
                 // 拉普拉斯矩阵的逆 L(下标1)(上标-1)：inverse_Inner_InnerLaplacianMatrix
-                Matrix inverse_Inner_InnerLaplacianMatrix = inner_InnerLaplacianMatrix;                              // matrix4 -> inverseLaplacianMatrix
+                Matrix inverse_Inner_InnerLaplacianMatrix = inner_InnerLaplacianMatrix;
 
                 // 求解矩阵 P(inner)
                 Matrix P_inner = new Matrix(volumeNodeCount, 2);
@@ -169,14 +172,14 @@ namespace VolumeGeneratorBasedOnGraph
                 // P_inner.Scale(-1.0);
 
                 // 从P_inner矩阵中生成新的inner点的坐标
-                List<Point3d> newInnerPoints = new List<Point3d>();                             // list23 -> newBoundaryPoints
+                List<Point3d> newInnerPoints = new List<Point3d>();
                 Point3d innerPoint;
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
                     innerPoint = new Point3d(P_inner[i, 0] + boundaryCenter.X, P_inner[i, 1] + boundaryCenter.Y, 0.0);
                     newInnerPoints.Add(innerPoint);
                 }
-                DA.SetDataList("SubVertices", newInnerPoints);
+                // DA.SetDataList("SubGraphNodePoints", newInnerPoints);
 
                 // 将新的inner点与原来的outer点合并成一个新的列表
                 List<Point3d> newNodePoints = new List<Point3d>();
@@ -184,17 +187,21 @@ namespace VolumeGeneratorBasedOnGraph
                 List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
                 for (int i = 0; i < boundaryNodeCount; i++)
                 {
-                    sortedBoundaryNodePoints.Add(nodePoints[volumeNodeCount + i]);
+                    sortedBoundaryNodePoints.Add(nodes[volumeNodeCount + i].NodeVertex);
                 }
                 newNodePoints.AddRange(sortedBoundaryNodePoints);
                 
                 // 将新的inner+outer列表重新定位在基于worldXY变量的另一个地方
                 List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newNodePoints, Plane.WorldXY, worldXY);
-                DA.SetDataList("New Graph Vertices", newNodePointsRelocated);
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    nodes[i].NodeVertex = newNodePointsRelocated[i];
+                }
+                DA.SetDataList("GraphNode", nodes);
                 
                 // Graph的所有Edge，在新的位置上画Edge
                 List<Line> graphEdge = GraphEdgeList(graph, newNodePointsRelocated, globalParameter);
-                DA.SetDataList("graphEdge", graphEdge);
+                DA.SetDataList("GraphEdge", graphEdge);
 
                 // Graph形成的每个convex，在新的位置上画Convex
                 List<Point3d> sortedBoundaryNodePointsRelocated = new List<Point3d>();
@@ -206,7 +213,7 @@ namespace VolumeGeneratorBasedOnGraph
                 DA.SetDataList("ConvexFaceBorders", allSplitFaceBoundarys);
 
                 // subGraph的每一支表示一个volumeNode与哪些其他的volumeNode相连
-                DataTree<int> subGraph = new DataTree<int>();            // dataTree -> volumeConnectivityVolume
+                DataTree<int> subGraph = new DataTree<int>();
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
                     subGraph.EnsurePath(i);
@@ -222,15 +229,12 @@ namespace VolumeGeneratorBasedOnGraph
                 // SubGraph输出
                 DA.SetDataTree(2, subGraph);
 
-
-                // SubAttribute输出
-                DA.GetDataList("NodeAttributes", nodeAttributes);
-                List<NodeAttribute> innerNodeAttributes = new List<NodeAttribute>();
                 for (int i = 0; i < volumeNodeCount; i++)
                 {
-                    innerNodeAttributes.Add(nodeAttributes[i]);
+                    subNodes.Add(nodes[i]);
                 }
-                DA.SetDataList("SubAttributes", innerNodeAttributes);
+
+                DA.SetDataList("SubGraphNode", subNodes);
 
             }
 
@@ -497,6 +501,25 @@ namespace VolumeGeneratorBasedOnGraph
             }
 
             return list;
+        }
+
+
+        /// <summary>
+        /// 预览模式为WireFrame模式时，调用此函数
+        /// </summary>
+        /// <param name="args"></param>
+        public override void DrawViewportWires(IGH_PreviewArgs args)
+        {
+            base.DrawViewportWires(args);
+        }
+
+        /// <summary>
+        /// 预览模式为Shaded模式时，调用此函数
+        /// </summary>
+        /// <param name="args"></param>
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            base.DrawViewportMeshes(args);
         }
 
         /// <summary>

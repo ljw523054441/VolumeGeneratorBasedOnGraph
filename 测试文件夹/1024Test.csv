@@ -1,0 +1,4 @@
+name,area,connectivity,adjacency
+VolumeA,10,1-2,0
+VolumeB,20,0-2,1-2
+VolumeC,40,0-1,4

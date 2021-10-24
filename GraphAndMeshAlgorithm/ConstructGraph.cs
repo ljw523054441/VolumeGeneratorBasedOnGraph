@@ -32,8 +32,6 @@ namespace VolumeGeneratorBasedOnGraph
         {
             pManager.AddGenericParameter("GlobalParameter", "GP", "全局参数传递", GH_ParamAccess.item);
 
-            // pManager.AddPointParameter("VolumeNodePoints", "VNPoints", "能够代表volumeNode节点的抽象点（point）", GH_ParamAccess.list);
-            // pManager.AddPointParameter("BoundaryNodePoints", "BNPoints", "能够代表除了NEWS点外的其他BoundaryNode节点的抽象点", GH_ParamAccess.list);
             pManager.AddIntegerParameter("VolumeConnectivityTree", "CTree", "体量连接关系树", GH_ParamAccess.tree);
             pManager.AddIntegerParameter("BoundaryAdjacencyTree", "ATree", "体量邻近关系树", GH_ParamAccess.tree);
 
@@ -48,8 +46,9 @@ namespace VolumeGeneratorBasedOnGraph
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddIntegerParameter("Graph", "G", "描述VolumeNode和BoundaryNode的所有连接关系的图结构", GH_ParamAccess.tree);
-            pManager.AddPointParameter("GraphNodePoints", "GNode", "用抽象点（point）表示的图结构节点（node）", GH_ParamAccess.list);
-            pManager.AddGenericParameter("GraphNodeAttributes", "GNodeAttributes", "图结构中节点所包含的属性", GH_ParamAccess.list);
+            pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+            // pManager.AddPointParameter("GraphNodePoints", "GNodePoints", "用抽象点（point）表示的图结构节点（node）", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("GraphNodeAttributes", "GNodeAttributes", "图结构中节点所包含的属性", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -81,6 +80,8 @@ namespace VolumeGeneratorBasedOnGraph
             List<Point3d> nodePoints = new List<Point3d>();
             List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
 
+            List<Node> nodes = new List<Node>();
+
             if (DA.GetDataList<NodeAttribute>("VolumeNodeAttributes", volumeNodeAttributeList) && volumeNodeAttributeList.Count != volumeNodeCount)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "体量节点的数量跟体量节点属性的数量要一致！");
@@ -96,19 +97,12 @@ namespace VolumeGeneratorBasedOnGraph
             if (DA.GetDataTree<GH_Integer>("VolumeConnectivityTree", out gh_Structure_ConnectivityTree)
             & DA.GetDataTree<GH_Integer>("BoundaryAdjacencyTree", out gh_Structure_AdjacencyTree))
             {
-                // 自定义的boundary节点按照角度进行排序，插入到NEWS中，得到所有boundary点之间的邻接关系
-                // Sphere NEWSSphere = Sphere.FitSphereToPoints(NEWS_Vertices);
                 Point3d centerPoint = UtilityFunctions.CalCenterPoint(boundaryNodeList);
-
-                //List<Point3d> boundaryNodeList = new List<Point3d>();
-                //boundaryNodeList.AddRange(NEWS_Vertices);
-                //boundaryNodeList.AddRange(boundaryNodeListExceptNEWS);
 
                 List<int> sortedBoundaryNodeIndexList = new List<int>();
 
                 // 对边界节点进行排序
                 List<Point3d> SortedBoundaryNodeList = UtilityFunctions.SortPolyPoints(boundaryNodeList, centerPoint);
-                // SortedBoundaryNodeList.Reverse();
 
                 for (int i = 0; i < SortedBoundaryNodeList.Count; i++)
                 {
@@ -116,42 +110,15 @@ namespace VolumeGeneratorBasedOnGraph
                     sortedBoundaryNodeIndexList.Add(boundaryPointsIndex);
                 }
 
-                // DA.SetDataList("DebugIndex", sortedBoundaryNodeIndexList);
-
-
                 // 构造包含所有node节点的列表，顺序是 inner node + outer node
                 nodePoints.AddRange(volumeNodeList);
-                //nodePoints.AddRange(NEWS_Vertices);
-                //nodePoints.AddRange(boundaryNodeListExceptNEWS);
                 nodePoints.AddRange(SortedBoundaryNodeList);
-
                 // 输出NodePoints
-                DA.SetDataList("GraphNodePoints", nodePoints);
+                // DA.SetDataList("GraphNodePoints", nodePoints);
 
-
-                //List<Point3d> volumeAndNEWSNodes = volumeNodeList;
-                //volumeAndNEWSNodes.AddRange(NEWS_Vertices);
-                //// 包含volume节点和NEWS节点的大球
-                //Sphere sphere = Sphere.FitSphereToPoints(volumeAndNEWSNodes);
-
-                // 计算每个volume点的面积占比
+                // 计算每个volume点的面积占比，并写入NodeAttribute中的NodeAreaProportion属性
                 UtilityFunctions.CalculateAreaProportion(volumeNodeAttributeList);
 
-
-
-                // NEWS节点的属性列表
-                //for (int i = 0; i < NEWS_Vertices.Count; i++)
-                //{
-                //    NodeAttribute NEWSNodeAttribute = new NodeAttribute(boundaryLabelList[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * volumeAndNEWSNodes.Count));
-                //    boundaryNodeAttributeList.Add(NEWSNodeAttribute);
-                //}
-
-                //// 除NEWS节点以外的其他BoundaryNode的属性列表
-                //for (int i = 0; i < boundaryNodeListExceptNEWS.Count; i++)
-                //{
-                //    NodeAttribute boundaryNodeExceptNEWSAttribute = new NodeAttribute(boundaryLabelListExceptNEWS[i]);
-                //    boundaryNodeAttributeList.Add(boundaryNodeExceptNEWSAttribute);
-                //}
 
                 // 构造BoundaryNodeAttribute列表
                 for (int i = 0; i < boundaryNodeList.Count; i++)
@@ -171,7 +138,16 @@ namespace VolumeGeneratorBasedOnGraph
                 nodeAttributes.AddRange(volumeNodeAttributeList);
                 nodeAttributes.AddRange(SortedBoundaryNodeAttributes);
                 // 输出NodeAttributes
-                DA.SetDataList("GraphNodeAttributes", nodeAttributes);
+                // DA.SetDataList("GraphNodeAttributes", nodeAttributes);
+
+
+                // 构造Node类的列表，并输出
+                for (int i = 0; i < nodePoints.Count; i++)
+                {
+                    nodes.Add(new Node(nodePoints[i], nodeAttributes[i]));
+                }
+
+                DA.SetDataList("GraphNode", nodes);
 
 
 
