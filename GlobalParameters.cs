@@ -12,8 +12,8 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         public GlobalParameters()
           : base("Globals", "SetGlobalVaribles",
-              "Set global varibles",
-              "VolumeGeneratorBasedOnGraph", "CSV Import")
+              "设置全局变量",
+              "VolumeGeneratorBasedOnGraph", "GlobalParameter")
         {
         }
 
@@ -22,9 +22,9 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddPointParameter("VolumeNodePoints", "", "", GH_ParamAccess.list);
-            pManager.AddPointParameter("AdditionalBoundaryNodePoints", "", "", GH_ParamAccess.list);
-            pManager[1].Optional = true;
+            pManager.AddPointParameter("VolumeNodePoints", "VNPoints", "能够代表volumeNode节点的抽象点（point）", GH_ParamAccess.list);
+            pManager.AddPointParameter("BoundaryNodePoints", "BNPoints", "能够代表BoundaryNode节点的抽象点（point）", GH_ParamAccess.list);
+            // pManager[1].Optional = true;
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("GlobalParameter", "", "", GH_ParamAccess.item);
+            pManager.AddGenericParameter("GlobalParameter", "GP", "构造后的全局参数", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -42,22 +42,17 @@ namespace VolumeGeneratorBasedOnGraph
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             List<Point3d> volumeNodes = new List<Point3d>();
-            List<Point3d> additionalBoundaryNodes = new List<Point3d>();
+            List<Point3d> boundaryNodes = new List<Point3d>();
 
             GlobalParameter globalParameter;
 
-            if (DA.GetDataList<Point3d>("VolumeNodePoints", volumeNodes))
+            if (DA.GetDataList<Point3d>("VolumeNodePoints", volumeNodes)
+                & DA.GetDataList<Point3d>("BoundaryNodePoints", boundaryNodes))
             {
-                if (DA.GetDataList<Point3d>("AdditionalBoundaryNodePoints", additionalBoundaryNodes))
-                {
-                    globalParameter = new GlobalParameter(volumeNodes.Count, additionalBoundaryNodes.Count + 4);
-                }
-                else
-                {
-                    globalParameter = new GlobalParameter(volumeNodes.Count, 4);
-                }
+                globalParameter = new GlobalParameter(volumeNodes.Count, boundaryNodes.Count);
+                globalParameter.VolumeNodePointLocations = volumeNodes.ToArray();
+                globalParameter.BoundaryNodePointLocations = boundaryNodes.ToArray();
 
-                
                 DA.SetData("GlobalParameter", globalParameter);
             }
         }

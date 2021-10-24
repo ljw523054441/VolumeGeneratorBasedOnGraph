@@ -24,7 +24,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+            pManager.AddGenericParameter("GlobalParameter", "GP", "全局参数传递", GH_ParamAccess.item);
 
             pManager.AddGenericParameter("CSVFilePath", "Path", "CSV文件的路径", GH_ParamAccess.item);
             // pManager.AddIntegerParameter("NumberOfCustomBoundaryNode", "Number", "自定义的边界邻接点的数量", GH_ParamAccess.item, 0);
@@ -35,10 +35,10 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddIntegerParameter("ConnectivityArributeTree", "ConnectivityTree", "体量连接关系树", GH_ParamAccess.tree);
-            pManager.AddIntegerParameter("BoundaryAdjacencyTree", "BoundaryAdjacencyTree", "体量与边界的邻接关系树", GH_ParamAccess.tree);
+            pManager.AddIntegerParameter("VolumeConnectivityTree", "CTree", "体量连接关系树", GH_ParamAccess.tree);
+            pManager.AddIntegerParameter("BoundaryAdjacencyTree", "ATree", "体量与边界的邻接关系树", GH_ParamAccess.tree);
             // pManager.AddGenericParameter("LabelList", "LabelList", "体量标签列表", GH_ParamAccess.list);
-            pManager.AddGenericParameter("AttributeList", "AttributeList", "体量属性列表", GH_ParamAccess.list);
+            pManager.AddGenericParameter("VolumeNodeAttributes", "VNAttributes", "体量属性列表", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -99,21 +99,23 @@ namespace VolumeGeneratorBasedOnGraph
                     GH_Path path = new GH_Path(0, i - 1);
                     for (int j = 0; j < connectivity.Length; j++)
                     {
+                        volumeConnectivityArributeDataTree.EnsurePath(path);
+
                         if (connectivity[j] == "")
                         {
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have connectivity, please check csv file.");
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "节点必须有连接关系, 请检查CSV文件。");
                             return;
                         }
                         if (Convert.ToInt32(connectivity[j]) >= csvLines.Length - 1)
                         {
-                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, connectivity[j].ToString() + "节点的连接对象的序号不在节点列表中");
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, connectivity[j].ToString() + "节点的连接对象的序号不在节点列表中。");
                         }
                         else
                         {
                             volumeConnectivityArributeDataTree.Add(Convert.ToInt32(connectivity[j]), path);
                         }
                     }
-                    nodeAttributesList[i].ConnectivityTable = volumeConnectivityArributeDataTree.Branch(path);
+                    nodeAttributesList[i-1].ConnectivityTable = volumeConnectivityArributeDataTree.Branch(path).ToArray();
 
                     // 边界邻接点的数量，先设置成4，可以继续增加，比如8
                     // NodeAttribute.NEWSCount
@@ -123,6 +125,8 @@ namespace VolumeGeneratorBasedOnGraph
                     string[] adjacency = rowData[3].Split('-');
                     for (int j = 0; j < adjacency.Length; j++)
                     {
+                        volumeBoundaryAdjacencyDataTree.EnsurePath(path);
+
                         // 如果是空，就跳过它继续后面的循环
                         if (adjacency[j] == "")
                         {
@@ -163,7 +167,7 @@ namespace VolumeGeneratorBasedOnGraph
                         }
                         // volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
                     }
-                    nodeAttributesList[i].AdjacencyTabel = volumeBoundaryAdjacencyDataTree.Branch(path);
+                    nodeAttributesList[i - 1].AdjacencyTable = volumeBoundaryAdjacencyDataTree.Branch(path).ToArray();
                 }
 
 
@@ -172,7 +176,7 @@ namespace VolumeGeneratorBasedOnGraph
                 DA.SetDataTree(0, volumeConnectivityArributeDataTree);
                 DA.SetDataTree(1, volumeBoundaryAdjacencyDataTree);
                 // DA.SetDataList("LabelList", nodeLabelList);
-                DA.SetDataList("AttributeList", nodeAttributesList);
+                DA.SetDataList("VolumeNodeAttributes", nodeAttributesList);
             }
         }
 

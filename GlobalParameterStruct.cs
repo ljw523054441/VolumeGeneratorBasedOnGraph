@@ -10,10 +10,16 @@ namespace VolumeGeneratorBasedOnGraph
         public int BoundaryNodeCount;
         public int VolumeNodeCount;
 
-        public GlobalParameter(int volumeNodeCount,int boundaryNodeCount)
+        public Point3d[] VolumeNodePointLocations { get; set; }
+        public Point3d[] BoundaryNodePointLocations { get; set; }
+
+        public GlobalParameter(int volumeNodeCount, int boundaryNodeCount)
         {
-            VolumeNodeCount = volumeNodeCount;
-            BoundaryNodeCount = boundaryNodeCount;
+            this.VolumeNodeCount = volumeNodeCount;
+            this.BoundaryNodeCount = boundaryNodeCount;
+
+            VolumeNodePointLocations = null;
+            BoundaryNodePointLocations = null;
         }
     }
 }

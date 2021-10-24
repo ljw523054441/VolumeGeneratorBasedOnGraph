@@ -35,19 +35,31 @@ namespace VolumeGeneratorBasedOnGraph
         /// <summary>
         /// 节点的Connectivity表
         /// </summary>
-        public List<int> ConnectivityTable { get; set; }
+        public int[] ConnectivityTable { get; set; }
         /// <summary>
         /// 节点的Adjacency表
         /// </summary>
-        public List<int> AdjacencyTabel { get; set; }
+        public int[] AdjacencyTable { get; set; }
 
+        public NodeAttribute(string nodeLabel)
+        {
+            this.NodeLabel = nodeLabel;
+
+            this.NodeArea = 0;
+            this.NodeAreaProportion = 0;
+            //this.ConnectivityTable = new List<int>();
+            //this.AdjacencyTable = new List<int>();
+        }
 
         public NodeAttribute(string nodeLabel, double nodeArea)
         {
             this.NodeLabel = nodeLabel;
             this.NodeArea = nodeArea;
 
-            NodeAreaProportion = 0;
+            this.NodeAreaProportion = 0;
+
+            //this.ConnectivityTable = n
+            //this.AdjacencyTable = new List<int>();
         }
 
         //public void SetNodeAreaProportion(double x)

@@ -139,6 +139,25 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
         /// <summary>
+        /// 计算一堆点的中点
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        public static Point3d CalCenterPoint(List<Point3d> p)
+        {
+            Point3d centerPoint = new Point3d();
+
+            for (int i = 0; i < p.Count; i++)
+            {
+                centerPoint += p[i];
+            }
+
+            centerPoint /= p.Count;
+
+            return centerPoint;
+        }
+
+        /// <summary>
         /// 将点的列表按照从正北开始，逆时针排序
         /// </summary>
         /// <param name="vPoints"></param>

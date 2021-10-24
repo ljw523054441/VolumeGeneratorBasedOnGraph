@@ -59,7 +59,7 @@
     <Compile Include="CellGraph.cs" />
     <Compile Include="CoinGraph.cs" />
     <Compile Include="CoinGraphToDiskDrawing.cs" />
-    <Compile Include="ConstructGraph.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\ConstructGraph.cs" />
     <Compile Include="CSVReader.cs" />
     <Compile Include="DualGraph.cs" />
     <Compile Include="ForceDirectedDrawing.cs" />
@@ -76,7 +76,7 @@
     <Compile Include="WeightedVoroni.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="测试2\" />
+    <None Include="测试文件夹\1024_test.gh" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
