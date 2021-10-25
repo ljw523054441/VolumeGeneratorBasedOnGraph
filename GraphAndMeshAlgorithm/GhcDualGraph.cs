@@ -7,7 +7,6 @@ using Rhino.Geometry.Collections;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 
 namespace VolumeGeneratorBasedOnGraph
 {
@@ -21,22 +20,22 @@ namespace VolumeGeneratorBasedOnGraph
               "生成对应的对偶图",
               "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
         {
-            DualVertices = new List<Point3d>();
+            DualConvexVertices = new List<Point3d>();
             DualConvexPolygon = new List<List<Point3d>>();
-            DualVertexTextDots = new List<TextDot>();
+            DualConvexVertexTextDots = new List<TextDot>();
 
-            ResultPoints = new List<Point3d>();
+            DualConvexCenterPoints = new List<Point3d>();
             GraphEdges = new List<Line>();
             NodeTextDots = new List<TextDot>();
         }
 
         private int Thickness;
 
-        private List<Point3d> DualVertices;
+        private List<Point3d> DualConvexVertices;
         private List<List<Point3d>> DualConvexPolygon;
-        private List<TextDot> DualVertexTextDots;
+        private List<TextDot> DualConvexVertexTextDots;
 
-        private List<Point3d> ResultPoints;
+        private List<Point3d> DualConvexCenterPoints;
         private List<Line> GraphEdges;
         private List<TextDot> NodeTextDots;
 
@@ -60,12 +59,12 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddPointParameter("DualVertices", "DV", "Vertices of the dual mesh", GH_ParamAccess.list);
-            pManager.AddTextParameter("DualFaces", "DF", "Faces of the dual mesh as a list of General_Graph meshface", GH_ParamAccess.list);
-            pManager.AddCurveParameter("DualConvexPolygon", "DFB", "Face borders of the dual mesh as a list of closed polyline curves", GH_ParamAccess.list);
+            pManager.AddPointParameter("DualVertices", "DV", "所有构成对偶多边形的顶点", GH_ParamAccess.list);
+            pManager.AddTextParameter("DualFacesDescriptions", "DFD", "生成的对偶面的描述，包括对于第几个innerNode，周围由哪几个三角形的中心点包围形成", GH_ParamAccess.list);
+            pManager.AddCurveParameter("DualConvexPolygons", "DFB", "生成的对偶多边形", GH_ParamAccess.list);
 
-            pManager.AddIntegerParameter("DualConvexConnectivityGraph", "Graph", "A graph representation as an adjacency list datatree", GH_ParamAccess.list);
-            pManager.AddPointParameter("PointsRespresentDualConvex", "GraphVertices", "Graph vertices as [edge] centrpoids of cells", GH_ParamAccess.list);
+            pManager.AddIntegerParameter("DualConvexConnectivityGraph", "DCCGraph", "A graph representation as an adjacency list datatree", GH_ParamAccess.list);
+            pManager.AddPointParameter("DualConvexCenterPointsAsGraphNodes", "DCGraphNode", "Graph vertices as [edge] centrpoids of cells", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -87,7 +86,7 @@ namespace VolumeGeneratorBasedOnGraph
 
             List<Node> nodes = new List<Node>();
 
-            if (DA.GetData<Mesh>("TriangleMesh",ref mesh))
+            if (DA.GetData<Mesh>("TriangleMesh", ref mesh))
             {
                 // 获取节点
                 DA.GetDataList<Node>("GraphNode", nodes);
@@ -122,53 +121,70 @@ namespace VolumeGeneratorBasedOnGraph
                     facePolylines.Add(facePolyline);
                 }
 
-                List<Point3d> meshVerticesPointList = new List<Point3d>();
 
-                // meshVerticesPointList中，是分innerNode和outerNode的，顺序跟nodePoint原来的顺序一样
+
+                // meshVerticesPointsList mesh中所有顶点的集合
+                List<Point3d> innerNodePoints = new List<Point3d>();
+
+                // meshVerticesPointList中，是分innerNode和outerNode的，innerNode部分的顺序跟nodePoint原来的顺序一样
+                /*
+                 * 这里要进行确认
+                 */
+
                 // 所以在计算是要把outerNode去掉进行计算
                 for (int i = 0; i < meshVertices.Count - boundaryNodeCount; i++)
                 {
-                    meshVerticesPointList.Add(meshVertices[i]);
+                    innerNodePoints.Add(meshVertices[i]);
                 }
 
-                List<Point3d> centerPoints = new List<Point3d>();
-                // List<List<Point3d>> list4 = new List<List<Point3d>>();
+                List<Point3d> triangleCenterPoints = new List<Point3d>();
                 List<List<int>> sortedCenterPointIndexLoL = new List<List<int>>();
-                List<Polyline> dualConvexPolygon = new List<Polyline>();
+                List<Polyline> dualConvexPolygons = new List<Polyline>();
+                List<List<int>> polylineCenterBelongsToWhichNodeIndexLoL = new List<List<int>>();
                 List<string> faceDescriptions = new List<string>();
 
-                SortAdjacentCenterPoints(meshVerticesPointList, facePolylines, ref centerPoints, ref sortedCenterPointIndexLoL, ref dualConvexPolygon, ref faceDescriptions);
+                ConstructDualConvex(
+                    innerNodePoints,
+                    facePolylines,
+                    ref triangleCenterPoints,
+                    ref sortedCenterPointIndexLoL,
+                    ref dualConvexPolygons,
+                    ref polylineCenterBelongsToWhichNodeIndexLoL,
+                    ref faceDescriptions);
 
-                DA.SetDataList("DualVertices", centerPoints);
-                DA.SetDataList("DualFaces", faceDescriptions);
-
+                // 输出所有的对偶多边形
+                DA.SetDataList("DualConvexPolygons", dualConvexPolygons);
+                // 输出所有的对偶多边形的顶点，即每个三角形的中心点
+                DA.SetDataList("DualVertices", triangleCenterPoints);
+                // 输出生成的对偶面的描述，包括对于第几个innerNode，周围由哪几个三角形的中心点包围形成
+                DA.SetDataList("DualFacesDescriptions", faceDescriptions);
 
 
 
                 // 将DualConvex由polygon转为curve，方便调用函数
                 List<Curve> dualConvexPolygonCurve = new List<Curve>();
-                for (int i = 0; i < dualConvexPolygon.Count; i++)
+                for (int i = 0; i < dualConvexPolygons.Count; i++)
                 {
-                    dualConvexPolygonCurve.Add(dualConvexPolygon[i].ToNurbsCurve());
+                    dualConvexPolygonCurve.Add(dualConvexPolygons[i].ToNurbsCurve());
                 }
-
-                // 对没有按照node顺序的dualConvexPolygon进行排序
-                List<Curve> sortedDualConvexPolygonCurve = new List<Curve>();
-                for (int i = 0; i < nodes.Count; i++)
-                {
-                    for (int j = 0; j < dualConvexPolygonCurve.Count; j++)
-                    {
-                        PointContainment pointContainment = dualConvexPolygonCurve[j].Contains(nodes[i].NodeVertex, Plane.WorldXY, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
-                        if (pointContainment == PointContainment.Inside || pointContainment == PointContainment.Coincident)
-                        {
-                            sortedDualConvexPolygonCurve.Add(dualConvexPolygonCurve[j]);
-                        }
-                    }
-                }
+                //// 对没有按照node顺序的dualConvexPolygon进行排序
+                //List<Curve> sortedDualConvexPolygonCurve = new List<Curve>();
+                //for (int i = 0; i < nodes.Count; i++)
+                //{
+                //    for (int j = 0; j < dualConvexPolygonCurve.Count; j++)
+                //    {
+                //        // 如果这个对偶多边形包含了某个
+                //        PointContainment pointContainment = dualConvexPolygonCurve[j].Contains(nodes[i].NodeVertex, Plane.WorldXY, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+                //        if (pointContainment == PointContainment.Inside || pointContainment == PointContainment.Coincident)
+                //        {
+                //            sortedDualConvexPolygonCurve.Add(dualConvexPolygonCurve[j]);
+                //        }
+                //    }
+                //}
 
                 // 判断对偶的ConvexPolygon是否有没闭合的
                 int count = 0;
-                foreach (Curve curve in sortedDualConvexPolygonCurve)
+                foreach (Curve curve in dualConvexPolygonCurve)
                 {
                     if (!curve.IsClosed)
                     {
@@ -181,174 +197,164 @@ namespace VolumeGeneratorBasedOnGraph
                 }
 
                 // 用对偶ConvexPolygon的中心点来代表这个ConvexPolygon
-                DataTree<int> sortedDualConvexPolygonConnectivityDT = new DataTree<int>();
-                List<Point3d> sortedDualConvexCenterPoints = new List<Point3d>();
+                DataTree<int> DualConvexPolygonConnectivityDT = new DataTree<int>();
+                List<Point3d> DualConvexCenterPoints = new List<Point3d>();
 
-                for (int i = 0; i < sortedDualConvexPolygonCurve.Count; i++)
+                for (int i = 0; i < dualConvexPolygonCurve.Count; i++)
                 {
-                    sortedDualConvexPolygonConnectivityDT.EnsurePath(i);
+                    DualConvexPolygonConnectivityDT.EnsurePath(i);
 
                     Polyline polyline = null;
-                    if (sortedDualConvexPolygonCurve[i].TryGetPolyline(out polyline))
+                    if (dualConvexPolygonCurve[i].TryGetPolyline(out polyline))
                     {
-                        sortedDualConvexCenterPoints.Add(polyline.CenterPoint());
+                        DualConvexCenterPoints.Add(polyline.CenterPoint());
                     }
 
-                    for (int j = 0; j < sortedDualConvexPolygonCurve.Count; j++)
+                    for (int j = 0; j < dualConvexPolygonCurve.Count; j++)
                     {
                         if (j != i)
                         {
                             // 判断两条Polyline是否相交，如果是，那么它俩有邻接关系
-                            RegionContainment regionContainment = Curve.PlanarClosedCurveRelationship(sortedDualConvexPolygonCurve[i], sortedDualConvexPolygonCurve[j], Plane.WorldXY, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+                            RegionContainment regionContainment = Curve.PlanarClosedCurveRelationship(dualConvexPolygonCurve[i], dualConvexPolygonCurve[j], Plane.WorldXY, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
 
                             if (regionContainment == RegionContainment.MutualIntersection)
                             {
-                                sortedDualConvexPolygonConnectivityDT.Branch(i).Add(j);
+                                DualConvexPolygonConnectivityDT.Branch(i).Add(j);
                             }
                         }
                     }
                 }
-                DA.SetDataTree(3, sortedDualConvexPolygonConnectivityDT);
-                DA.SetDataList("PointsRespresentDualConvex", sortedDualConvexCenterPoints);
-
-
-                List<Polyline> sortedDualConvexPolygon = new List<Polyline>();
-                for (int i = 0; i < sortedDualConvexPolygonCurve.Count; i++)
-                {
-                    Polyline polyline = null;
-                    if (sortedDualConvexPolygonCurve[i].TryGetPolyline(out polyline))
-                    {
-                        sortedDualConvexPolygon.Add(polyline);
-                    }
-                }
-                DA.SetDataList("DualConvexPolygon", sortedDualConvexPolygon);
-
-
-
-
-                
-                
-                
-
+                // 输出对偶多边形之间的连接关系
+                DA.SetDataTree(3, DualConvexPolygonConnectivityDT);
+                // 输出对偶多边形的中心作为对偶多边形之间的图结构的node
+                DA.SetDataList("DualConvexCenterPointsAsGraphNodes", DualConvexCenterPoints);
                 
 
 
 
 
-                DualVertices.Clear();
+
+                // 绘图部分
+                // 对偶图
+                DualConvexVertices.Clear();
                 DualConvexPolygon.Clear();
-                DualVertexTextDots.Clear();
+                DualConvexVertexTextDots.Clear();
 
-                DualVertices = centerPoints;
-                for (int i = 0; i < sortedDualConvexPolygon.Count; i++)
+                DualConvexVertices = triangleCenterPoints;
+                for (int i = 0; i < dualConvexPolygons.Count; i++)
                 {
                     DualConvexPolygon.Add(new List<Point3d>());
-                    DualConvexPolygon[i].AddRange(sortedDualConvexPolygon[i]);
+                    DualConvexPolygon[i].AddRange(dualConvexPolygons[i]);
                 }
-
-
-
-                for (int i = 0; i < sortedDualConvexPolygon.Count; i++)
+                
+                for (int i = 0; i < polylineCenterBelongsToWhichNodeIndexLoL.Count; i++)
                 {
-                    for (int j = 0; j < sortedDualConvexPolygon[i].Count; j++)
-                    {
-
-                    }
-                    TextDot textDot = new TextDot(string.Format("{0} {1}", nodes[i].NodeAttribute.NodeLabel, i), DualVertices[i]);
-                    DualVertexTextDots.Add(textDot);
+                    string arg = string.Join<int>(";", polylineCenterBelongsToWhichNodeIndexLoL[i]);
+                    
+                    TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), triangleCenterPoints[i]);
+                    DualConvexVertexTextDots.Add(textDot);
                 }
 
-
-                
-
-                
-
-                
-
-                
-
-
-
-
-
-
-                ResultPoints.Clear();
-                ResultPoints.AddRange(sortedDualConvexCenterPoints);
-
-
-
+                // 原来的Graph
+                this.DualConvexCenterPoints.Clear();
+                this.DualConvexCenterPoints.AddRange(DualConvexCenterPoints);
 
                 GraphEdges.Clear();
                 List<Line> edges = new List<Line>();
-                for (int i = 0; i < sortedDualConvexPolygonConnectivityDT.BranchCount; i++)
+                for (int i = 0; i < DualConvexPolygonConnectivityDT.BranchCount; i++)
                 {
-                    for (int j = 0; j < sortedDualConvexPolygonConnectivityDT.Branch(i).Count; j++)
+                    for (int j = 0; j < DualConvexPolygonConnectivityDT.Branch(i).Count; j++)
                     {
-                        edges.Add(new Line(ResultPoints[i], ResultPoints[sortedDualConvexPolygonConnectivityDT.Branch(i)[j]]));
+                        edges.Add(new Line(this.DualConvexCenterPoints[i], this.DualConvexCenterPoints[DualConvexPolygonConnectivityDT.Branch(i)[j]]));
                     }
                 }
                 GraphEdges.AddRange(edges);
 
                 NodeTextDots.Clear();
                 List<TextDot> nodeTextDots = new List<TextDot>();
-                for (int i = 0; i < nodes.Count; i++)
+                for (int i = 0; i < nodes.Count - boundaryNodeCount; i++)
                 {
-                    nodeTextDots.Add(new TextDot(string.Format("{0} {1}", i, nodes[i].NodeAttribute.NodeLabel), ResultPoints[i]));
+                    nodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), this.DualConvexCenterPoints[i]));
                 }
                 NodeTextDots.AddRange(nodeTextDots);
-
-
             }
         }
 
         /// <summary>
-        /// 按照每个centerPoint向量与x轴正方向的夹角的弧度值大小，对每个顶点所邻接的dualConvexPolygon的中心进行排序
+        /// 构造对偶多边形，并且对于每个对偶多边形的顶点，即每个三角面的centerPoints，按照每个centerPoint向量与x轴正方向的夹角的弧度值大小，对每个对偶多边形的顶点所邻接的三角面的中心进行排序
         /// </summary>
-        /// <param name="meshVertices"></param>
-        /// <param name="facePolylines"></param>
-        /// <param name="facePolylineCenterPoints"></param>
-        /// <param name="sortedCenterPointIndexLoL"></param>
-        /// <param name="dualConvexPolygons"></param>
-        /// <param name="faceDescriptions"></param>
-        public void SortAdjacentCenterPoints(List<Point3d> meshVertices, List<Polyline> facePolylines, ref List<Point3d> facePolylineCenterPoints, ref List<List<int>> sortedCenterPointIndexLoL, ref List<Polyline> dualConvexPolygons, ref List<string> faceDescriptions)
+        /// <param name="innerNodePoints">innerNode的列表</param>
+        /// <param name="facePolylines">mesh中每个三角面对应的polyline</param>
+        /// <param name="facePolylineCenterPoints">mesh中每个三角面对应的中心点</param>
+        /// <param name="sortedCenterPointIndexLoL">innerNode列表中，每个innerNode所对应的经过夹角排序的的centerPoints序号的列表</param>
+        /// <param name="dualConvexPolygons">生成的对偶多边形，顺序与innerNodePoints对应</param>
+        /// <param name="polylineCenterBelongsToWhichNodeIndexLoL">每个polyline属于哪几个Node，即哪几个Convex</param>
+        /// <param name="faceDescriptions">生成的ConvexFace的描述用于debug，包括对于第几个innerNode，周围由哪几个三角形的中心点包围形成</param>
+        public void ConstructDualConvex(
+            List<Point3d> innerNodePoints,
+            List<Polyline> facePolylines,
+            ref List<Point3d> facePolylineCenterPoints,
+            ref List<List<int>> sortedCenterPointIndexLoL,
+            ref List<Polyline> dualConvexPolygons,
+            ref List<List<int>> polylineCenterBelongsToWhichNodeIndexLoL,
+            ref List<string> faceDescriptions)
         {
+            // 获取mesh中每个三角面对应的中心点
             facePolylineCenterPoints = PolygonCenters(facePolylines);
-            List<List<int>> vertexContainInWhichFacePolyline = PointsInPolygons(meshVertices, facePolylines, Plane.WorldXY);
 
-            List<List<Point3d>> vertexAdjacentWhichPolygonCenter = FetchPolygonCentersForDualVerticesLoL(facePolylineCenterPoints, vertexContainInWhichFacePolyline);
+            // 获取innerNodePoints中每个元素，分别属于哪几个三角面对应的polyline
+            List<List<int>> innerNodeContainInWhichFacePolylineIndexLoL = PointsInWhichPolylines(innerNodePoints, facePolylines, Plane.WorldXY);
+            // 根据上面获取的polyline序号列表，找到innerNodePoints中每个元素，对应的邻接哪些polyline的中心点
+            List<List<Point3d>> innerNodeAdjacentWhichPolylineCenterLoL = FetchPolylineCentersForDualVerticesLoL(facePolylineCenterPoints, innerNodeContainInWhichFacePolylineIndexLoL);
 
-            
 
-            if (vertexAdjacentWhichPolygonCenter == null | meshVertices == null |meshVertices.Count != vertexAdjacentWhichPolygonCenter.Count)
+
+            // 对于每个polylineCenter，它是属于那个innerNode
+            for (int i = 0; i < facePolylineCenterPoints.Count; i++)
+            {
+                polylineCenterBelongsToWhichNodeIndexLoL.Add(new List<int>());
+                for (int j = 0; j < innerNodeAdjacentWhichPolylineCenterLoL.Count; j++)
+                {
+                    if (innerNodeAdjacentWhichPolylineCenterLoL[j].Contains(facePolylineCenterPoints[i]))
+                    {
+                        polylineCenterBelongsToWhichNodeIndexLoL[i].Add(j);
+                    }
+                }
+            }
+
+
+            if (innerNodeAdjacentWhichPolylineCenterLoL == null | innerNodePoints == null | innerNodePoints.Count != innerNodeAdjacentWhichPolylineCenterLoL.Count)
             {
                 return;
             }
             else
             {
-                List<List<Point3d>> sortedAdjacentCenterLoL = new List<List<Point3d>>();
+                List<List<Point3d>> sortedVertexAdjacentCenterPointLoL = new List<List<Point3d>>();
                 List<double> radianList = new List<double>();
 
                 // 对于mesh上每一个顶点
-                for (int i = 0; i < vertexAdjacentWhichPolygonCenter.Count; i++)
+                for (int i = 0; i < innerNodePoints.Count; i++)
                 {
                     radianList.Clear();
-                    sortedAdjacentCenterLoL.Add(new List<Point3d>());
+                    sortedVertexAdjacentCenterPointLoL.Add(new List<Point3d>());
                     sortedCenterPointIndexLoL.Add(new List<int>());
+                    
 
                     // 每个顶点会对应几个PolygonCenter
-                    int[] centerPointIndexArray = new int[vertexAdjacentWhichPolygonCenter[i].Count];
+                    int[] centerPointIndexArray = new int[innerNodeAdjacentWhichPolylineCenterLoL[i].Count];
 
-                    // 对于每一支上的每个元素（即PolygonCenter）
-                    for (int j = 0; j < vertexAdjacentWhichPolygonCenter[i].Count; j++)
+                    // 对于每一支上的每个元素（即每个PolylineCenter）
+                    for (int j = 0; j < innerNodeAdjacentWhichPolylineCenterLoL[i].Count; j++)
                     {
                         // 在centerPoint列表中找到与vertex邻接的对应的centerpoint的序号
-                        centerPointIndexArray[j] = facePolylineCenterPoints.IndexOf(vertexAdjacentWhichPolygonCenter[i][j]);
+                        centerPointIndexArray[j] = facePolylineCenterPoints.IndexOf(innerNodeAdjacentWhichPolylineCenterLoL[i][j]);
                         /* atan2(y, x)是4象限反正切，它的取值不仅取决于正切值y/x，还取决于点 (x, y) 落入哪个象限：
                          * 当点(x, y) 落入第一象限时，atan2(y, x)的范围是 0 ~ pi/2;
                          * 当点(x, y) 落入第二象限时，atan2(y, x)的范围是 pi/2 ~ pi;
                          * 当点(x, y) 落入第三象限时，atan2(y, x)的范围是 －pi～－pi/2;
                          * 当点(x, y) 落入第四象限时，atan2(y, x)的范围是 -pi/2～0. */
-                        double radian = Math.Atan2(vertexAdjacentWhichPolygonCenter[i][j].Y - meshVertices[i].Y, vertexAdjacentWhichPolygonCenter[i][j].X - meshVertices[i].X);
+                        double radian = Math.Atan2(innerNodeAdjacentWhichPolylineCenterLoL[i][j].Y - innerNodePoints[i].Y, innerNodeAdjacentWhichPolylineCenterLoL[i][j].X - innerNodePoints[i].X);
+                        // 得到每个centerPoint向量与x轴正方向的夹角的弧度值大小
                         if (radian >= 0.0)
                         {
                             radianList.Add(radian);
@@ -360,22 +366,26 @@ namespace VolumeGeneratorBasedOnGraph
                     }
 
                     // 按照与X轴的夹角大小，对CenterPoint进行排序
-                    Point3d[] AdjacentCenterArray = vertexAdjacentWhichPolygonCenter[i].ToArray();
-                    Array.Sort<double, Point3d>(radianList.ToArray(), AdjacentCenterArray);
+                    Point3d[] AdjacentPolylineCenterArray = innerNodeAdjacentWhichPolylineCenterLoL[i].ToArray();
+                    Array.Sort<double, Point3d>(radianList.ToArray(), AdjacentPolylineCenterArray);
                     Array.Sort<double, int>(radianList.ToArray(), centerPointIndexArray);
 
-                    sortedAdjacentCenterLoL[i].AddRange(AdjacentCenterArray);
+                    sortedVertexAdjacentCenterPointLoL[i].AddRange(AdjacentPolylineCenterArray);
                     sortedCenterPointIndexLoL[i].AddRange(centerPointIndexArray);
 
-                    List<Point3d> pointsForPolyline = new List<Point3d>();
-                    pointsForPolyline.AddRange(AdjacentCenterArray);
-                    pointsForPolyline.Add(AdjacentCenterArray[0]);
-                    Polyline dualConvexPolyline = new Polyline(pointsForPolyline);
+                    // 构造对偶的convex，并输出
+                    List<Point3d> pointsForDualPolyline = new List<Point3d>();
+                    pointsForDualPolyline.AddRange(AdjacentPolylineCenterArray);
+                    // 补上起始点，使首尾闭合
+                    pointsForDualPolyline.Add(AdjacentPolylineCenterArray[0]);
+                    Polyline dualConvexPolyline = new Polyline(pointsForDualPolyline);
                     dualConvexPolygons.Add(dualConvexPolyline);
 
+                    // 用；连接sortedCenterPointIndexLoL中的所有序号
                     string arg = string.Join<int>(";", sortedCenterPointIndexLoL[i]);
-                    string item2 = string.Format("{0}|{1}", sortedCenterPointIndexLoL[i].Count, arg);
-                    faceDescriptions.Add(item2);
+                    string description = string.Format("{0}|{1}", i, arg);
+                    // 生成face的描述用于debug
+                    faceDescriptions.Add(description);
                 }
             }
         }
@@ -386,7 +396,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="centerPoints"></param>
         /// <param name="vertexBelongtoWhichPolygon"></param>
         /// <returns></returns>
-        public List<List<Point3d>> FetchPolygonCentersForDualVerticesLoL(List<Point3d> centerPoints, List<List<int>> vertexBelongtoWhichPolygon)
+        public List<List<Point3d>> FetchPolylineCentersForDualVerticesLoL(List<Point3d> centerPoints, List<List<int>> vertexBelongtoWhichPolygon)
         {
             List<List<Point3d>> vertexBelongtoWhichPolygonCenter = new List<List<Point3d>>();
             for (int i = 0; i < vertexBelongtoWhichPolygon.Count; i++)
@@ -408,7 +418,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <returns></returns>
         public List<Point3d> PolygonCenters(List<Polyline> convexPolygons)
         {
-            
+
             if (convexPolygons == null)
             {
                 return null;
@@ -433,7 +443,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="polygons"></param>
         /// <param name="basePlane"></param>
         /// <returns></returns>
-        public List<List<int>> PointsInPolygons(List<Point3d> points, List<Polyline> polygons, Plane basePlane)
+        public List<List<int>> PointsInWhichPolylines(List<Point3d> points, List<Polyline> polygons, Plane basePlane)
         {
             // double num = 0.01 * RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
             // 每一支上的每个元素代表，这个点在哪个polygon里（polygon的序号）。
@@ -469,6 +479,20 @@ namespace VolumeGeneratorBasedOnGraph
             }
 
             args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+            for (int i = 0; i < DualConvexVertices.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(DualConvexVertexTextDots[i], Color.DarkOrange, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+
+            for (int i = 0; i < NodeTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(NodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
         }
 
         public override void DrawViewportMeshes(IGH_PreviewArgs args)
@@ -476,11 +500,17 @@ namespace VolumeGeneratorBasedOnGraph
             // 屏蔽掉电池原本的预览
             // base.DrawViewportMeshes(args);
 
+            for (int i = 0; i < DualConvexPolygon.Count; i++)
+            {
+                args.Display.DrawPolyline(DualConvexPolygon[i], Color.DarkOrange, Thickness);
+            }
 
-            for (int i = 0; i < DualVertices.Count; i++)
+            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+            for (int i = 0; i < DualConvexVertices.Count; i++)
             {
                 args.Display.EnableDepthTesting(false);
-                args.Display.DrawDot(DualVertexTextDots[i], Color.DarkOrange, Color.White, Color.White);
+                args.Display.DrawDot(DualConvexVertexTextDots[i], Color.DarkOrange, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
             }
 
