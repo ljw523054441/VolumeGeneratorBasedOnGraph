@@ -82,11 +82,12 @@ namespace VolumeGeneratorBasedOnGraph
             int innerNodeCount = globalParameter.VolumeNodeCount;
             int outerNodeCount = globalParameter.BoundaryNodeCount;
 
-            List<Point3d> nodePoints = new List<Point3d>();           // list -> nodePoints
-            List<Curve> convexFaceBorderCurves = new List<Curve>();              // list2 -> convexFaceBorderCurves
-            List<Polyline> convexFaceBorderPolylines = new List<Polyline>();        // list3 -> convexFaceBorderPolylines
-
             List<Node> nodes = new List<Node>();
+
+            List<Point3d> nodePoints = new List<Point3d>();
+            List<Point3d> outerPoints = new List<Point3d>();
+            List<Curve> convexFaceBorderCurves = new List<Curve>();
+            List<Polyline> convexFaceBorderPolylines = new List<Polyline>();        // list3 -> convexFaceBorderPolylines
 
             int index = 0;
             bool flag = false;
@@ -116,6 +117,7 @@ namespace VolumeGeneratorBasedOnGraph
                     }
                 }
 
+
                 // 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
                 for (int i = 0; i < convexFaceBorderCurves.Count; i++)
                 {
@@ -138,6 +140,10 @@ namespace VolumeGeneratorBasedOnGraph
                 {
                     nodePoints.Add(nodes[i].NodeVertex);
                 }
+                for (int i = 0; i < nodes.Count - innerNodeCount; i++)
+                {
+                    outerPoints.Add(nodes[i + innerNodeCount].NodeVertex);
+                }
 
 
                 if (convexFaceBorderCurves.Count != convexFaceBorderPolylines.Count)
@@ -148,16 +154,15 @@ namespace VolumeGeneratorBasedOnGraph
                 DA.GetData<int>("IndexOfTriangularMesh", ref index);
                 DA.GetData<bool>("ExcludeDegenerateTINS", ref flag);
 
-                //IndexOfTriangularMesh = 0;
-                //IndexOfTriangularMesh = index;
-
 
                 // 得到这样一个图结构下，所有的同形异构的整体的三角形网格
                 List<Mesh> allPolylineCorrespondIsomorphismTriangleMeshes = GetAllIsomorphismTriangleMeshes(ClosedPolylineToTriangleMesh(convexFaceBorderPolylines));
+                // 剔除细分后的三角形全部由outerNode构成的情况
+                List<Mesh> allPolylineCorrespondIsomorphismTriangleMeshesExceptOuterNode = RemoveTriangleMeshWithAllOuterNode(allPolylineCorrespondIsomorphismTriangleMeshes, outerPoints);
 
                 // 对于新生成的三角网格，其中的顶点顺序是跟原来的nodePoints列表中的点的顺序不同的，需要重新匹配
                 List<Mesh> regeneratedIsomorphismMeshes = new List<Mesh>();
-                foreach (Mesh IsomorphismMesh in allPolylineCorrespondIsomorphismTriangleMeshes)
+                foreach (Mesh IsomorphismMesh in allPolylineCorrespondIsomorphismTriangleMeshesExceptOuterNode)
                 {
                     regeneratedIsomorphismMeshes.Add(MatchVerticesIndex(nodePoints, IsomorphismMesh));
                 }
@@ -165,7 +170,7 @@ namespace VolumeGeneratorBasedOnGraph
                 List<Mesh> result;
                 if (flag)
                 {
-                    result = RemoveTriangularDuals(regeneratedIsomorphismMeshes);
+                    result = RemoveTriangleMeshWithInnerNodeDegree3(regeneratedIsomorphismMeshes, innerNodeCount);
                 }
                 else
                 {
@@ -180,6 +185,10 @@ namespace VolumeGeneratorBasedOnGraph
                     return;
                 }
                 DA.SetData("TheChosenTriangularMesh", result[index]);
+
+
+
+
 
                 // 在DrawViewportMeshes绘制选中的mesh
                 SelectedIsomorphismTriangleMesh = result[index];
@@ -301,7 +310,7 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
         /// <summary>
-        /// 删除无效的三角形网格
+        /// 删除无效的三角形网格(face中心点到边的距离小于0.001的)
         /// </summary>
         /// <param name="triangleMeshList"></param>
         /// <returns></returns>
@@ -342,6 +351,65 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
         /// <summary>
+        /// 排除细分后的三角形全部由outerNode构成的情况
+        /// </summary>
+        /// <param name="triangleMeshList"></param>
+        /// <param name="outerPoints"></param>
+        /// <returns></returns>
+        public List<Mesh> RemoveTriangleMeshWithAllOuterNode(List<Mesh> triangleMeshList, List<Point3d> outerPoints)
+        {
+            List<Mesh> resultTriangleMeshList = new List<Mesh>();
+
+            foreach (Mesh mesh in triangleMeshList)
+            {
+                MeshFaceList faces = mesh.Faces;
+                int faceCount = 0;
+
+                for (int i = 0; i < faces.Count; i++)
+                {
+                    int vertexContainsCount = 0;
+
+                    List<Point3d> faceVertices = new List<Point3d>();
+                    Point3f a;
+                    Point3f b;
+                    Point3f c;
+                    Point3f d;
+                    faces.GetFaceVertices(i, out a, out b, out c, out d);
+                    faceVertices.Add(a);
+                    faceVertices.Add(b);
+                    faceVertices.Add(c);
+                    
+                    foreach (Point3d vertex in faceVertices)
+                    {
+                        Point3dList point3dList = new Point3dList(outerPoints);
+                        if (EpsilonContains(point3dList, vertex, Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance))
+                        {
+                            vertexContainsCount++;
+                        }
+                    }
+                    if (vertexContainsCount == 3)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        faceCount++;
+                    }
+
+                }
+                if (faceCount == faces.Count)
+                {
+                    resultTriangleMeshList.Add(mesh);
+                }
+                else
+                {
+                    continue;
+                }
+            }
+            return resultTriangleMeshList;
+        }
+
+        /// <summary>
         /// 让新生成的同构异形三角网格顶点序号，与原来的nodePoints的序号做匹配。点的坐标是一样的，只是序号要重新匹配
         /// </summary>
         /// <param name="vertices"></param>
@@ -375,14 +443,14 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         /// <param name="triangleMeshes"></param>
         /// <returns></returns>
-        public List<Mesh> RemoveTriangularDuals(List<Mesh> triangleMeshes)
+        public List<Mesh> RemoveTriangleMeshWithInnerNodeDegree3(List<Mesh> triangleMeshes, int innerNodeCount)
         {
             List<Mesh> removedTriangleMesh = new List<Mesh>();
 
             foreach (Mesh triangleMesh in triangleMeshes)
             {
                 List<int> verticeDegrees = new List<int>();
-                for (int i = 0; i < triangleMesh.TopologyVertices.Count; i++)
+                for (int i = 0; i < innerNodeCount; i++)
                 {
                     int verticeDegree = triangleMesh.TopologyVertices.ConnectedTopologyVertices(i).Length;
 
@@ -390,6 +458,8 @@ namespace VolumeGeneratorBasedOnGraph
                     verticeDegrees.Add(verticeDegree);
 
                 }
+
+
                   
                 if (!verticeDegrees.Contains(3))
                 {
@@ -400,7 +470,21 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
 
-        
+        /// <summary>
+        /// 判断vertices中的点跟对应的最近的testpoint中的点，距离是否小于公差
+        /// </summary>
+        /// <param name="vertices"></param>
+        /// <param name="testPoint"></param>
+        /// <param name="tolerance"></param>
+        /// <returns></returns>
+        public bool EpsilonContains(Point3dList vertices, Point3d testPoint, double tolerance)
+        {
+            Point3d point3d = vertices[vertices.ClosestIndex(testPoint)];
+            bool bool1 = Math.Abs(point3d.X - testPoint.X) < tolerance;
+            bool bool2 = Math.Abs(point3d.Y - testPoint.Y) < tolerance;
+            bool bool3 = Math.Abs(point3d.Z - testPoint.Z) < tolerance;
+            return bool1 & bool2 & bool3;
+        }
 
 
 
