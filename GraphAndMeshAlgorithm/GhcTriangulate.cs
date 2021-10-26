@@ -2,6 +2,7 @@
 using Rhino.Collections;
 using Rhino.Geometry;
 using Rhino.Geometry.Collections;
+using Plankton;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -68,6 +69,12 @@ namespace VolumeGeneratorBasedOnGraph
         {
             pManager.AddMeshParameter("AllTriangularMeshes", "AllTMesh", "所有可能的三角形剖分结果。All Computed triangulations; these triangulations describe all possible planar topologies for your plan diagram, the added links are those of adjacencies not connectivities", GH_ParamAccess.list);
             pManager.AddMeshParameter("TheChosenTriangularMesh", "TMesh", "所选择的那个三角形剖分结果。The one you have chosen with index I", GH_ParamAccess.item);
+
+            pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
+
+            pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
+            pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
+            pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -188,6 +195,42 @@ namespace VolumeGeneratorBasedOnGraph
 
 
 
+                // 构造半边数据结构
+                PlanktonMesh planktonMesh = new PlanktonMesh();
+
+                for (int i = 0; i < nodePoints.Count; i++)
+                {
+                    planktonMesh.Vertices.Add(nodePoints[i].X, nodePoints[i].Y, nodePoints[i].Z);
+                }
+
+                List<List<int>> faceVertexOrder = new List<List<int>>();
+                for (int i = 0; i < result[index].Faces.Count; i++)
+                {
+                    int[] faceTopologicalVerticesArray = result[index].Faces.GetTopologicalVertices(i);
+                    List<int> faceTopologicalVerticesList = faceTopologicalVerticesArray.ToList<int>();
+                    faceTopologicalVerticesList.RemoveAt(faceTopologicalVerticesList.Count - 1);
+
+                    faceVertexOrder.Add(new List<int>());
+                    faceVertexOrder[i].AddRange(faceTopologicalVerticesList);
+                }
+                planktonMesh.Faces.AddFaces(faceVertexOrder);
+
+
+                List<string> printVertices = new List<string>();
+                printVertices = UtilityFunctions.PrintVertices(planktonMesh);
+                DA.SetDataList("DebugVerticesOutput", printVertices);
+
+                List<string> printHalfedges = new List<string>();
+                printHalfedges = UtilityFunctions.PrintHalfedges(planktonMesh);
+                DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
+
+
+                List<string> printFaces = new List<string>();
+                printFaces = UtilityFunctions.PrintFaces(planktonMesh);
+                DA.SetDataList("DebugFacesOutput", printFaces);
+
+
+
 
 
                 // 在DrawViewportMeshes绘制选中的mesh
@@ -213,6 +256,9 @@ namespace VolumeGeneratorBasedOnGraph
                 
             }
         }
+
+        
+
 
         /// <summary>
         /// 将每个polyline所对应的一列表代表所有可能的连接方式的小的Convex形状的三角网格，穷尽所有的排列组合，合成一列表大的三角网格

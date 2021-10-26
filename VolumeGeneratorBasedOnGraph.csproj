@@ -68,7 +68,6 @@
     <Compile Include="ForceDirectedDrawing.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcGlobalParameters.cs" />
     <Compile Include="Class\GlobalParameterStruct.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcTriangulateUsingHalfEdge.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
     <Compile Include="GraphToDiskDrawing.cs" />
     <Compile Include="Class\NodeClass.cs" />

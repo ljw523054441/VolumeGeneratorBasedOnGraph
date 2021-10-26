@@ -6,6 +6,7 @@ using Grasshopper.GUI.Gradient;
 using Rhino;
 using Rhino.Geometry;
 using Rhino.Collections;
+using Plankton;
 using System;
 using System.Drawing;
 using System.Collections.Generic;
@@ -303,7 +304,52 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
 
+        public static List<string> PrintVertices(PlanktonMesh mesh)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < mesh.Vertices.Count; i++)
+            {
+                string str = "Vertices[" + i.ToString() + "]=";
+                str += mesh.Vertices[i].X.ToString() +
+                    "," + mesh.Vertices[i].Y.ToString() +
+                    "," + mesh.Vertices[i].Z.ToString();
+                output.Add(str);
+            }
+            return output;
+        }
 
+        public static List<string> PrintHalfedges(PlanktonMesh mesh)
+        {
+            List<string> output = new List<string>();
+            output.Add("Format: StartVertex,AdjacentFace,NextHalfedge,PrevHalfedge");
+            for (int i = 0; i < mesh.Halfedges.Count; i++)
+            {
+                string str = "Halfedges[" + i.ToString() + "]=";
+                str += mesh.Halfedges[i].StartVertex.ToString() + "," +
+                     mesh.Halfedges[i].AdjacentFace.ToString() + "," +
+                      mesh.Halfedges[i].NextHalfedge.ToString() + "," +
+                       mesh.Halfedges[i].PrevHalfedge.ToString();
+                output.Add(str);
+            }
+            return output;
+        }
+
+        public static List<string> PrintFaces(PlanktonMesh mesh)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < mesh.Faces.Count; i++)
+            {
+                string str = "Faces[" + i.ToString() + "]=";
+                int[] findex = mesh.Faces.GetFaceVertices(i);
+                for (int j = 0; j < findex.Length; j++)
+                {
+                    if (j > 0) str += ",";
+                    str += findex[j].ToString();
+                }
+                output.Add(str);
+            }
+            return output;
+        }
 
 
     }
