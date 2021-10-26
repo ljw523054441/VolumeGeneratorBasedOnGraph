@@ -35,6 +35,9 @@
     <Reference Include="Plankton">
       <HintPath>..\..\Assemblies\Plankton.dll</HintPath>
     </Reference>
+    <Reference Include="PlanktonGh">
+      <HintPath>..\..\Assemblies\PlanktonGh.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -62,10 +65,12 @@
     <Compile Include="CellGraph.cs" />
     <Compile Include="CoinGraph.cs" />
     <Compile Include="CoinGraphToDiskDrawing.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\CreateBoundaryPoints.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructGraph.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcCSVReader.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDualGraph.cs" />
     <Compile Include="ForceDirectedDrawing.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\GhcDualUsingHalfedge.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcGlobalParameters.cs" />
     <Compile Include="Class\GlobalParameterStruct.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />

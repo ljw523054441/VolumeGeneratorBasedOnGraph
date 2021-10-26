@@ -114,12 +114,12 @@ namespace VolumeGeneratorBasedOnGraph
                 {
                     if (i < innerNodeCount)
                     {
-                        TextDot textDot = new TextDot(string.Format("{0} {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
                         InnerNodeTextDot.Add(textDot);
                     }
                     else
                     {
-                        TextDot textDot = new TextDot(string.Format("{0} {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
                         OuterNodeTextDot.Add(textDot);
                     }
                 }
@@ -544,15 +544,8 @@ namespace VolumeGeneratorBasedOnGraph
             // 屏蔽掉电池原本的预览
             // base.DrawViewportWires(args);
 
-            // 先画虚线
-            //for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
-            //{
-            //    args.Display.EnableDepthTesting(false);
-            //    args.Display.DrawDottedLine(SelectedTriangleMeshEdges[i], Color.DarkGreen);
-            //    args.Display.EnableDepthTesting(true);
-            //}
+            // args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0));
 
-            //args.Display.EnableDepthTesting(false);
             for (int i = 0; i < DottedCurve.Count; i++)
             {
                 args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);

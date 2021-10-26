@@ -22,7 +22,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         /// <param name="gh_Structure_GraphTree">GH_Structure<GH_Integer>类型的树形数据</param>
         /// <param name="dataTree">DataTree<int>类型的树形数据</param>
-        public static void GH_StructureToDataTree_Int(GH_Structure<GH_Integer> gh_Structure_GraphTree, ref DataTree<int> dataTree)
+        internal static void GH_StructureToDataTree_Int(GH_Structure<GH_Integer> gh_Structure_GraphTree, ref DataTree<int> dataTree)
         {
             foreach (GH_Path gh_Path in gh_Structure_GraphTree.Paths)
             {
@@ -35,7 +35,7 @@ namespace VolumeGeneratorBasedOnGraph
             }
         }
 
-        public static void GraphToSubGraph(DataTree<int> graph, GlobalParameter globalParameter, out DataTree<int> connectivityGraph, out DataTree<int> adjacencyGraph)
+        internal static void GraphToSubGraph(DataTree<int> graph, GlobalParameter globalParameter, out DataTree<int> connectivityGraph, out DataTree<int> adjacencyGraph)
         {
             connectivityGraph = new DataTree<int>();
             adjacencyGraph = new DataTree<int>();
@@ -67,7 +67,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="connectivityGraphTree">connectivity图结构</param>
         /// <param name="volumeNodeList">顶点列表</param>
         /// <returns>可以显示的Line线段</returns>
-        public static List<Line> ConnectivityGraphEdgeToLine(DataTree<int> connectivityGraphTree, List<Point3d> volumeNodeList)
+        internal static List<Line> ConnectivityGraphEdgeToLine(DataTree<int> connectivityGraphTree, List<Point3d> volumeNodeList)
         {
             List<Line> lineList = new List<Line>();
 
@@ -90,7 +90,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="volumeNodeList">volume顶点列表</param>
         /// <param name="boundaryNodeList">boundary顶点列表</param>
         /// <returns>可以显示的Line线段</returns>
-        public static List<Line> AdjacencyGraphEdgeToLine(DataTree<int> adjacencyGraphTree, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, GlobalParameter globalParameter)
+        internal static List<Line> AdjacencyGraphEdgeToLine(DataTree<int> adjacencyGraphTree, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, GlobalParameter globalParameter)
         {
             List<Line> lineList = new List<Line>();
 
@@ -121,7 +121,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="location1"></param>
         /// <param name="location2"></param>
         /// <returns></returns>
-        public static List<Point3d> Relocate(List<Point3d> p, Plane location1, Plane location2)
+        internal static List<Point3d> Relocate(List<Point3d> p, Plane location1, Plane location2)
         {
             Point3d point3d = new Point3d(0.0, 0.0, 0.0);
             List<Point3d> list = new List<Point3d>();
@@ -144,7 +144,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
-        public static Point3d CalCenterPoint(List<Point3d> p)
+        internal static Point3d CalCenterPoint(List<Point3d> p)
         {
             Point3d centerPoint = new Point3d();
 
@@ -164,7 +164,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="vPoints"></param>
         /// <param name="center"></param>
         /// <returns></returns>
-        public static List<Point3d> SortPolyPoints(List<Point3d> vPoints, Point3d center)
+        internal static List<Point3d> SortPolyPoints(List<Point3d> vPoints, Point3d center)
         {
             List<Point3d> cloneList = new List<Point3d>();
             cloneList.AddRange(vPoints);
@@ -232,7 +232,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// 计算体量占地面积的比例
         /// </summary>
         /// <param name="nodeAttributes"></param>
-        public static void CalculateAreaProportion(List<NodeAttribute> nodeAttributes)
+        internal static void CalculateAreaProportion(List<NodeAttribute> nodeAttributes)
         {
             List<double> nodeAreaProportions = new List<double>();
             for (int i = 0; i < nodeAttributes.Count; i++)
@@ -254,7 +254,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="curve"></param>
         /// <param name="pattern"></param>
         /// <returns></returns>
-        public static IEnumerable<Curve> ApplyDashPattern(Curve curve, double[] pattern)
+        internal static IEnumerable<Curve> ApplyDashPattern(Curve curve, double[] pattern)
         {
             if (pattern == null || pattern.Length == 0)
             {
@@ -304,7 +304,37 @@ namespace VolumeGeneratorBasedOnGraph
         }
 
 
-        public static List<string> PrintVertices(PlanktonMesh mesh)
+        /// <summary>
+        /// 获取半边数据结构中，每个面所邻接的面的序号
+        /// </summary>
+        /// <param name="D"></param>
+        /// <returns></returns>
+        internal static List<List<int>> GetAdjacencyFaceIndexs(PlanktonMesh D)
+        {
+            List<List<int>> faceAdjacency = new List<List<int>>();
+            for (int i = 0; i < D.Faces.Count; i++)
+            {
+                faceAdjacency.Add(new List<int>());
+                int[] halfedges = D.Faces.GetHalfedges(i);
+                // length = halfedges.Length;
+                for (int j = 0; j < halfedges.Length; j++)
+                {
+                    // 找D.Halfedges[halfedges[j]]的对边，然后再.AdjacentFace
+                    int index = D.Halfedges[D.Halfedges.GetPairHalfedge(halfedges[j])].AdjacentFace;
+                    if (index < 0)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        faceAdjacency[i].Add(index);
+                    }
+                }
+            }
+            return faceAdjacency;
+        }
+
+        internal static List<string> PrintVertices(PlanktonMesh mesh)
         {
             List<string> output = new List<string>();
             for (int i = 0; i < mesh.Vertices.Count; i++)
@@ -318,7 +348,7 @@ namespace VolumeGeneratorBasedOnGraph
             return output;
         }
 
-        public static List<string> PrintHalfedges(PlanktonMesh mesh)
+        internal static List<string> PrintHalfedges(PlanktonMesh mesh)
         {
             List<string> output = new List<string>();
             output.Add("Format: StartVertex,AdjacentFace,NextHalfedge,PrevHalfedge");
@@ -334,7 +364,7 @@ namespace VolumeGeneratorBasedOnGraph
             return output;
         }
 
-        public static List<string> PrintFaces(PlanktonMesh mesh)
+        internal static List<string> PrintFaces(PlanktonMesh mesh)
         {
             List<string> output = new List<string>();
             for (int i = 0; i < mesh.Faces.Count; i++)
