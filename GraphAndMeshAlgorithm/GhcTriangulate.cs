@@ -214,6 +214,7 @@ namespace VolumeGeneratorBasedOnGraph
                     faceVertexOrder[i].AddRange(faceTopologicalVerticesList);
                 }
                 planktonMesh.Faces.AddFaces(faceVertexOrder);
+                DA.SetData("TheChosenTriangleHalfedgeMesh", planktonMesh);
 
 
                 List<string> printVertices = new List<string>();
