@@ -73,6 +73,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
 
+            pManager.AddIntegerParameter("faceIndexsFromOuterNodes", "", "", GH_ParamAccess.tree);
+
         }
 
         /// <summary>
@@ -144,16 +146,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
 
                 // 对于每个outerNode找到由它发出的半边
-                List<int[]> halfedgeIndexsFromOuterNodes = new List<int[]>();
+                List<List<int>> halfedgeIndexsFromOuterNodes = new List<List<int>>();
                 // 对于每个outerNode找到与它相关的面
-                List<int[]> faceIndexsFromOuterNodes = new List<int[]>();
-                foreach (int index in outerNodeIndexs)
+                List<List<int>> faceIndexsFromOuterNodes = new List<List<int>>();
+
+                for (int i = 0; i < outerNodeIndexs.Count; i++)
                 {
-                    int[] halfedgeIndexsFromOuterNode = P.Vertices.GetHalfedges(index);
-                    halfedgeIndexsFromOuterNodes.Add(halfedgeIndexsFromOuterNode);
-                    int[] faceIndexsFromOuterNode = P.Vertices.GetVertexFaces(index);
-                    faceIndexsFromOuterNodes.Add(faceIndexsFromOuterNode);
+                    int[] halfedgeIndexsFromOuterNode = P.Vertices.GetHalfedges(outerNodeIndexs[i]);
+                    halfedgeIndexsFromOuterNodes.Add(new List<int>());
+                    halfedgeIndexsFromOuterNodes[i].AddRange(halfedgeIndexsFromOuterNode);
+                    int[] faceIndexsFromOuterNode = P.Vertices.GetVertexFaces(outerNodeIndexs[i]);
+                    faceIndexsFromOuterNodes.Add(new List<int>());
+                    faceIndexsFromOuterNodes[i].AddRange(faceIndexsFromOuterNode);
                 }
+
+                DA.SetDataTree(4, UtilityFunctions.LoLToDataTree<int>(faceIndexsFromOuterNodes));
 
 
 
@@ -166,7 +173,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 for (int i = 0; i < faceIndexsFromOuterNodes.Count; i++)
                 {
                     pairFaceIndexsFromOuterNodes.Add(new List<int[]>());
-                    for (int j = 0; j < faceIndexsFromOuterNodes[i].Length - 1; j++)
+                    for (int j = 0; j < faceIndexsFromOuterNodes[i].Count - 1; j++)
                     {
                         int[] pairFaceIndexs = new int[2] { faceIndexsFromOuterNodes[i][j], faceIndexsFromOuterNodes[i][j + 1] };
                         pairFaceIndexsFromOuterNodes[i].Add(pairFaceIndexs);
