@@ -110,8 +110,43 @@ namespace VolumeGeneratorBasedOnGraph
             return lineList;
         }
 
+        /// <summary>
+        /// 由LoL转化成DataTree的泛型方法
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="LoL"></param>
+        /// <returns></returns>
+        internal static DataTree<T> LoLToDataTree<T>(List<List<T>> LoL)
+        {
+            DataTree<T> dataTree = new DataTree<T>();
 
+            for (int i = 0; i < LoL.Count; i++)
+            {
+                dataTree.EnsurePath(i);
+                dataTree.Branch(i).AddRange(LoL[i]);
+            }
 
+            return dataTree;
+        }
+
+        /// <summary>
+        /// 由DataTree转化为LoL的泛型方法
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="dataTree"></param>
+        /// <returns></returns>
+        internal static List<List<T>> DataTreeToLoL<T>(DataTree<T> dataTree)
+        {
+            List<List<T>> LoL = new List<List<T>>();
+
+            for (int i = 0; i < dataTree.BranchCount; i++)
+            {
+                LoL.Add(new List<T>());
+                LoL[i].AddRange(dataTree.Branch(i));
+            }
+
+            return LoL;
+        }
 
 
         /// <summary>
@@ -379,6 +414,111 @@ namespace VolumeGeneratorBasedOnGraph
                 output.Add(str);
             }
             return output;
+        }
+
+        /// <summary>
+        /// 将给定超想的segment按照对应朝向的规则进行排序
+        /// </summary>
+        /// <param name="sameOrientationSegments"></param>
+        /// <param name="orientation"></param>
+        /// <returns></returns>
+        internal static List<Line> SortSameOrientationSegments(List<Line> sameOrientationSegments, string orientation)
+        {
+            List<Line> cloneList = new List<Line>();
+            cloneList.AddRange(sameOrientationSegments);
+
+            if (cloneList == null || cloneList.Count == 0)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < cloneList.Count - 1; i++)
+            {
+                for (int j = 0; j < cloneList.Count - i - 1; j++)
+                {
+                    bool flag = SegmentCenterCompare(cloneList[j], cloneList[j + 1], orientation);
+                    if (flag)
+                    {
+                        Line tml = cloneList[j];
+                        cloneList[j] = cloneList[j + 1];
+                        cloneList[j + 1] = tml;
+                    }
+                }
+            }
+            return cloneList;
+        }
+
+        /// <summary>
+        /// NEWS每个方向都是逆时针排序;
+        /// 对于N方向，如果i在i+1左边，那么要交换，把i+1放在排序好的列表前面;
+        /// 对于W方向，如果i在i+1下面，那么要交换，把i+1放在排序好的列表前面;
+        /// 对于S方向，如果i在i+1左边，那么不用交换，把i放在排序好的列表前面;
+        /// 对于E方向，如果i在i+1下面，那么不用交换，把i放在排序好的列表前面;
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="orientation"></param>
+        /// <returns></returns>
+        private static bool SegmentCenterCompare(Line a, Line b, string orientation)
+        {
+            Point3d aCenter = a.PointAt(0.5);
+            Point3d bCenter = b.PointAt(0.5);
+
+            bool flag = false;
+
+            switch (orientation)
+            {
+                // NEWS每个方向都是逆时针排序
+                case "N":
+                    // 对于N方向，如果i在i+1左边，那么要交换，把i+1放在排序好的列表前面
+                    if (aCenter.X < bCenter.X)
+                    {
+                        flag = true;
+                    }
+                    else
+                    {
+                        flag = false;
+                    }
+                    break;
+                case "W":
+                    // 对于W方向，如果i在i+1下面，那么要交换，把i+1放在排序好的列表前面
+                    if (aCenter.Y < bCenter.Y)
+                    {
+                        flag = true;
+                    }
+                    else
+                    {
+                        flag = false;
+                    }
+                    break;
+                case "S":
+                    // 对于S方向，如果i在i+1左边，那么不用交换，把i放在排序好的列表前面
+                    if (aCenter.X < bCenter.X)
+                    {
+                        flag = false;
+                    }
+                    else
+                    {
+                        flag = true;
+                    }
+                    break;
+                case "E":
+                    // 对于E方向，如果i在i+1下面，那么不用交换，把i放在排序好的列表前面
+                    if (aCenter.Y < bCenter.Y)
+                    {
+                        flag = false;
+                    }
+                    else
+                    {
+                        flag = true;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
+            return flag;
         }
 
 
