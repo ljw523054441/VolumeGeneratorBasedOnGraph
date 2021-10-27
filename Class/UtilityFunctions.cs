@@ -214,7 +214,7 @@ namespace VolumeGeneratorBasedOnGraph
             {
                 for (int j = 0; j < cloneList.Count - i - 1; j++)
                 {
-                    bool flag = PointCompare(cloneList[j], cloneList[j + 1], center);
+                    bool flag = PointCompare(cloneList[j], cloneList[j + 1], center, cloneList[0]);
                     if (flag)
                     {
                         Point3d tmp = cloneList[j];
@@ -233,22 +233,23 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="b"></param>
         /// <param name="center"></param>
         /// <returns></returns>
-        public static bool PointCompare(Point3d a, Point3d b, Point3d center)
+        public static bool PointCompare(Point3d a, Point3d b, Point3d center, Point3d firstInputPoint)
         {
             Vector3d vectorOA = new Vector3d(a) - new Vector3d(center);
             Vector3d vectorOB = new Vector3d(b) - new Vector3d(center);
+            Vector3d vectorOC = new Vector3d(firstInputPoint) - new Vector3d(center);
 
-            // OA,OB分别与-1,1,0的夹角的弧度值
-            double angleOA = Vector3d.VectorAngle(new Vector3d(-1, 1, 0), vectorOA);
-            double angleOB = Vector3d.VectorAngle(new Vector3d(-1, 1, 0), vectorOB);
+            // OA,OB分别与第一个输入的outerNodePoint的夹角的弧度值
+            double angleOA = Vector3d.VectorAngle(vectorOC, vectorOA);
+            double angleOB = Vector3d.VectorAngle(vectorOC, vectorOB);
 
-            // 向量-1,1,0和向量OA的叉积
-            Vector3d vectorZOA = Vector3d.CrossProduct(new Vector3d(-1, 1, 0), vectorOA);
+            // 向量OC和向量OA的叉积
+            Vector3d vectorZOA = Vector3d.CrossProduct(vectorOC, vectorOA);
             if (vectorZOA.Z < 0)
             {
                 angleOA = 2 * Math.PI - angleOA;
             }
-            Vector3d vectorZOB = Vector3d.CrossProduct(new Vector3d(-1, 1, 0), vectorOB);
+            Vector3d vectorZOB = Vector3d.CrossProduct(vectorOC, vectorOB);
             if (vectorZOB.Z < 0)
             {
                 angleOB = 2 * Math.PI - angleOB;

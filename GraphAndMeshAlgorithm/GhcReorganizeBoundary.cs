@@ -105,19 +105,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                  * 按照Label进行
                  * 排完后，调整From和To的顺序
                  */
-                List<string> labels = new List<string>();
-                for (int i = 0; i < nodes.Count; i++)
+                List<string> outerLabels = new List<string>();
+                for (int i = 0; i < nodes.Count - innerNodeCount; i++)
                 {
-                    labels.Add(nodes[i].NodeAttribute.NodeLabel);
+                    outerLabels.Add(nodes[i + innerNodeCount].NodeAttribute.NodeLabel);
                 }
 
                 // 按照Label进行排序
                 List<BoundarySegment> sortedBoundarySegments = new List<BoundarySegment>();
-                for (int i = 0; i < labels.Count; i++)
+                for (int i = 0; i < outerLabels.Count; i++)
                 {
                     for (int j = 0; j < boundarySegments.Count; j++)
                     {
-                        if (boundarySegments[j].Label == labels[i])
+                        if (boundarySegments[j].Label == outerLabels[i])
                         {
                             sortedBoundarySegments.Add(boundarySegments[j]);
                         }
@@ -125,14 +125,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
 
                 List<Point3d> boundaryCorner = new List<Point3d>();
-                bool flag = UtilityFunctions.PointCompare(sortedBoundarySegments[0].From,
-                                                          sortedBoundarySegments[0].To,
-                                                          new Point3d((sortedBoundarySegments[0].From + sortedBoundarySegments[0].To) / 2));
-                // 如果[0]在[1]的逆时针方向，那么首尾交换
-                if (flag == false)
+                
+                // 利用叉积来判断第一个Segment的方向时候需要反转
+                if (IsFirstSegmentOpppsite(sortedBoundarySegments[0].Line.Direction,
+                                           new Vector3d((sortedBoundarySegments[1].From + sortedBoundarySegments[1].To) / 2 - sortedBoundarySegments[0].From)))
                 {
                     sortedBoundarySegments[0].Reverse();
                 }
+                
                 boundaryCorner.Add(sortedBoundarySegments[0].From);
                 // 从第二个开始，调整from和to
                 for (int i = 1; i < sortedBoundarySegments.Count; i++)
@@ -208,7 +208,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 for (int i = 0; i < boundarySegments.Count; i++)
                 {
-                    TextDot boundarySegmentTextDot = new TextDot(string.Format("{0} | {1}", i + innerNodeCount, labels[i + innerNodeCount]), boundarySegmentTextDotLocations[i]);
+                    TextDot boundarySegmentTextDot = new TextDot(string.Format("{0} | {1}", i + innerNodeCount, outerLabels[i]), boundarySegmentTextDotLocations[i]);
                     BoundarySegmentTextDots.Add(boundarySegmentTextDot);
                 }
 
@@ -494,6 +494,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //DA.SetDataList("ReorganizedCornerIndex", boundaryPointIndexs);
             }
 
+        }
+
+        private bool IsFirstSegmentOpppsite(Vector3d lineDirection, Vector3d vector02)
+        {
+            Vector3d Z = Vector3d.CrossProduct(lineDirection, vector02);
+            if (Z.Z > 0)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
 
         public override void DrawViewportWires(IGH_PreviewArgs args)

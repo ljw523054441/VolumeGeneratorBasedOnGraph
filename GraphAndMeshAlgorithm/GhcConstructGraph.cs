@@ -23,7 +23,7 @@ namespace VolumeGeneratorBasedOnGraph
               "构建图结构",
               "VolumeGeneratorBasedOnGraph", "Construct Graph")
         {
-            base.Message = "暂时去掉对于outerNode的排序功能，等待后续开发";
+            
         }
 
         /// <summary>
@@ -102,22 +102,22 @@ namespace VolumeGeneratorBasedOnGraph
                  * 
                  */
 
-                // Point3d centerPoint = UtilityFunctions.CalCenterPoint(boundaryNodeList);
+                Point3d centerPoint = UtilityFunctions.CalCenterPoint(boundaryNodeList);
 
                 List<int> sortedBoundaryNodeIndexList = new List<int>();
 
                 // 对边界节点进行排序
-                // List<Point3d> SortedBoundaryNodeList = UtilityFunctions.SortPolyPoints(boundaryNodeList, centerPoint);
+                List<Point3d> SortedBoundaryNodeList = UtilityFunctions.SortPolyPoints(boundaryNodeList, centerPoint);
 
-                for (int i = 0; i < boundaryNodeList.Count; i++)
+                for (int i = 0; i < SortedBoundaryNodeList.Count; i++)
                 {
-                    int boundaryPointsIndex = boundaryNodeList.IndexOf(boundaryNodeList[i]);
+                    int boundaryPointsIndex = boundaryNodeList.IndexOf(SortedBoundaryNodeList[i]);
                     sortedBoundaryNodeIndexList.Add(boundaryPointsIndex);
                 }
 
                 // 构造包含所有node节点的列表，顺序是 inner node + outer node
                 nodePoints.AddRange(volumeNodeList);
-                nodePoints.AddRange(boundaryNodeList);
+                nodePoints.AddRange(SortedBoundaryNodeList);
                 // 输出NodePoints
                 // DA.SetDataList("GraphNodePoints", nodePoints);
 
@@ -132,16 +132,16 @@ namespace VolumeGeneratorBasedOnGraph
                     boundaryNodeAttributeList.Add(boundaryNodeAttribute);
                 }
 
-                // 用前面生成的对于Boundary点的排序列表来对BoundaryAttribute列表进行对应的排序
-                List<NodeAttribute> SortedBoundaryNodeAttributes = new List<NodeAttribute>();
-                foreach (int index in sortedBoundaryNodeIndexList)
-                {
-                    SortedBoundaryNodeAttributes.Add(boundaryNodeAttributeList[index]);
-                }
+                //// 用前面生成的对于Boundary点的排序列表来对BoundaryAttribute列表进行对应的排序
+                //List<NodeAttribute> SortedBoundaryNodeAttributes = new List<NodeAttribute>();
+                //foreach (int index in sortedBoundaryNodeIndexList)
+                //{
+                //    SortedBoundaryNodeAttributes.Add(boundaryNodeAttributeList[index]);
+                //}
 
                 // 构造包含所有node节点的属性列表，顺序是 inner node + outer node
                 nodeAttributes.AddRange(volumeNodeAttributeList);
-                nodeAttributes.AddRange(SortedBoundaryNodeAttributes);
+                nodeAttributes.AddRange(boundaryNodeAttributeList);
                 // 输出NodeAttributes
                 // DA.SetDataList("GraphNodeAttributes", nodeAttributes);
 
