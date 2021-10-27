@@ -6,6 +6,7 @@ using Rhino.Geometry;
 using Plankton;
 using PlanktonGh;
 using System;
+using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,7 +23,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
               "VolumeGeneratorBasedOnGraph", "CreateVolume")
         {
             base.Message = "开发中 Todo:对偶图中，度为2的顶点布置方式";
+
+            BoundaryPolyline = new List<Point3d>();
+            BoundaryCornerTextDots = new List<TextDot>();
+            BoundarySegmentTextDots = new List<TextDot>();
         }
+
+        private int Thickness;
+
+        private List<Point3d> BoundaryPolyline;
+
+        private List<TextDot> BoundaryCornerTextDots;
+        private List<TextDot> BoundarySegmentTextDots;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -44,7 +56,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddPointParameter("OuterCorner", "OC", "在边界上的角点", GH_ParamAccess.list);
+            pManager.AddPointParameter("BoundaryCorner", "BC", "在边界上的角点", GH_ParamAccess.list);
 
             pManager.AddCurveParameter("ReorganizedBoundary", "RB", "经过重新组织的边界polyline", GH_ParamAccess.item);
             pManager.AddIntegerParameter("ReorganizedCornerIndex", "RCIndex", "经过重新组织的边界polyline的角点对应的对偶图中角点的index", GH_ParamAccess.list);
@@ -62,10 +74,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             int innerNodeCount = globalParameter.VolumeNodeCount;
             int outerNodeCount = globalParameter.BoundaryNodeCount;
 
+            Thickness = 2;
+
             // Curve boundaryPolylineCurve = null;
             List<BoundarySegment> boundarySegments = new List<BoundarySegment>();
 
-            
+            PlanktonMesh D = new PlanktonMesh();
 
             GH_Structure<GH_Integer> gh_structure_FaceIndexs = new GH_Structure<GH_Integer>();
             DataTree<int> faceIndexsFromOuterNodes = new DataTree<int>();
@@ -73,6 +87,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             List<Node> nodes = new List<Node>();
 
             if (DA.GetDataList<BoundarySegment>("BoundarySegments", boundarySegments)
+                && DA.GetData<PlanktonMesh>("DualHalfedgeMesh", ref D)
                 && DA.GetDataTree<GH_Integer>("faceIndexsFromOuterNodes", out gh_structure_FaceIndexs)
                 && DA.GetDataList<Node>("GraphNode", nodes))
             {
@@ -128,13 +143,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                     boundaryCorner.Add(sortedBoundarySegments[i].From);
                 }
+                // 判断生成的polyline是否闭合
                 if (sortedBoundarySegments.Last().To != sortedBoundarySegments[0].From)
                 {
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Boundary不闭合");
                 }
+                // 输出多边形的角点
+                DA.SetDataList("BoundaryCorner", boundaryCorner);
 
                 // 输出闭合的多段线
-                List<Point3d> closedBoundaryPoints = boundaryCorner;
+                List<Point3d> closedBoundaryPoints = new List<Point3d>();
+                closedBoundaryPoints.AddRange(boundaryCorner);
                 closedBoundaryPoints.Add(boundaryCorner[0]);
                 Polyline reorganizedBoundary = new Polyline(closedBoundaryPoints);
                 DA.SetData("ReorganizedBoundary", reorganizedBoundary);
@@ -158,7 +177,40 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DA.SetDataList("ReorganizedCornerIndex", boundaryCornerIndexs);
 
 
+                // 绘制部分
+                BoundaryPolyline.Clear();
+                BoundaryCornerTextDots.Clear();
+                BoundarySegmentTextDots.Clear();
 
+                BoundaryPolyline = closedBoundaryPoints;
+
+                List<string> args = new List<string>();
+                for (int i = 0; i < D.Vertices.Count; i++)
+                {
+                    args.Add(string.Join<int>(";", D.Vertices.GetVertexFaces(i)));
+                }
+
+                for (int i = 0; i < boundaryCorner.Count; i++)
+                {
+                    TextDot boundaryCornerTextDot = new TextDot(string.Format("{0} | {1}", boundaryCornerIndexs[i], args[boundaryCornerIndexs[i]]), boundaryCorner[i]);
+                    BoundaryCornerTextDots.Add(boundaryCornerTextDot);
+                }
+
+
+                List<Point3d> boundarySegmentTextDotLocations = new List<Point3d>();
+                for (int i = 0; i < boundarySegments.Count; i++)
+                {
+                    Vector3d verticalVector = Vector3d.CrossProduct(boundarySegments[i].Line.Direction, Vector3d.ZAxis);
+                    verticalVector.Unitize();
+                    Point3d boundarySegmentTextDotLocation = new Point3d((boundarySegments[i].From + boundarySegments[i].To) / 2);
+                    boundarySegmentTextDotLocation += verticalVector * 2;
+                    boundarySegmentTextDotLocations.Add(boundarySegmentTextDotLocation);
+                }
+                for (int i = 0; i < boundarySegments.Count; i++)
+                {
+                    TextDot boundarySegmentTextDot = new TextDot(string.Format("{0} | {1}", i + innerNodeCount, labels[i + innerNodeCount]), boundarySegmentTextDotLocations[i]);
+                    BoundarySegmentTextDots.Add(boundarySegmentTextDot);
+                }
 
 
                 //if (boundaryPolyline.Count < 3)
@@ -443,6 +495,49 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
 
         }
+
+        public override void DrawViewportWires(IGH_PreviewArgs args)
+        {
+            // base.DrawViewportWires(args);
+
+            args.Display.DrawPolyline(BoundaryPolyline, Color.DarkOrange, Thickness);
+
+            for (int i = 0; i < BoundaryCornerTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(BoundaryCornerTextDots[i], Color.DarkOrange, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+
+            for (int i = 0; i < BoundarySegmentTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(BoundarySegmentTextDots[i], Color.Gray, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+        }
+
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            // base.DrawViewportMeshes(args);
+
+            args.Display.DrawPolyline(BoundaryPolyline, Color.DarkOrange, Thickness);
+
+            for (int i = 0; i < BoundaryCornerTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(BoundaryCornerTextDots[i], Color.DarkOrange, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+
+            for (int i = 0; i < BoundarySegmentTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(BoundarySegmentTextDots[i], Color.Gray, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+        }
+
 
         /// <summary>
         /// Provides an Icon for the component.

@@ -238,17 +238,17 @@ namespace VolumeGeneratorBasedOnGraph
             Vector3d vectorOA = new Vector3d(a) - new Vector3d(center);
             Vector3d vectorOB = new Vector3d(b) - new Vector3d(center);
 
-            // OA,OB分别与0,1,0的夹角的弧度值
-            double angleOA = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOA);
-            double angleOB = Vector3d.VectorAngle(new Vector3d(0, 1, 0), vectorOB);
+            // OA,OB分别与-1,1,0的夹角的弧度值
+            double angleOA = Vector3d.VectorAngle(new Vector3d(-1, 1, 0), vectorOA);
+            double angleOB = Vector3d.VectorAngle(new Vector3d(-1, 1, 0), vectorOB);
 
-            // 向量0,1,0和向量OA的叉积
-            Vector3d vectorZOA = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOA);
+            // 向量-1,1,0和向量OA的叉积
+            Vector3d vectorZOA = Vector3d.CrossProduct(new Vector3d(-1, 1, 0), vectorOA);
             if (vectorZOA.Z < 0)
             {
                 angleOA = 2 * Math.PI - angleOA;
             }
-            Vector3d vectorZOB = Vector3d.CrossProduct(new Vector3d(0, 1, 0), vectorOB);
+            Vector3d vectorZOB = Vector3d.CrossProduct(new Vector3d(-1, 1, 0), vectorOB);
             if (vectorZOB.Z < 0)
             {
                 angleOB = 2 * Math.PI - angleOB;

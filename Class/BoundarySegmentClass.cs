@@ -28,6 +28,8 @@ namespace VolumeGeneratorBasedOnGraph
             Point3d tmp = this.From;
             this.From = this.To;
             this.To = tmp;
+
+            this.Line = new Line(this.From, this.To);
         }
     }
 }
