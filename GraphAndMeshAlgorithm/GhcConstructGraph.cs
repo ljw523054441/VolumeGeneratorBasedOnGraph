@@ -23,6 +23,7 @@ namespace VolumeGeneratorBasedOnGraph
               "构建图结构",
               "VolumeGeneratorBasedOnGraph", "Construct Graph")
         {
+            base.Message = "暂时去掉对于outerNode的排序功能，等待后续开发";
         }
 
         /// <summary>
@@ -97,22 +98,26 @@ namespace VolumeGeneratorBasedOnGraph
             if (DA.GetDataTree<GH_Integer>("VolumeConnectivityTree", out gh_Structure_ConnectivityTree)
             & DA.GetDataTree<GH_Integer>("BoundaryAdjacencyTree", out gh_Structure_AdjacencyTree))
             {
-                Point3d centerPoint = UtilityFunctions.CalCenterPoint(boundaryNodeList);
+                /* 暂时去掉对于outerNode的排序功能，等待后续开发
+                 * 
+                 */
+
+                // Point3d centerPoint = UtilityFunctions.CalCenterPoint(boundaryNodeList);
 
                 List<int> sortedBoundaryNodeIndexList = new List<int>();
 
                 // 对边界节点进行排序
-                List<Point3d> SortedBoundaryNodeList = UtilityFunctions.SortPolyPoints(boundaryNodeList, centerPoint);
+                // List<Point3d> SortedBoundaryNodeList = UtilityFunctions.SortPolyPoints(boundaryNodeList, centerPoint);
 
-                for (int i = 0; i < SortedBoundaryNodeList.Count; i++)
+                for (int i = 0; i < boundaryNodeList.Count; i++)
                 {
-                    int boundaryPointsIndex = boundaryNodeList.IndexOf(SortedBoundaryNodeList[i]);
+                    int boundaryPointsIndex = boundaryNodeList.IndexOf(boundaryNodeList[i]);
                     sortedBoundaryNodeIndexList.Add(boundaryPointsIndex);
                 }
 
                 // 构造包含所有node节点的列表，顺序是 inner node + outer node
                 nodePoints.AddRange(volumeNodeList);
-                nodePoints.AddRange(SortedBoundaryNodeList);
+                nodePoints.AddRange(boundaryNodeList);
                 // 输出NodePoints
                 // DA.SetDataList("GraphNodePoints", nodePoints);
 
