@@ -233,7 +233,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="b"></param>
         /// <param name="center"></param>
         /// <returns></returns>
-        private static bool PointCompare(Point3d a, Point3d b, Point3d center)
+        public static bool PointCompare(Point3d a, Point3d b, Point3d center)
         {
             Vector3d vectorOA = new Vector3d(a) - new Vector3d(center);
             Vector3d vectorOB = new Vector3d(b) - new Vector3d(center);
