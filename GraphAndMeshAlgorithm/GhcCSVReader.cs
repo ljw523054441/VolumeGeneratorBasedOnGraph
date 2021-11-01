@@ -91,7 +91,15 @@ namespace VolumeGeneratorBasedOnGraph
                     }
                     // Add first and second colume data into corresponding list 将得到的第一列和第二列数据分别添加到对应的列表中
                     nodeLabelList.Add(rowData[0]);
-                    nodeAttributesList.Add(new NodeAttribute(rowData[0], Convert.ToDouble(rowData[1])));
+                    nodeAttributesList.Add(new NodeAttribute(rowData[0], 
+                                                             Convert.ToDouble(rowData[1]),
+                                                             Convert.ToInt32(rowData[4]),
+                                                             Convert.ToInt32(rowData[5]),
+                                                             Convert.ToInt32(rowData[6]),
+                                                             Convert.ToDouble(rowData[7]),
+                                                             Convert.ToDouble(rowData[8]),
+                                                             Convert.ToDouble(rowData[9])
+                                                             ));
                     //volumeAreaAttributeList.Add(Convert.ToDouble(rowData[1]));
 
                     // Split ConnectivityArribute with "-" and add it to corresponding datatree with correct path 用-号将第三列数据分隔，并按照对应的路径添加到树形结构中
