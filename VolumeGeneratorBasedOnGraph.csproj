@@ -68,9 +68,7 @@
     <Compile Include="Class\BoundarySegmentClass.cs" />
     <Compile Include="CoinGraph.cs" />
     <Compile Include="CoinGraphToDiskDrawing.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\DiscomposeNodes.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructBoundarySegment.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcDualPolygonSplit.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcReorganizeBoundary.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructGraph.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcCSVReader.cs" />
@@ -79,7 +77,6 @@
     <Compile Include="GraphAndMeshAlgorithm\GhcDualUsingHalfedge.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcGlobalParameters.cs" />
     <Compile Include="Class\GlobalParameterStruct.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcShowPlanktonMesh.cs" />
     <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
     <Compile Include="GraphToDiskDrawing.cs" />
     <Compile Include="Class\NodeClass.cs" />
