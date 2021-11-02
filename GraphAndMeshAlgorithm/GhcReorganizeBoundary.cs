@@ -177,6 +177,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DA.SetDataList("ReorganizedCornerIndex", boundaryCornerIndexs);
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
                 // 绘制部分
                 BoundaryPolyline.Clear();
                 BoundaryCornerTextDots.Clear();

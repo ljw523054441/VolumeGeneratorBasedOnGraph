@@ -19,7 +19,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// Initializes a new instance of the GhcDualUsingHalfedge class.
         /// </summary>
         public GhcDualUsingHalfedge()
-          : base("DualUsingHalfedge", "DualUsingHalfedge",
+          : base("GhcDualUsingHalfedge", "GhcDualUsingHalfedge",
               "生成对应的对偶图（基于半边数据结构）",
               "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
         {
