@@ -69,6 +69,7 @@
     <Compile Include="CoinGraph.cs" />
     <Compile Include="CoinGraphToDiskDrawing.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructBoundarySegment.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\GhcDecomposeVertex.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcReorganizeBoundary.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructGraph.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcCSVReader.cs" />

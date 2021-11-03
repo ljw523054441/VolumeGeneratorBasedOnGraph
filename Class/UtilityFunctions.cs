@@ -417,6 +417,23 @@ namespace VolumeGeneratorBasedOnGraph
             return output;
         }
 
+        internal static List<string> PrintFacesHalfedges(PlanktonMesh mesh)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < mesh.Faces.Count; i++)
+            {
+                string str = "Faces[" + i.ToString() + "]=";
+                int[] fhindex = mesh.Faces.GetHalfedges(i);
+                for (int j = 0; j < fhindex.Length; j++)
+                {
+                    if (j > 0) str += ",";
+                    str += fhindex[j].ToString();
+                }
+                output.Add(str);
+            }
+            return output;
+        }
+
         /// <summary>
         /// 将给定超想的segment按照对应朝向的规则进行排序
         /// </summary>
