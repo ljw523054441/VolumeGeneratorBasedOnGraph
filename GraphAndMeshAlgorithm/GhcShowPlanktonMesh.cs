@@ -141,22 +141,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     FaceTextDot.Add(textDot);
                 }
 
-                // 将半边转化为箭头
-                //for (int i = 0; i < P.Halfedges.Count; i++)
-                //{
-                //    Point3d startPoint = RhinoSupport.ToPoint3d(P.Vertices[P.Halfedges[i].StartVertex]);
-                //    Point3d endPoint = RhinoSupport.ToPoint3d(P.Vertices[P.Halfedges[P.Halfedges[i].NextHalfedge].StartVertex]);
-
-                //    Point3d midPoint = (startPoint + endPoint) / 2;
-
-                //    Vector3d v = new Vector3d(endPoint - startPoint);
-                //    Vector3d moveV = Vector3d.CrossProduct(v, new Vector3d(0, 0, -1));
-                //    moveV.Unitize();
-                //    moveV = moveV * 0.1;
-
-                //    v = v * 0.3;
-                //}
-
                 // 将原来的PlanktonMesh变为Polyline，并记录每个面上的半边关系
                 // List<List<int>> allHalfEdgesIndex;
                 // List<Polyline> polylines = ToPolylines(P, out allHalfEdgesIndex);
@@ -164,23 +148,53 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<Polyline> polylines = RhinoSupport.ToPolylines(PDeepCopy).ToList();
 
                 // offset
-                List<Polyline> offsetPolylines = new List<Polyline>();
+                //List<Polyline> offsetPolylines = new List<Polyline>();
+                //for (int i = 0; i < polylines.Count; i++)
+                //{
+                //    //for (int j = 0; j < polylines[i].SegmentCount; j++)
+                //    //{
+                //    //    Vector3d vectorLine = polylines[i].SegmentAt(j).Direction;
+                //    //    Vector3d vectorMove = Vector3d.CrossProduct(vectorLine, new Vector3d(0.0, 0.0, 1.0));
+                //    //    vectorMove.Unitize();
+                //    //    vectorMove *= distance;
+                //    //}
+                //    PolylineCurve polylineCurve = new PolylineCurve(polylines[i]);
+                //    Curve[] offsets = polylineCurve.Offset(Plane.WorldXY, - distance, Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance, CurveOffsetCornerStyle.Sharp);
+
+                //    int index = 0;
+                //    for (int j = 0; j < offsets.Length; j++)
+                //    {
+                //        if (Curve.PlanarClosedCurveRelationship(polylineCurve, offsets[j], Plane.WorldXY,Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance) == RegionContainment.BInsideA)
+                //        {
+                //            index = j;
+                //        }
+                //    }
+                    
+                //    Curve offset = offsets[index];
+                //    Polyline offsetPolyline;
+                //    // 这一句，在三点共线时，会有问题
+                //    offset.TryGetPolyline(out offsetPolyline);
+                //    offsetPolylines.Add(offsetPolyline);
+                //}
+
+                // Scale
+                List<Polyline> scaledPolylines = new List<Polyline>();
                 for (int i = 0; i < polylines.Count; i++)
                 {
-                    PolylineCurve polylineCurve = new PolylineCurve(polylines[i]);
-                    Curve[] offsets = polylineCurve.Offset(Plane.WorldXY, - distance, Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance, CurveOffsetCornerStyle.None);
-                    Curve offset = offsets[0];
-                    Polyline offsetPolyline;
-                    offset.TryGetPolyline(out offsetPolyline);
-                    offsetPolylines.Add(offsetPolyline);
+                    Transform scale = Transform.Scale(polylines[i].CenterPoint(), distance);
+
+                    Polyline scaledPolyline = polylines[i].Duplicate();
+                    scaledPolyline.Transform(scale);
+                    scaledPolylines.Add(scaledPolyline);
                 }
+
 
                 // 生成每个halfEdge所代表的Line
                 List<List<Line>> lineForHalfEdges = new List<List<Line>>();
-                for (int i = 0; i < offsetPolylines.Count; i++)
+                for (int i = 0; i < scaledPolylines.Count; i++)
                 {
                     lineForHalfEdges.Add(new List<Line>());
-                    lineForHalfEdges[i].AddRange(offsetPolylines[i].GetSegments());
+                    lineForHalfEdges[i].AddRange(scaledPolylines[i].GetSegments());
                 }
                 LineForHalfEdges = lineForHalfEdges;
 
