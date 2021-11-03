@@ -90,6 +90,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
                 && DA.GetData<double>("OffsetDistance", ref distance))
             {
+                PlanktonMesh PDeepCopy = new PlanktonMesh(P);
+                
                 InnerNodeTextDot.Clear();
                 OuterNodeTextDot.Clear();
                 FaceTextDot.Clear();
@@ -104,16 +106,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
                 // 区分和记录innerPoints和outerPoints的位置和序号
-                for (int i = 0; i < P.Vertices.Count; i++)
+                for (int i = 0; i < PDeepCopy.Vertices.Count; i++)
                 {
-                    if (P.Vertices.IsBoundary(i))
+                    if (PDeepCopy.Vertices.IsBoundary(i))
                     {
-                        outerPoints.Add(RhinoSupport.ToPoint3d(P.Vertices[i]));
+                        outerPoints.Add(RhinoSupport.ToPoint3d(PDeepCopy.Vertices[i]));
                         outerPointsIndex.Add(i);
                     }
                     else
                     {
-                        innerPoints.Add(RhinoSupport.ToPoint3d(P.Vertices[i]));
+                        innerPoints.Add(RhinoSupport.ToPoint3d(PDeepCopy.Vertices[i]));
                         innerPointsIndex.Add(i);
                     }
                 }
@@ -132,9 +134,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
 
                 // 记录和存储face的中心，并设置用于可视化的TextDot
-                for (int i = 0; i < P.Faces.Count; i++)
+                for (int i = 0; i < PDeepCopy.Faces.Count; i++)
                 {
-                    Point3d center = RhinoSupport.ToPoint3d(P.Faces.GetFaceCenter(i));
+                    Point3d center = RhinoSupport.ToPoint3d(PDeepCopy.Faces.GetFaceCenter(i));
                     TextDot textDot = new TextDot(string.Format("{0}", i), center);
                     FaceTextDot.Add(textDot);
                 }
@@ -156,8 +158,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //}
 
                 // 将原来的PlanktonMesh变为Polyline，并记录每个面上的半边关系
-                List<List<int>> allHalfEdgesIndex;
-                List<Polyline> polylines = ToPolylines(P, out allHalfEdgesIndex);
+                // List<List<int>> allHalfEdgesIndex;
+                // List<Polyline> polylines = ToPolylines(P, out allHalfEdgesIndex);
+                List<List<int>> allHalfEdgesIndex = GetHalfedgeIndexs(PDeepCopy);
+                List<Polyline> polylines = RhinoSupport.ToPolylines(PDeepCopy).ToList();
 
                 // offset
                 List<Polyline> offsetPolylines = new List<Polyline>();
@@ -193,6 +197,20 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 TextDotForHalfEdges = textDotForHalfEdges;
             }
+        }
+
+        public List<List<int>> GetHalfedgeIndexs(PlanktonMesh P)
+        {
+            List<List<int>> allHalfEdgesIndex = new List<List<int>>();
+
+            for (int i = 0; i < P.Faces.Count; i++)
+            {
+                allHalfEdgesIndex.Add(new List<int>());
+                int[] halfEdgesIndex = P.Faces.GetHalfedges(i);
+                allHalfEdgesIndex[i].AddRange(halfEdgesIndex);
+            }
+
+            return allHalfEdgesIndex;
         }
 
         public List<Polyline> ToPolylines(PlanktonMesh P, out List<List<int>> allHalfEdgesIndex)
@@ -244,6 +262,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+
+            for (int i = 0; i < FaceTextDot.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(FaceTextDot[i], Color.Red, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
             }
 
