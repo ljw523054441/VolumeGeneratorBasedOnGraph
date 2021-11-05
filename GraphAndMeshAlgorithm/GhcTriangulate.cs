@@ -112,7 +112,7 @@ namespace VolumeGeneratorBasedOnGraph
                 // 设置用于可视化的TextDot
                 for (int i = 0; i < nodes.Count; i++)
                 {
-                    if (i < innerNodeCount)
+                    if (nodes[i].IsInner)
                     {
                         TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
                         InnerNodeTextDot.Add(textDot);

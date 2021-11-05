@@ -5,16 +5,19 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph
 {
-    class Node
+    public class Node
     {
         public Point3d NodeVertex { get; set; }
 
         public NodeAttribute NodeAttribute { get; set; }
 
-        public Node(Point3d nodeVertex, NodeAttribute nodeAttribute)
+        public bool IsInner { get; }
+
+        public Node(Point3d nodeVertex, NodeAttribute nodeAttribute, bool isInner)
         {
             this.NodeVertex = nodeVertex;
             this.NodeAttribute = nodeAttribute;
+            this.IsInner = isInner;
         }
     }
 }

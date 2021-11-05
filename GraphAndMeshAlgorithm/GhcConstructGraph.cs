@@ -149,7 +149,16 @@ namespace VolumeGeneratorBasedOnGraph
                 // 构造Node类的列表，并输出
                 for (int i = 0; i < nodePoints.Count; i++)
                 {
-                    nodes.Add(new Node(nodePoints[i], nodeAttributes[i]));
+                    if (i < volumeNodeCount)
+                    {
+                        nodes.Add(new Node(nodePoints[i], nodeAttributes[i], true));
+                    }
+                    if (i >= volumeNodeCount && i < nodePoints.Count)
+                    {
+                        nodes.Add(new Node(nodePoints[i], nodeAttributes[i], false));
+                    }
+                    
+                    
                 }
 
                 DA.SetDataList("GraphNode", nodes);
