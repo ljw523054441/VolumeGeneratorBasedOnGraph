@@ -200,7 +200,7 @@ namespace VolumeGeneratorBasedOnGraph
                 DA.SetDataList("GraphNode", nodes);
                 
                 // Graph的所有Edge，在新的位置上画Edge
-                List<Line> graphEdge = GraphEdgeList(graph, newNodePointsRelocated, globalParameter);
+                List<Line> graphEdge = GraphEdgeList(graph, newNodePointsRelocated);
                 DA.SetDataList("GraphEdge", graphEdge);
 
                 // Graph形成的每个convex，在新的位置上画Convex
@@ -487,7 +487,7 @@ namespace VolumeGeneratorBasedOnGraph
             return allConvexPolyline;
         }
 
-        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices, GlobalParameter globalParameter)
+        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices)
         {
             List<Line> list = new List<Line>();
 
