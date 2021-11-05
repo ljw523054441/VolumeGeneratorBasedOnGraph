@@ -7,6 +7,7 @@ using Rhino;
 using Rhino.Geometry;
 using Rhino.Collections;
 using Plankton;
+using PlanktonGh;
 using System;
 using System.Drawing;
 using System.Collections.Generic;
@@ -539,6 +540,88 @@ namespace VolumeGeneratorBasedOnGraph
             return flag;
         }
 
+        /// <summary>
+        /// 拉普拉斯网格平滑
+        /// </summary>
+        /// <param name="P"></param>
+        /// <param name="W"></param>
+        /// <param name="Strength"></param>
+        /// <returns></returns>
+        internal static Vector3d[] LaplacianSmooth(PlanktonMesh P,int W, double Strength)
+        {
+            int vertCount = P.Vertices.Count;
+            Vector3d[] smooth = new Vector3d[vertCount];
 
+            for(int i = 0; i < vertCount; i++)
+            {
+                if (P.Vertices[i].IsUnused == false 
+                    && P.Vertices.IsBoundary(i) == false)
+                {
+                    int[] neighbours = P.Vertices.GetVertexNeighbours(i);
+                    Point3d vertex = P.Vertices[i].ToPoint3d();
+                    Point3d centroid = new Point3d();
+                    if (W == 0)
+                    {
+                        for (int j = 0; j < neighbours.Length; j++)
+                        {
+                            centroid = centroid + P.Vertices[neighbours[j]].ToPoint3d();
+                        }
+                        smooth[i] = ((centroid * (1.0 / P.Vertices.GetValence(i))) - vertex) * Strength;
+                    }
+                    if (W == 1)
+                    {
+                        //get the radial vectors of the 1-ring
+                        //get the vectors around the 1-ring
+                        //get the cotangent weights for each edge
+
+                        int valence = neighbours.Length;
+
+                        Point3d[] neighbourPts = new Point3d[valence];
+                        Vector3d[] radial = new Vector3d[valence];
+                        Vector3d[] around = new Vector3d[valence];
+                        double[] cotWeight = new double[valence];
+                        double weightSum = 0;
+
+                        for (int j = 0; j < valence; j++)
+                        {
+                            neighbourPts[j] = P.Vertices[neighbours[j]].ToPoint3d();
+                            radial[j] = neighbourPts[j] - vertex;
+                        }
+
+                        for (int j = 0; j < valence; j++)
+                        {
+                            around[j] = neighbourPts[(j + 1) % valence] - neighbourPts[j];
+                        }
+
+                        for (int j = 0; j < neighbours.Length; j++)
+                        {
+                            //get the cotangent weights
+                            int previous = (j + valence - 1) % valence;
+                            Vector3d cross1 = Vector3d.CrossProduct(radial[previous], around[previous]);
+                            double cross1Length = cross1.Length;
+                            double dot1 = radial[previous] * around[previous];
+
+                            int next = (j + 1) % valence;
+                            Vector3d cross2 = Vector3d.CrossProduct(radial[next], around[j]);
+                            double cross2Length = cross2.Length;
+                            double dot2 = radial[next] * around[j];
+
+                            cotWeight[j] = Math.Abs(dot1 / cross1Length) + Math.Abs(dot2 / cross2Length);
+                            weightSum += cotWeight[j];
+                        }
+
+                        double invWeightSum = 1.0 / weightSum;
+                        Vector3d thisSmooth = new Vector3d();
+                        for (int j = 0; j < neighbours.Length; j++)
+                        {
+                            thisSmooth = thisSmooth + radial[j] * cotWeight[j];
+                        }
+
+                        smooth[i] = thisSmooth * invWeightSum * Strength;
+                    }
+                }
+            }
+            return smooth;
+        }
     }
 }
