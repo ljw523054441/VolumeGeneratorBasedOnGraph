@@ -1,4 +1,7 @@
-﻿using Grasshopper.Kernel;
+﻿using Grasshopper;
+using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
+using Grasshopper.Kernel.Types;
 using Rhino.Collections;
 using Rhino.Geometry;
 using Rhino.Geometry.Collections;
@@ -22,7 +25,29 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
               "拆解度大于4的顶点",
               "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
         {
+            RhinoMesh = new Mesh();
+            
+            ConvexPolylinesPoints = new List<List<Point3d>>();
+            SelectedTriangleMeshEdges = new List<Line>();
+
+            InnerNodeTextDot = new List<TextDot>();
+            OuterNodeTextDot = new List<TextDot>();
+
+            DottedCurve = new List<Curve>();
         }
+
+        private int Thickness;
+
+        private Mesh RhinoMesh;
+        // private int IndexOfTriangularMesh;
+
+        private List<List<Point3d>> ConvexPolylinesPoints;
+        private List<Line> SelectedTriangleMeshEdges;
+
+        private List<TextDot> InnerNodeTextDot;
+        private List<TextDot> OuterNodeTextDot;
+
+        private List<Curve> DottedCurve;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -30,6 +55,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+
+            pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+            pManager.AddIntegerParameter("Graph", "G", "描述VolumeNode和BoundaryNode的所有连接关系的图结构", GH_ParamAccess.tree);
+
             pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
         }
 
@@ -39,6 +68,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("NewTriangleHalfedgeMesh", "NTHMesh", "新生成的三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
+
+            pManager.AddGenericParameter("NewGraph", "NG", "描述VolumeNode和BoundaryNode的所有连接关系的图结构(包括新分裂产生的点)", GH_ParamAccess.tree);
 
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
@@ -59,24 +90,43 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             int innerNodeCount = globalParameter.VolumeNodeCount;
             int outerNodeCount = globalParameter.BoundaryNodeCount;
 
-            List<int> innerNodeIndexs = new List<int>();
-            for (int i = 0; i < innerNodeCount; i++)
-            {
-                innerNodeIndexs.Add(i);
-            }
-            List<int> outerNodeIndexs = new List<int>();
-            for (int i = 0; i < outerNodeCount; i++)
-            {
-                outerNodeIndexs.Add(i + innerNodeCount);
-            }
+            //List<int> innerNodeIndexs = new List<int>();
+            //for (int i = 0; i < innerNodeCount; i++)
+            //{
+            //    innerNodeIndexs.Add(i);
+            //}
+            //List<int> outerNodeIndexs = new List<int>();
+            //for (int i = 0; i < outerNodeCount; i++)
+            //{
+            //    outerNodeIndexs.Add(i + innerNodeCount);
+            //}
 
             PlanktonMesh P = new PlanktonMesh();
+
+            List<Node> nodes = new List<Node>();
 
             PlanktonMesh edgeSplitedP = new PlanktonMesh();
             PlanktonMesh edgeResetStartP = new PlanktonMesh();
 
-            if (DA.GetData("TheChosenTriangleHalfedgeMesh", ref P))
+            GH_Structure<GH_Integer> gh_Structure_graph = null;
+            DataTree<int> graph = new DataTree<int>();
+            List<List<int>> graphLoL = new List<List<int>>();
+
+            if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
+                && DA.GetDataList<Node>("GraphNode", nodes)
+                && DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph))
             {
+                ConvexPolylinesPoints.Clear();
+                SelectedTriangleMeshEdges.Clear();
+                InnerNodeTextDot.Clear();
+                OuterNodeTextDot.Clear();
+
+                
+
+                // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>，再转化为LoL
+                UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
+                graphLoL = UtilityFunctions.DataTreeToLoL<int>(graph);
+
                 // 利用PlanktonMesh为复制准备的构造函数，进行深拷贝
                 PlanktonMesh PDeepCopy = new PlanktonMesh(P);
                 
@@ -104,7 +154,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         //int newHalfEdgeIndex = PDeepCopy.Vertices.SplitVertex(15, 16);
                         // PDeepCopy.Vertices.SetVertex(PDeepCopy.Halfedges[15].StartVertex, (startPoint + endPoint) / 2);
 
-                        edgeSplitedP = SplitEdge(PDeepCopy, 15);
+                        edgeSplitedP = SplitEdgeIntoTwo(PDeepCopy, 15, graphLoL, nodes, 2);
                         edgeResetStartP = ResetHalfedgeStart(edgeSplitedP, 35, 1, 9);
 
                         break;
@@ -132,15 +182,62 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(edgeResetStartP);
                 DA.SetDataList("DebugFacesHalfedges", printFacesHalfedge);
 
+
+                #region 可视化部分
+                // 设置用于可视化的TextDot
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    if (nodes[i].IsInner)
+                    {
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
+                        InnerNodeTextDot.Add(textDot);
+                    }
+                    else
+                    {
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
+                        OuterNodeTextDot.Add(textDot);
+                    }
+                }
+
+
+                // 转换为RhinoMesh，在DrawViewportMeshes绘制选中的mesh
+                RhinoMesh = RhinoSupport.ToRhinoMesh(edgeResetStartP);
+                // 在DrawViewportWires绘制mesh的edge
+                for (int i = 0; i < RhinoMesh.TopologyEdges.Count; i++)
+                {
+                    SelectedTriangleMeshEdges.Add(RhinoMesh.TopologyEdges.EdgeLine(i));
+                }
+
+                DottedCurve.Clear();
+
+                double[] pattern = { 1.0 };
+                for (int i = 0; i < SelectedTriangleMeshEdges.Count; i++)
+                {
+                    IEnumerable<Curve> segments = UtilityFunctions.ApplyDashPattern(SelectedTriangleMeshEdges[i].ToNurbsCurve(), pattern);
+                    foreach (Curve segment in segments)
+                    {
+                        DottedCurve.Add(segment);
+                    }
+                }
+                #endregion
             }
         }
 
-        
 
-        public PlanktonMesh SplitEdge(PlanktonMesh P, int halfedgeIndex)
+        /// <summary>
+        /// 将选中的halfedgeIndex的半边进行分割（即这条半边的起点，分裂成了两个点）
+        /// </summary>
+        /// <param name="P"></param>
+        /// <param name="halfedgeIndex"></param>
+        /// <param name="graphLoL"></param>
+        /// <param name="nodes"></param>
+        /// <param name="splitParts"></param>
+        /// <returns></returns>
+        public PlanktonMesh SplitEdgeIntoTwo(PlanktonMesh P, int halfedgeIndex, List<List<int>> graphLoL, List<Node> nodes, int splitParts)
         {
             PlanktonMesh PDeepCopy = new PlanktonMesh(P);
-            
+
+            #region 计算要分裂的边两侧的Face，准备好两个Face的顶点列表，新增midVertex作为分裂产生的新顶点
             //PlanktonVertexList vertices = PDeepCopy.Vertices;
             //PlanktonHalfEdgeList halfedges = PDeepCopy.Halfedges;
             //PlanktonFaceList faces = PDeepCopy.Faces;
@@ -168,8 +265,39 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 向P中增加顶点
             PDeepCopy.Vertices.Add(midVertex);
             int midVertexIndex = PDeepCopy.Vertices.Count - 1;
+            #endregion
 
-            // 构造添加顶点后的新Face
+            #region 为splitEdge的操作更新图结构和Node对象
+            // 更新图结构
+            for (int i = 0; i < graphLoL.Count; i++)
+            {
+                if (i == startVertexIndex)
+                {
+                    graphLoL[i].Add(midVertexIndex);
+                }
+                if (i == endVertexIndex)
+                {
+                    graphLoL[i].Add(midVertexIndex);
+                }
+            }
+            graphLoL.Add((new int[2] { startVertexIndex, endVertexIndex }).ToList<int>());
+
+            // 对startVertex的Node的相关属性进行修正，后续需要根据规则修改补充
+            string startNodeLabel = nodes[startVertexIndex].NodeAttribute.NodeLabel;
+            double startNodeArea = nodes[startVertexIndex].NodeAttribute.NodeArea;
+            // double startNodeAreaProportion = nodes[startVertexIndex].NodeAttribute.NodeAreaProportion;
+
+            nodes[startVertexIndex].NodeAttribute.NodeLabel = nodes[startVertexIndex].NodeAttribute.NodeLabel + "0";
+            nodes[startVertexIndex].NodeAttribute.NodeArea = nodes[startVertexIndex].NodeAttribute.NodeArea / splitParts;
+            // nodes[startVertexIndex].NodeAttribute.NodeAreaProportion = nodes[startVertexIndex].NodeAttribute.NodeAreaProportion / splitParts;
+
+            // 对新生成的顶点，构造新的node
+            NodeAttribute nodeAttribute = new NodeAttribute((startNodeLabel + (midVertexIndex - 8).ToString()),
+                                                            startNodeArea / splitParts);
+            nodes.Add(new Node(midVertex, nodeAttribute, true));
+            #endregion
+
+            #region 构造添加顶点后的新Face
             for (int i = 0; i < viAroundAdjacentFace.Count; i++)
             {
                 if (viAroundAdjacentFace[i] == startVertexIndex)
@@ -184,7 +312,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     viAroundPairAdjacentFace.Insert(i + 1, midVertexIndex);
                 }
             }
+            #endregion
 
+            #region 转移，更新，生成新的PlanktonMesh
             // 建立需要进行置换的面的index列表和VertexIndex列表，方便转移P的Face属性
             List<int> needChangeFaceIndexs = new List<int>();
             needChangeFaceIndexs.Add(adjacentFaceIndex);
@@ -218,12 +348,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
             }
 
-
             // 用转移的P的Vertex属性和P的Face属性来构造新的PlanktonMesh newP
             PlanktonMesh newP = new PlanktonMesh();
 
             newP.Vertices.AddVertices(pPlanktonVertex);
             newP.Faces.AddFaces(pFaceVertexOrder);
+            #endregion
 
             return newP;
         }
@@ -310,19 +440,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             needChangeViAround.Add(viAroundPairAdjacentFace);
 
             // 转移P的Vertex属性
-            List<PlanktonXYZ> pPlanktonVertex = new List<PlanktonXYZ>();
+            List<PlanktonXYZ> resetPPlanktonVertex = new List<PlanktonXYZ>();
             for (int i = 0; i < PDeepCopy.Vertices.Count; i++)
             {
-                pPlanktonVertex.Add(PDeepCopy.Vertices[i].ToXYZ());
+                resetPPlanktonVertex.Add(PDeepCopy.Vertices[i].ToXYZ());
             }
             // 转移P的Face属性
-            List<List<int>> pFaceVertexOrder = new List<List<int>>();
+            List<List<int>> resetPFaceVertexOrder = new List<List<int>>();
             for (int i = 0; i < PDeepCopy.Faces.Count; i++)
             {
                 if (needChangeFaceIndexs.Contains(i))
                 {
-                    pFaceVertexOrder.Add(new List<int>());
-                    pFaceVertexOrder[i].AddRange(needChangeViAround[needChangeFaceIndexs.IndexOf(i)]);
+                    resetPFaceVertexOrder.Add(new List<int>());
+                    resetPFaceVertexOrder[i].AddRange(needChangeViAround[needChangeFaceIndexs.IndexOf(i)]);
                     // 如果这个面是被加过点的，那么记下它的i
                     if (whichFaceNeedSplit[needChangeFaceIndexs.IndexOf(i)])
                     {
@@ -331,16 +461,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 else
                 {
-                    pFaceVertexOrder.Add(new List<int>());
+                    resetPFaceVertexOrder.Add(new List<int>());
                     int[] faceVertexOrder = PDeepCopy.Faces.GetFaceVertices(i);
-                    pFaceVertexOrder[i].AddRange(faceVertexOrder);
+                    resetPFaceVertexOrder[i].AddRange(faceVertexOrder);
                 }
             }
 
             // 用转移的P的Vertex属性和P的Face属性来构造新的PlanktonMesh newP
             PlanktonMesh resetHalfEdgeStartP = new PlanktonMesh();
-            resetHalfEdgeStartP.Vertices.AddVertices(pPlanktonVertex);
-            resetHalfEdgeStartP.Faces.AddFaces(pFaceVertexOrder);
+            resetHalfEdgeStartP.Vertices.AddVertices(resetPPlanktonVertex);
+            resetHalfEdgeStartP.Faces.AddFaces(resetPFaceVertexOrder);
 
             // debug
             List<string> printFaces1 = new List<string>();
@@ -445,35 +575,35 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
 
             // 转移P的Vertex属性
-            List<PlanktonXYZ> rpPlanktonVertex = new List<PlanktonXYZ>();
+            List<PlanktonXYZ> rebuildPPlanktonVertex = new List<PlanktonXYZ>();
             for (int i = 0; i < resetHalfEdgeStartP.Vertices.Count; i++)
             {
-                rpPlanktonVertex.Add(resetHalfEdgeStartP.Vertices[i].ToXYZ());
+                rebuildPPlanktonVertex.Add(resetHalfEdgeStartP.Vertices[i].ToXYZ());
             }
             // 转移P的Face属性
-            List<List<int>> rpFaceVertexOrder = new List<List<int>>();
+            List<List<int>> rebuildPFaceVertexOrder = new List<List<int>>();
             for (int i = 0; i < resetHalfEdgeStartP.Faces.Count; i++)
             {
                 if (i == whichFaceNeedSplitIndex)
                 {
-                    rpFaceVertexOrder.Add(new List<int>());
-                    rpFaceVertexOrder[i].AddRange(splitedFaceWithOriginIndex);
+                    rebuildPFaceVertexOrder.Add(new List<int>());
+                    rebuildPFaceVertexOrder[i].AddRange(splitedFaceWithOriginIndex);
                 }
                 else
                 {
-                    rpFaceVertexOrder.Add(new List<int>());
+                    rebuildPFaceVertexOrder.Add(new List<int>());
                     int[] faceVertexOrder = resetHalfEdgeStartP.Faces.GetFaceVertices(i);
-                    rpFaceVertexOrder[i].AddRange(faceVertexOrder);
+                    rebuildPFaceVertexOrder[i].AddRange(faceVertexOrder);
                 }
             }
-            rpFaceVertexOrder.Add(splitedFaceWithNewIndex);
+            rebuildPFaceVertexOrder.Add(splitedFaceWithNewIndex);
 
             PlanktonMesh rebulidNewHalfedgeP = new PlanktonMesh();
-            rebulidNewHalfedgeP.Vertices.AddVertices(rpPlanktonVertex);
+            rebulidNewHalfedgeP.Vertices.AddVertices(rebuildPPlanktonVertex);
             // rebulidNewHalfedgeP.Faces.AddFaces(rpFaceVertexOrder);
-            for (int i = 0; i < rpFaceVertexOrder.Count; i++)
+            for (int i = 0; i < rebuildPFaceVertexOrder.Count; i++)
             {
-                rebulidNewHalfedgeP.Faces.AddFace(rpFaceVertexOrder[i]);
+                rebulidNewHalfedgeP.Faces.AddFace(rebuildPFaceVertexOrder[i]);
             }
 
             List<string> printFaces2 = new List<string>();
@@ -482,125 +612,76 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             return rebulidNewHalfedgeP;
         }
 
-        //public PlanktonMesh RebuildNewHalfedge(PlanktonMesh P, int vertexIndex, )
-        //{
-        //    PlanktonMesh PDeepCopy = new PlanktonMesh(P);
+        /// <summary>
+        /// 预览模式为WireFrame模式时，调用此函数
+        /// </summary>
+        /// <param name="args"></param>
+        public override void DrawViewportWires(IGH_PreviewArgs args)
+        {
+            // 屏蔽掉电池原本的预览
+            // base.DrawViewportWires(args);
 
+            for (int i = 0; i < DottedCurve.Count; i++)
+            {
+                args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+            }
+            //args.Display.EnableDepthTesting(true);
 
-        //}
+            // 后画实线
+            for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
+            {
+                args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.BlueViolet, Thickness);
+            }
 
+            for (int i = 0; i < InnerNodeTextDot.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(InnerNodeTextDot[i], Color.Black, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+            for (int i = 0; i < OuterNodeTextDot.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+        }
 
-        //public PlanktonMesh SplitVertex(PlanktonMesh P, int vertexIndexToSplit, List<int> innerNodeIndexs)
-        //{
-            
-            
-        //    int[] halfEdgesIndexStartFromVertex = P.Vertices.GetHalfedges(vertexIndexToSplit);
+        /// <summary>
+        /// 预览模式为Shaded模式时，调用此函数
+        /// </summary>
+        /// <param name="args"></param>
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            // 屏蔽掉电池原本的预览
+            // base.DrawViewportMeshes(args);
 
+            args.Display.DrawMeshShaded(RhinoMesh, new Rhino.Display.DisplayMaterial(Color.White, 0));
 
-        //    /* 把for循环去掉直接测试看一下结果
-        //     * i变为0
-        //     */
-        //    for (int i = 0; i < halfEdgesIndexStartFromVertex.Length; i++)
-        //    {
-        //        // int pairHalfEdgeIndex = P.Halfedges.GetPairHalfedge(halfEdgesIndexStartFromVertex[i]);
+            for (int i = 0; i < DottedCurve.Count; i++)
+            {
+                args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+            }
 
-                
-        //    }
+            // 后画实线
+            for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
+            {
+                args.Display.DrawPolyline(ConvexPolylinesPoints[i], Color.BlueViolet, Thickness);
+            }
 
-        //    // 如果半边i的终点是innerNode，那么将这个半边split开始加点
-        //    int endVertexIndex = P.Halfedges.EndVertex(halfEdgesIndexStartFromVertex[1]);
-        //    if (innerNodeIndexs.Contains(endVertexIndex))
-        //    {
-        //        Point3d startPoint = P.Vertices[vertexIndexToSplit].ToPoint3d();
-        //        Point3d endPoint = P.Vertices[P.Halfedges.EndVertex(halfEdgesIndexStartFromVertex[1])].ToPoint3d();
-        //        int index = P.Halfedges.SplitEdge(halfEdgesIndexStartFromVertex[1]);
-        //        // P.Vertices.SetVertex(P.Halfedges.EndVertex(index), (startPoint + endPoint) / 2);
-        //        P.Vertices.SetVertex(P.Halfedges[index].StartVertex, (startPoint + endPoint) / 2);
-        //    }
-
-        //    PlanktonMesh newPlanktonMesh = new PlanktonMesh(P);
-
-        //    return newPlanktonMesh;
-        //}
-
-        
-
-        //public int SplitEdge(PlanktonMesh P, int index)
-        //{
-        //    int pair = P.Halfedges.GetPairHalfedge(index);
-
-        //    // Create a copy of the existing vertex (user can move it afterwards if needs be)
-        //    // 将中点作为新添加的顶点
-        //    int start_vertex = P.Halfedges[index].StartVertex;
-        //    int end_vertex = P.Halfedges[pair].StartVertex;
-        //    int new_vertex_index = P.Vertices.Add((P.Vertices[start_vertex].ToPoint3d() + P.Vertices[end_vertex].ToPoint3d()) / 2);
-
-        //    // Add a new halfedge pair
-        //    int new_halfedge1 = P.Halfedges.AddPair(new_vertex_index, P.Halfedges.EndVertex(index), P.Halfedges[index].AdjacentFace);
-        //    int new_halfedge2 = P.Halfedges.GetPairHalfedge(new_halfedge1);
-        //    P.Halfedges[new_halfedge2].AdjacentFace = P.Halfedges[pair].AdjacentFace;
-        //}
-
-        //public int AddPair(PlanktonMesh P, int start, int end, int face)
-        //{
-        //    // he->next = he->pair
-        //    int i = this.Count;
-        //    P.Halfedges.Add(new PlanktonHalfedge(start, face, i + 1));
-        //    P.Halfedges.Add(new PlanktonHalfedge(end, -1, i));
-        //    return i;
-        //}
-
-        //public int SplitVertex(PlanktonMesh P, int first, int second)
-        //{
-        //    PlanktonHalfEdgeList hs = P.Halfedges;
-
-        //    // 输入的两个半边是否都从同一个顶点开始，如果不是就返回-1
-        //    int v_old = hs[first].StartVertex;
-        //    if (v_old != hs[second].StartVertex)
-        //    {
-        //        return -1;
-        //    }
-
-        //    // 创建一个v_old的副本，并添加到顶点列表中
-        //    int v_new = P.Vertices.Add(RhinoSupport.ToPoint3d(P.Vertices[v_old].ToXYZ()));
-
-        //    // 从second到first
-        //    // 
-        //    bool reset_v_old = false;
-
-        //    List<int> vertexCirculator = hs.GetVertexCirculator(second).ToList();
-
-        //    // 与second的起始顶点相关的可枚举的halfedge索引。围绕顶点顺时针排列。返回的可枚举项将从指定的半边（即second）开始。
-        //    foreach (int h in vertexCirculator)
-        //    {
-        //        if (h == first)
-        //        {
-        //            break;
-        //        }
-
-        //        hs[h].StartVertex = v_new;
-        //        // 如果新顶点还没有传出的半边，并且他现在是裸露的，那么
-        //        if (P.Vertices[v_new].OutgoingHalfedge == -1
-        //            && hs[h].AdjacentFace == -1)
-        //        {
-        //            P.Vertices[v_new].OutgoingHalfedge = h;
-        //        }
-        //        // 
-        //        if (h == P.Vertices[v_old].OutgoingHalfedge)
-        //        {
-        //            reset_v_old = true;
-        //        }
-        //    }
-
-        //    // 如果没有裸露的半边，就用second
-        //    if (P.Vertices[v_new].OutgoingHalfedge == -1)
-        //    {
-        //        P.Vertices[v_new].OutgoingHalfedge = second;
-        //    }
-
-
-
-        //}
+            for (int i = 0; i < InnerNodeTextDot.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(InnerNodeTextDot[i], Color.Black, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+            for (int i = 0; i < OuterNodeTextDot.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+        }
 
 
         /// <summary>
