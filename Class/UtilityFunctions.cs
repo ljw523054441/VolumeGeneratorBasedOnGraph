@@ -371,6 +371,11 @@ namespace VolumeGeneratorBasedOnGraph
             return faceAdjacency;
         }
 
+        /// <summary>
+        /// HalfedgeMesh中每个顶点的属性
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <returns></returns>
         internal static List<string> PrintVertices(PlanktonMesh mesh)
         {
             List<string> output = new List<string>();
@@ -385,6 +390,11 @@ namespace VolumeGeneratorBasedOnGraph
             return output;
         }
 
+        /// <summary>
+        /// HalfedgeMesh中每条半边的属性
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <returns></returns>
         internal static List<string> PrintHalfedges(PlanktonMesh mesh)
         {
             List<string> output = new List<string>();
@@ -401,7 +411,12 @@ namespace VolumeGeneratorBasedOnGraph
             return output;
         }
 
-        internal static List<string> PrintFaces(PlanktonMesh mesh)
+        /// <summary>
+        /// HalfedgeMesh的面由哪些顶点组成
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <returns></returns>
+        internal static List<string> PrintFacesVertices(PlanktonMesh mesh)
         {
             List<string> output = new List<string>();
             for (int i = 0; i < mesh.Faces.Count; i++)
@@ -418,6 +433,11 @@ namespace VolumeGeneratorBasedOnGraph
             return output;
         }
 
+        /// <summary>
+        /// HalfedgeMesh的面由哪些半边组成
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <returns></returns>
         internal static List<string> PrintFacesHalfedges(PlanktonMesh mesh)
         {
             List<string> output = new List<string>();
