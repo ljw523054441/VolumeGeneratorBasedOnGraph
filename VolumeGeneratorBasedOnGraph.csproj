@@ -43,11 +43,13 @@
     <Reference Include="Grasshopper, Version=6.13.19058.370, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
       <HintPath>packages\Grasshopper.6.13.19058.371\lib\net45\Grasshopper.dll</HintPath>
     </Reference>
-    <Reference Include="Plankton">
-      <HintPath>..\..\Assemblies\Plankton.dll</HintPath>
+    <Reference Include="Plankton, Version=0.4.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>lib\Plankton.dll</HintPath>
     </Reference>
-    <Reference Include="PlanktonGh">
-      <HintPath>..\..\Assemblies\PlanktonGh.dll</HintPath>
+    <Reference Include="PlanktonGh, Version=0.4.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>lib\PlanktonGh.dll</HintPath>
     </Reference>
     <Reference Include="Rhino.UI, Version=6.13.19058.370, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>packages\RhinoCommon.6.13.19058.371\lib\net45\Rhino.UI.dll</HintPath>
@@ -95,6 +97,10 @@
     <None Include="packages.config" />
     <None Include="测试文件夹\1024Test.csv" />
     <None Include="测试文件夹\1024_test.gh" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="lib\Plankton.dll" />
+    <Content Include="lib\PlanktonGh.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
