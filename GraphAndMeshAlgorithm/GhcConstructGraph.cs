@@ -58,15 +58,16 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            // 全局参数传递
+            #region 全局参数传递
             GlobalParameter globalParameter = new GlobalParameter();
             DA.GetData("GlobalParameter", ref globalParameter);
             int volumeNodeCount = globalParameter.VolumeNodeCount;
             int boundaryNodeCount = globalParameter.BoundaryNodeCount;
             List<Point3d> volumeNodeList = globalParameter.VolumeNodePointLocations.ToList<Point3d>();
             List<Point3d> boundaryNodeList = globalParameter.BoundaryNodePointLocations.ToList<Point3d>();
+            #endregion
 
-
+            #region 局部变量初始化
             GH_Structure<GH_Integer> gh_Structure_ConnectivityTree = null;
             GH_Structure<GH_Integer> gh_Structure_AdjacencyTree = null;
             DataTree<int> volumeConnectivityTree = new DataTree<int>();
@@ -82,7 +83,9 @@ namespace VolumeGeneratorBasedOnGraph
             List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
 
             List<Node> nodes = new List<Node>();
+            #endregion
 
+            #region 可能的报错
             if (DA.GetDataList<NodeAttribute>("VolumeNodeAttributes", volumeNodeAttributeList) && volumeNodeAttributeList.Count != volumeNodeCount)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "体量节点的数量跟体量节点属性的数量要一致！");
@@ -93,37 +96,33 @@ namespace VolumeGeneratorBasedOnGraph
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "边界节点的数量与边界节点的标签数量要一致！");
                 return;
             }
+            #endregion
 
             // 输出Graph的树形结构
             if (DA.GetDataTree<GH_Integer>("VolumeConnectivityTree", out gh_Structure_ConnectivityTree)
             & DA.GetDataTree<GH_Integer>("BoundaryAdjacencyTree", out gh_Structure_AdjacencyTree))
             {
-                /* 暂时去掉对于outerNode的排序功能，等待后续开发
-                 * 
-                 */
-
+                #region 对边界节点进行排序
                 Point3d centerPoint = UtilityFunctions.CalCenterPoint(boundaryNodeList);
-
                 List<int> sortedBoundaryNodeIndexList = new List<int>();
-
-                // 对边界节点进行排序
                 List<Point3d> SortedBoundaryNodeList = UtilityFunctions.SortPolyPoints(boundaryNodeList, centerPoint);
 
+                // 根据point的排序，获取对应的index的排序
                 for (int i = 0; i < SortedBoundaryNodeList.Count; i++)
                 {
                     int boundaryPointsIndex = boundaryNodeList.IndexOf(SortedBoundaryNodeList[i]);
                     sortedBoundaryNodeIndexList.Add(boundaryPointsIndex);
                 }
+                #endregion
 
-                // 构造包含所有node节点的列表，顺序是 inner node + outer node
+                #region 构造包含所有nodePoint的列表，顺序是 inner node + outer node
                 nodePoints.AddRange(volumeNodeList);
                 nodePoints.AddRange(SortedBoundaryNodeList);
-                // 输出NodePoints
-                // DA.SetDataList("GraphNodePoints", nodePoints);
+                #endregion
 
+                #region 构造包含所有nodeAttributes的列表，顺序是inner node + outer node
                 // 计算每个volume点的面积占比，并写入NodeAttribute中的NodeAreaProportion属性
                 UtilityFunctions.CalculateAreaProportion(volumeNodeAttributeList);
-
 
                 // 构造BoundaryNodeAttribute列表
                 for (int i = 0; i < boundaryNodeList.Count; i++)
@@ -132,21 +131,12 @@ namespace VolumeGeneratorBasedOnGraph
                     boundaryNodeAttributeList.Add(boundaryNodeAttribute);
                 }
 
-                //// 用前面生成的对于Boundary点的排序列表来对BoundaryAttribute列表进行对应的排序
-                //List<NodeAttribute> SortedBoundaryNodeAttributes = new List<NodeAttribute>();
-                //foreach (int index in sortedBoundaryNodeIndexList)
-                //{
-                //    SortedBoundaryNodeAttributes.Add(boundaryNodeAttributeList[index]);
-                //}
-
                 // 构造包含所有node节点的属性列表，顺序是 inner node + outer node
                 nodeAttributes.AddRange(volumeNodeAttributeList);
                 nodeAttributes.AddRange(boundaryNodeAttributeList);
-                // 输出NodeAttributes
-                // DA.SetDataList("GraphNodeAttributes", nodeAttributes);
+                #endregion
 
-
-                // 构造Node类的列表，并输出
+                #region 构造Node类的列表，并输出
                 for (int i = 0; i < nodePoints.Count; i++)
                 {
                     if (i < volumeNodeCount)
@@ -157,14 +147,11 @@ namespace VolumeGeneratorBasedOnGraph
                     {
                         nodes.Add(new Node(nodePoints[i], nodeAttributes[i], false));
                     }
-                    
-                    
                 }
-
                 DA.SetDataList("GraphNode", nodes);
+                #endregion
 
-
-
+                #region 邻接表转化为包括所有node关系的图结构
                 // 将ConnectivityTree从GH_Structure<GH_Integer>转化为DataTree<int>
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_ConnectivityTree, ref volumeConnectivityTree);
                 // 将AdjacencyTree从GH_Structure<GH_Integer>转化为DataTree<int>
@@ -181,7 +168,6 @@ namespace VolumeGeneratorBasedOnGraph
                         graph.Add(sortedBoundaryNodeIndexList.IndexOf(boundaryAdjacencyTree.Branch(i)[j]) + volumeNodeCount, graph.Path(i));
                     }
                 }
-
 
                 // 对每个boundary点（outer），向树形数据中添加新的path（BoundaryNode分支）
                 for (int i = 0; i < boundaryNodeCount; i++)
@@ -216,10 +202,9 @@ namespace VolumeGeneratorBasedOnGraph
 
                     graph.Add((i - 1) + volumeNodeCount, graph.Path(volumeNodeCount + i));
                     graph.Add((i + 1) + volumeNodeCount, graph.Path(volumeNodeCount + i));
-
                 }
-
                 DA.SetDataTree(0, graph);
+                #endregion
             }
         }
 
