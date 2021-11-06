@@ -60,25 +60,25 @@ namespace VolumeGeneratorBasedOnGraph
                 string csvPath = null;
                 DA.GetData("CSVFilePath", ref csvPath);
 
-                // int number = 0;
-                // DA.GetData("NumberOfCustomBoundaryNode", ref number);
-
-                // Initialize variables 初始化变量
+                #region Initialize variables 初始化变量
                 List<string> nodeLabelList = new List<string>();
-                //List<double> volumeAreaAttributeList = new List<double>();
                 List<NodeAttribute> nodeAttributesList = new List<NodeAttribute>();
                 DataTree<int> volumeConnectivityArributeDataTree = new DataTree<int>();
                 DataTree<int> volumeBoundaryAdjacencyDataTree = new DataTree<int>();
+                #endregion
 
-
-                // Read the data of the CSV files as individual lines 按行读取csv文件中的数据
+                #region Read the data of the CSV files as individual lines 按行读取csv文件中的数据
                 string[] csvLines = System.IO.File.ReadAllLines(csvPath);
-                // Parse all lines 解析所有行的数据
+                #endregion
+
+                #region Parse all lines 解析所有行的数据
                 for (int i = 1; i < csvLines.Length; i++)
                 {
-                    // Split rowData with "," 按逗号分隔每一行的字符串
+                    #region Split rowData with "," 按逗号分隔每一行的字符串
                     string[] rowData = csvLines[i].Split(',');
+                    #endregion
 
+                    #region 读取时可能出现的报错
                     if (rowData[0] == "")
                     {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have a Label, please check csv file.");
@@ -89,9 +89,11 @@ namespace VolumeGeneratorBasedOnGraph
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Node must have attribute, please check csv file.");
                         return;
                     }
-                    // Add first and second colume data into corresponding list 将得到的第一列和第二列数据分别添加到对应的列表中
+                    #endregion
+
+                    #region Add first and second colume data into corresponding list 将得到的第一列和第二列数据分别添加到对应的列表中
                     nodeLabelList.Add(rowData[0]);
-                    nodeAttributesList.Add(new NodeAttribute(rowData[0], 
+                    nodeAttributesList.Add(new NodeAttribute(rowData[0],
                                                              Convert.ToDouble(rowData[1]),
                                                              Convert.ToInt32(rowData[4]),
                                                              Convert.ToInt32(rowData[5]),
@@ -101,8 +103,9 @@ namespace VolumeGeneratorBasedOnGraph
                                                              Convert.ToDouble(rowData[9])
                                                              ));
                     //volumeAreaAttributeList.Add(Convert.ToDouble(rowData[1]));
+                    #endregion
 
-                    // Split ConnectivityArribute with "-" and add it to corresponding datatree with correct path 用-号将第三列数据分隔，并按照对应的路径添加到树形结构中
+                    #region Split ConnectivityArribute with "-" and add it to corresponding datatree with correct path 用-号将第三列数据分隔，并按照对应的路径添加到树形结构中
                     string[] connectivity = rowData[2].Split('-');
                     GH_Path path = new GH_Path(0, i - 1);
                     for (int j = 0; j < connectivity.Length; j++)
@@ -123,13 +126,10 @@ namespace VolumeGeneratorBasedOnGraph
                             volumeConnectivityArributeDataTree.Add(Convert.ToInt32(connectivity[j]), path);
                         }
                     }
-                    nodeAttributesList[i-1].ConnectivityTable = volumeConnectivityArributeDataTree.Branch(path).ToArray();
+                    nodeAttributesList[i - 1].ConnectivityTable = volumeConnectivityArributeDataTree.Branch(path).ToArray();
+                    #endregion
 
-                    // 边界邻接点的数量，先设置成4，可以继续增加，比如8
-                    // NodeAttribute.NEWSCount
-                    // NodeAttribute.BoundaryNodeCount = 4 + number;
-                    // NodeAttribute.VolumeNodeCount = csvLines.Length - 1;
-
+                    #region Split AjacencyArribute with "-" and add it to corresponding datatree with correct path 用-号将第四列数据分隔，并按照对应的路径添加到树形结构中
                     string[] adjacency = rowData[3].Split('-');
                     for (int j = 0; j < adjacency.Length; j++)
                     {
@@ -176,15 +176,17 @@ namespace VolumeGeneratorBasedOnGraph
                         // volumeBoundaryAdjacencyDataTree.Add(Convert.ToInt32(adjacency[j]), path);
                     }
                     nodeAttributesList[i - 1].AdjacencyTable = volumeBoundaryAdjacencyDataTree.Branch(path).ToArray();
+                    #endregion
                 }
+                #endregion
 
 
 
-                // Output 输出
+                #region Output 输出
                 DA.SetDataTree(0, volumeConnectivityArributeDataTree);
                 DA.SetDataTree(1, volumeBoundaryAdjacencyDataTree);
-                // DA.SetDataList("LabelList", nodeLabelList);
                 DA.SetDataList("VolumeNodeAttributes", nodeAttributesList);
+                #endregion
             }
         }
 
