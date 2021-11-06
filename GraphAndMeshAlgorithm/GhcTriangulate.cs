@@ -227,7 +227,7 @@ namespace VolumeGeneratorBasedOnGraph
 
 
                 List<string> printFaces = new List<string>();
-                printFaces = UtilityFunctions.PrintFaces(planktonMesh);
+                printFaces = UtilityFunctions.PrintFacesVertices(planktonMesh);
                 DA.SetDataList("DebugFacesOutput", printFaces);
 
 

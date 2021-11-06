@@ -115,7 +115,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
 
                 List<string> printFaces = new List<string>();
-                printFaces = UtilityFunctions.PrintFaces(D);
+                printFaces = UtilityFunctions.PrintFacesVertices(D);
                 DA.SetDataList("DebugFacesOutput", printFaces);
 
 
