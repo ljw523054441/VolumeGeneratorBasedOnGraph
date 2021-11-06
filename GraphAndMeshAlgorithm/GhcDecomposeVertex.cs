@@ -68,6 +68,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddIntegerParameter("Graph", "G", "描述VolumeNode和BoundaryNode的所有连接关系的图结构", GH_ParamAccess.tree);
 
             pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
+
+            pManager.AddIntegerParameter("IndexOfSplittedHalfedgeMesh", "I", "某一种顶点分裂后的结果", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -103,11 +105,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             List<Node> nodes = new List<Node>();
 
             PlanktonMesh edgeSplitedP = new PlanktonMesh();
-            PlanktonMesh edgeResetStartP = new PlanktonMesh();
+            List<PlanktonMesh> edgeResetStartP = new List<PlanktonMesh>();
 
             GH_Structure<GH_Integer> gh_Structure_graph = null;
             DataTree<int> graph = new DataTree<int>();
             List<List<int>> graphLoL = new List<List<int>>();
+
+            int index = 0;
 
             Thickness = 2;
 
@@ -126,54 +130,90 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 对于每个InnerNode来说，判断它的度是否大于4
                 for (int i = 0; i < PDeepCopy.Vertices.Count - outerNodeCount; i++)
                 {
-                    
+                    //int degree = PDeepCopy.Vertices.GetValence(i);
                 }
 
-                int degree = PDeepCopy.Vertices.GetValence(1);
 
-                // 点1周围的halfedgeindex列表，顺时针
-                int[] halfEdgesIndexStartFromVertex = PDeepCopy.Vertices.GetHalfedges(1);
+                
+
+
+
+                int degree = PDeepCopy.Vertices.GetValence(0);
+
+                List<PlanktonMesh> allPossiblePMeshForCurrentVertexSplit = new List<PlanktonMesh>();
 
                 switch (degree)
                 {
                     case 5:
-                        // SplitVertex(PDeepCopy, 1, innerNodeIndexs);
-                        // P.Vertices.SetVertex(P.Vertices.Count-1, P.Vertices[0].ToXYZ().X, P.Vertices[0].ToXYZ().Y + (float)0.5, P.Vertices[0].ToXYZ().Z);
+                        #region 对于度为5的顶点
+                        // 对于一个顶点来说的所有可能的一对半边的index（相邻的半边）
+                        List<int[]> allPossibleHalfedgePairIndexs = new List<int[]>();
 
-                        //Point3d startPoint = PDeepCopy.Vertices[1].ToPoint3d();
-                        //Point3d endPoint = PDeepCopy.Vertices[PDeepCopy.Halfedges.EndVertex(15)].ToPoint3d();
+                        // 点0周围的halfedgeindex列表，顺时针
+                        int[] halfEdgesIndexStartFromVertex = PDeepCopy.Vertices.GetHalfedges(0);
 
-                        //int newHalfEdgeIndex = PDeepCopy.Vertices.SplitVertex(15, 16);
-                        // PDeepCopy.Vertices.SetVertex(PDeepCopy.Halfedges[15].StartVertex, (startPoint + endPoint) / 2);
+                        for (int i = 0; i < halfEdgesIndexStartFromVertex.Length; i++)
+                        {
+                            int[] possibleHalfedgePairIndexs = new int[2] { halfEdgesIndexStartFromVertex[i], halfEdgesIndexStartFromVertex[(i + 1)%halfEdgesIndexStartFromVertex.Length] };
+                            allPossibleHalfedgePairIndexs.Add(possibleHalfedgePairIndexs);
+                        }
 
-                        edgeSplitedP = SplitEdgeIntoTwo(PDeepCopy, 15, graphLoL, nodes, 2);
-                        edgeResetStartP = ResetHalfedgeStart(edgeSplitedP, 35, 1, 9);
+                        for (int i = 0; i < allPossibleHalfedgePairIndexs.Count; i++)
+                        {
+                            int newVertexIndex;
+                            edgeSplitedP = SplitEdgeIntoTwo(PDeepCopy, allPossibleHalfedgePairIndexs[i][0], graphLoL, nodes, out newVertexIndex, 2);
+                            edgeResetStartP = ResetHalfedgeStart(edgeSplitedP, allPossibleHalfedgePairIndexs[i][1], 0, newVertexIndex);
 
+                            // 向存储当前顶点所有可能的分裂结果的列表中添加一种分裂的可能性
+                            allPossiblePMeshForCurrentVertexSplit.AddRange(edgeResetStartP);
+                        }
+                        #endregion
                         break;
 
                     default:
                         break;
                 }
 
-                DA.SetData("NewTriangleHalfedgeMesh", edgeResetStartP);
+                #region 输出所选的HalfedgeMesh结果
+                // 获取要选择的序号
+                DA.GetData<int>("IndexOfSplittedHalfedgeMesh", ref index);
+                if (index >= allPossiblePMeshForCurrentVertexSplit.Count)
+                {
+                    index = index % allPossiblePMeshForCurrentVertexSplit.Count;
+                }
+                PlanktonMesh selectedHalfedgeMesh = allPossiblePMeshForCurrentVertexSplit[index];
+
+                DA.SetData("NewTriangleHalfedgeMesh", selectedHalfedgeMesh);
+                #endregion
 
 
+                #region 用于输出Debug数据
+
+                #region HalfedgeMesh的顶点数据
                 List<string> printVertices = new List<string>();
-                printVertices = UtilityFunctions.PrintVertices(edgeResetStartP);
+                printVertices = UtilityFunctions.PrintVertices(selectedHalfedgeMesh);
                 DA.SetDataList("DebugVerticesOutput", printVertices);
+                #endregion
 
+                #region HalfedgeMesh的半边数据
                 List<string> printHalfedges = new List<string>();
-                printHalfedges = UtilityFunctions.PrintHalfedges(edgeResetStartP);
+                printHalfedges = UtilityFunctions.PrintHalfedges(selectedHalfedgeMesh);
                 DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
+                #endregion
 
+                #region HalfedgeMesh的每个面由哪些顶点构成
                 List<string> printFaces = new List<string>();
-                printFaces = UtilityFunctions.PrintFaces(edgeResetStartP);
+                printFaces = UtilityFunctions.PrintFacesVertices(selectedHalfedgeMesh);
                 DA.SetDataList("DebugFacesOutput", printFaces);
+                #endregion
 
+                #region HalfedgeMesh的每个面由哪些半边构成
                 List<string> printFacesHalfedge = new List<string>();
-                printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(edgeResetStartP);
+                printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(selectedHalfedgeMesh);
                 DA.SetDataList("DebugFacesHalfedges", printFacesHalfedge);
+                #endregion
 
+                #endregion
 
                 #region 可视化部分
 
@@ -197,7 +237,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 转换为RhinoMesh，在DrawViewportMeshes绘制选中的mesh
-                PRhinoMesh = RhinoSupport.ToRhinoMesh(edgeResetStartP);
+                PRhinoMesh = RhinoSupport.ToRhinoMesh(selectedHalfedgeMesh);
                 #endregion
 
                 #region 在DrawViewportWires绘制mesh的edge（虚线）
@@ -239,7 +279,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="nodes"></param>
         /// <param name="splitParts"></param>
         /// <returns></returns>
-        public PlanktonMesh SplitEdgeIntoTwo(PlanktonMesh P, int halfedgeIndex, List<List<int>> graphLoL, List<Node> nodes, int splitParts)
+        public PlanktonMesh SplitEdgeIntoTwo(PlanktonMesh P, int halfedgeIndex, List<List<int>> graphLoL, List<Node> nodes, out int newVertexIndex, int splitParts)
         {
             PlanktonMesh PDeepCopy = new PlanktonMesh(P);
 
@@ -271,6 +311,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 向P中增加顶点
             PDeepCopy.Vertices.Add(midVertex);
             int midVertexIndex = PDeepCopy.Vertices.Count - 1;
+            newVertexIndex = midVertexIndex;
             #endregion
 
             #region 为splitEdge的操作更新图结构和Node对象
@@ -309,6 +350,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 if (viAroundAdjacentFace[i] == startVertexIndex)
                 {
                     viAroundAdjacentFace.Insert(i + 1, midVertexIndex);
+                    break;
                 }
             }
             for (int i = 0; i < viAroundPairAdjacentFace.Count; i++)
@@ -316,6 +358,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 if (viAroundPairAdjacentFace[i] == endVertexIndex)
                 {
                     viAroundPairAdjacentFace.Insert(i + 1, midVertexIndex);
+                    break;
                 }
             }
             #endregion
@@ -372,7 +415,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="vertexToSplitIndex">要移动的一对半边中的一个，该半边的起点</param>
         /// <param name="targetVertexIndex">移动到哪一个顶点上，起点改为这个顶点</param>
         /// <returns></returns>
-        public PlanktonMesh ResetHalfedgeStart(PlanktonMesh P, int halfedgeIndex, int vertexToSplitIndex, int targetVertexIndex)
+        public List<PlanktonMesh> ResetHalfedgeStart(PlanktonMesh P, int halfedgeIndex, int vertexToSplitIndex, int targetVertexIndex)
         {
             #region 深拷贝
             PlanktonMesh PDeepCopy = new PlanktonMesh(P);
@@ -406,37 +449,83 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             #region 修改包围AdjacentFace的顶点列表以及包围PairAdjacentFace的顶点列表
             // 用目标顶点属于哪个面，来判断该怎么修改viAroundAdjacentFace和viAroundPairAdjacentFace列表
-            bool targetVertexBelongsToAdjacent = viAroundAdjacentFace.Contains(targetVertexIndex);
-            bool targetVertexBelongsToPairAdjacent = viAroundPairAdjacentFace.Contains(targetVertexIndex);
+            //bool targetVertexBelongsToAdjacent = viAroundAdjacentFace.Contains(targetVertexIndex);
+            //bool targetVertexBelongsToPairAdjacent = viAroundPairAdjacentFace.Contains(targetVertexIndex);
+
+            // 获取targetVertex在Face顶点列表的序号
+            int indexInFace = viAroundAdjacentFace.IndexOf(targetVertexIndex);
+            // 获取targetVertex在PairFace顶点列表的序号
+            int indexInPairFace = viAroundPairAdjacentFace.IndexOf(targetVertexIndex);
 
             // 当目标顶点targetVertex同时不属于这两个Face时报错
-            if (!targetVertexBelongsToAdjacent && !targetVertexBelongsToPairAdjacent)
+            if (indexInFace == -1 && indexInPairFace == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "输入的targetVertex " + vertexToSplitIndex.ToString() + " 不属于要改变的面");
                 return null;
             }
-            // 当目标顶点targetVertex属于pairAdjacentFace时
-            else if (!targetVertexBelongsToAdjacent && targetVertexBelongsToPairAdjacent)
+            // 当目标顶点targetVertex属于PairFace时
+            else if (indexInFace == -1 && indexInPairFace != -1)
             {
-                viAroundAdjacentFace.Insert(1, targetVertexIndex);
+                // 当targetVertex在PairFace中时
+                // 从PairFace顶点列表中删除第一个（即vertexToSplit）
                 viAroundPairAdjacentFace.RemoveAt(0);
+                // 把targetVertex按照它在PairFace顶点列表中的序号，放在Face顶点列表中
+                // 需要判断是放在队尾，还是插入
+                if (indexInPairFace >= viAroundAdjacentFace.Count)
+                {
+                    viAroundAdjacentFace.Add(targetVertexIndex);
+                }
+                else
+                {
+                    viAroundAdjacentFace.Insert(indexInPairFace, targetVertexIndex);
+                }
             }
-            // 当目标顶点targetVertex属于AdjacentFace时
+            // 当目标顶点targetVertex属于Face时
             else
             {
+                // 当targetVertex在Face中时
+                // 从Face顶点列表中删除第一个（即vertexToSplit）
                 viAroundAdjacentFace.RemoveAt(0);
-                viAroundPairAdjacentFace.Insert(1, targetVertexIndex);
+                // 把targetVertex按照它在Face顶点列表中的序号，放在PairFace顶点列表中
+                // 需要判断是放在队尾，还是插入
+                if (indexInFace >= viAroundPairAdjacentFace.Count)
+                {
+                    viAroundPairAdjacentFace.Add(targetVertexIndex);
+                }
+                else
+                {
+                    viAroundPairAdjacentFace.Insert(indexInFace, targetVertexIndex);
+                }
             }
+
+            //if (!targetVertexBelongsToAdjacent && !targetVertexBelongsToPairAdjacent)
+            //{
+            //    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "输入的targetVertex " + vertexToSplitIndex.ToString() + " 不属于要改变的面");
+            //    return null;
+            //}
+            //// 当目标顶点targetVertex属于pairAdjacentFace时
+            //else if (!targetVertexBelongsToAdjacent && targetVertexBelongsToPairAdjacent)
+            //{
+            //    //viAroundAdjacentFace.Insert(1, targetVertexIndex);
+            //    //viAroundPairAdjacentFace.RemoveAt(0);
+            //}
+            //// 当目标顶点targetVertex属于AdjacentFace时
+            //else
+            //{
+            //    //viAroundAdjacentFace.RemoveAt(0);
+            //    //viAroundPairAdjacentFace.Insert(1, targetVertexIndex);
+            //}
             #endregion
 
             #region 用变量whichFaceNeedSplitIndex记录哪一个面在下面将度补满的过程中，需要再进行split
             List<bool> whichFaceNeedSplit = new List<bool>();
-            whichFaceNeedSplit.Add(!targetVertexBelongsToAdjacent);
-            whichFaceNeedSplit.Add(!targetVertexBelongsToPairAdjacent);
-            int whichFaceNeedSplitIndex = -1;
+            //whichFaceNeedSplit.Add(!targetVertexBelongsToAdjacent);
+            //whichFaceNeedSplit.Add(!targetVertexBelongsToPairAdjacent);
+            whichFaceNeedSplit.Add(indexInFace < 0);
+            whichFaceNeedSplit.Add(indexInPairFace < 0);
+            int whichFaceNeedSplitLaterIndex = -1;
             #endregion
             #endregion
-
 
             #region 构建resetHalfEdgeStartP，用来存储将一对半边移动后形成的新mesh,同时将未改动的PDeepCopy中的其他顶点和面的数据，转移过来
 
@@ -457,7 +546,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             #endregion
 
-            #region 转移P的Face属性
+            #region 转移P的Face属性，同时记录下，哪个面需要在下面新生成的顶点度补满的过程中，进行分裂
             List<List<int>> resetPFaceVertexOrder = new List<List<int>>();
             for (int i = 0; i < PDeepCopy.Faces.Count; i++)
             {
@@ -468,7 +557,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     // 如果这个面是被加过点的，那么记下它的i
                     if (whichFaceNeedSplit[needChangeFaceIndexs.IndexOf(i)])
                     {
-                        whichFaceNeedSplitIndex = i;
+                        whichFaceNeedSplitLaterIndex = i;
                     }
                 }
                 else
@@ -488,13 +577,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             // debug
             List<string> printFaces1 = new List<string>();
-            printFaces1 = UtilityFunctions.PrintFaces(resetHalfEdgeStartP);
+            printFaces1 = UtilityFunctions.PrintFacesVertices(resetHalfEdgeStartP);
             #endregion
 
-
             #region 为了将新得到的顶点的度补满，需要对一个面进行新的分割，形成新的一对半边
-            List<int> splitedFaceWithOriginIndex = new List<int>();
-            List<int> splitedFaceWithNewIndex = new List<int>();
+
+            List<List<int>> splitedFaceWithOriginIndexLoL = new List<List<int>>();
+            List<List<int>> splitedFaceWithNewIndexLoL = new List<List<int>>();
+
+            // List<int> splitedFaceWithOriginIndex = new List<int>();
+            // List<int> splitedFaceWithNewIndex = new List<int>();
 
             #region 用vertexToSplit属于哪个面，来判断该怎么修改经过半边移动后新的viAroundAdjacentFace和viAroundPairAdjacentFace列表
             bool vertexToSplitBelongsToAdjacent = viAroundAdjacentFace.Contains(vertexToSplitIndex);
@@ -503,89 +595,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #region 如果分裂顶点vertexToSplit，属于AdjacentFace时
             if (vertexToSplitBelongsToAdjacent && !vertexToSplitBelongsToPairAdjacent)
             {
-                int currentIndex = viAroundAdjacentFace.IndexOf(targetVertexIndex);
-                int iteration = 0;
-                do
-                {
-                    splitedFaceWithOriginIndex.Add(viAroundAdjacentFace[currentIndex]);
-                    if (currentIndex + 1 > viAroundAdjacentFace.Count - 1)
-                    {
-                        currentIndex = 0;
-                    }
-                    else
-                    {
-                        currentIndex++;
-                    }
-                    iteration++;
-                } while (iteration < 3);
+                #region 判断VertexToSplit和TargetVertex谁在谁左边
+                bool flag = RelationOfTwoVerticesInFaceVertexList(vertexToSplitIndex, targetVertexIndex, viAroundAdjacentFace);
+                #endregion
 
-                // 把最后多做的一次currentIndex++撤回掉
-                if (currentIndex == 0)
-                {
-                    currentIndex = viAroundAdjacentFace.Count - 1;
-                }
-                else
-                {
-                    currentIndex -= 1;
-                }
-
-                do
-                {
-                    splitedFaceWithNewIndex.Add(viAroundAdjacentFace[currentIndex]);
-                    if (currentIndex + 1 > viAroundAdjacentFace.Count - 1)
-                    {
-                        currentIndex = 0;
-                    }
-                    else
-                    {
-                        currentIndex++;
-                    }
-                    iteration++;
-                } while (iteration < 6);
+                SplitFaceVertexList(flag, vertexToSplitIndex, targetVertexIndex, viAroundAdjacentFace, out splitedFaceWithOriginIndexLoL, out splitedFaceWithNewIndexLoL);
             }
             #endregion
-            #region 如果分裂顶点vertexToSplit，属于PairAdjacentFace时
+            #region 如果分裂顶点vertexToSplit，属于PairFace时
             else
             {
-                int currentIndex = viAroundAdjacentFace.IndexOf(targetVertexIndex);
-                int iteration = 0;
-                do
-                {
-                    splitedFaceWithOriginIndex.Add(viAroundPairAdjacentFace[currentIndex]);
-                    if (currentIndex + 1 > viAroundPairAdjacentFace.Count - 1)
-                    {
-                        currentIndex = 0;
-                    }
-                    else
-                    {
-                        currentIndex++;
-                    }
-                    iteration++;
-                } while (iteration < 3);
+                #region 判断VertexToSplit和TargetVertex谁在谁左边
+                bool flag = RelationOfTwoVerticesInFaceVertexList(vertexToSplitIndex, targetVertexIndex, viAroundPairAdjacentFace);
+                #endregion
 
-                // 把最后多做的一次currentIndex++撤回掉
-                if (currentIndex == 0)
-                {
-                    currentIndex = viAroundAdjacentFace.Count - 1;
-                }
-                else
-                {
-                    currentIndex -= 1;
-                }
-
-                do
-                {
-                    splitedFaceWithNewIndex.Add(viAroundPairAdjacentFace[currentIndex]);
-                    if (currentIndex + 1 > viAroundPairAdjacentFace.Count - 1)
-                    {
-                        currentIndex = 0;
-                    }
-                    else
-                    {
-                        currentIndex++;
-                    }
-                    iteration++;
-                } while (iteration < 6);
+                SplitFaceVertexList(flag, vertexToSplitIndex, targetVertexIndex, viAroundPairAdjacentFace, out splitedFaceWithOriginIndexLoL, out splitedFaceWithNewIndexLoL);
             }
             #endregion
             #endregion
@@ -599,42 +623,280 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #endregion
 
             #region 转移resetP的Face属性
-            List<List<int>> rebuildPFaceVertexOrder = new List<List<int>>();
-            for (int i = 0; i < resetHalfEdgeStartP.Faces.Count; i++)
+            List<List<List<int>>> rebuildPFaceVertexOrder = new List<List<List<int>>>();
+
+            //for (int i = 0; i < resetHalfEdgeStartP.Faces.Count; i++)
+            //{
+            //    rebuildPFaceVertexOrder.Add(new List<List<int>>());
+                
+            //    if (i == whichFaceNeedSplitLaterIndex)
+            //    {
+            //        for (int j = 0; j < splitedFaceWithOriginIndexLoL.Count; j++)
+            //        {
+            //            rebuildPFaceVertexOrder[i].Add(new List<int>);
+            //            rebuildPFaceVertexOrder[i].Add(splitedFaceWithOriginIndexLoL[j]);
+            //        }
+            //    }
+            //    else
+            //    {
+            //        rebuildPFaceVertexOrder[i].Add(new List<int>());
+            //        int[] faceVertexOrder = resetHalfEdgeStartP.Faces.GetFaceVertices(i);
+            //        rebuildPFaceVertexOrder[i].AddRange(faceVertexOrder);
+            //    }
+            //}
+
+            //// 注意这里还要额外加上split后新生成的面
+            //rebuildPFaceVertexOrder.Add(splitedFaceWithNewIndex);
+
+            for (int i = 0; i < splitedFaceWithOriginIndexLoL.Count; i++)
             {
-                if (i == whichFaceNeedSplitIndex)
+                rebuildPFaceVertexOrder.Add(new List<List<int>>());
+                for (int j = 0; j < resetHalfEdgeStartP.Faces.Count; j++)
                 {
-                    rebuildPFaceVertexOrder.Add(new List<int>());
-                    rebuildPFaceVertexOrder[i].AddRange(splitedFaceWithOriginIndex);
-                }
-                else
-                {
-                    rebuildPFaceVertexOrder.Add(new List<int>());
-                    int[] faceVertexOrder = resetHalfEdgeStartP.Faces.GetFaceVertices(i);
-                    rebuildPFaceVertexOrder[i].AddRange(faceVertexOrder);
+                    rebuildPFaceVertexOrder[i].Add(new List<int>());
+                    if (j == whichFaceNeedSplitLaterIndex)
+                    {
+                        rebuildPFaceVertexOrder[i].Add(splitedFaceWithOriginIndexLoL[i]);
+                    }
+                    else
+                    {
+                        int[] faceVertexOrder = resetHalfEdgeStartP.Faces.GetFaceVertices(j);
+                        rebuildPFaceVertexOrder[i].Add(faceVertexOrder.ToList<int>());
+                    }
+                    // 注意这里还要额外加上split后新生成的面
+                    rebuildPFaceVertexOrder[i].Add(splitedFaceWithNewIndexLoL[i]);
                 }
             }
-            // 注意这里还要额外加上split后新生成的面
-            rebuildPFaceVertexOrder.Add(splitedFaceWithNewIndex);
+
             #endregion
 
             #region 用转移的resetP的Vertex属性和P的Face属性来构造新的PlanktonMesh rebulidNewHalfedgeP
-            PlanktonMesh rebulidNewHalfedgeP = new PlanktonMesh();
-            rebulidNewHalfedgeP.Vertices.AddVertices(rebuildPPlanktonVertex);
-            // rebulidNewHalfedgeP.Faces.AddFaces(rpFaceVertexOrder);
+            List<PlanktonMesh> rebulidNewHalfedgeP = new List<PlanktonMesh>();
+
             for (int i = 0; i < rebuildPFaceVertexOrder.Count; i++)
             {
-                rebulidNewHalfedgeP.Faces.AddFace(rebuildPFaceVertexOrder[i]);
+                rebulidNewHalfedgeP[i].Vertices.AddVertices(rebuildPPlanktonVertex);
             }
+            for (int i = 0; i < rebuildPFaceVertexOrder.Count; i++)
+            {
+                for (int j = 0; j < rebuildPFaceVertexOrder[i].Count; j++)
+                {
+                    rebulidNewHalfedgeP[i].Faces.AddFace(rebuildPFaceVertexOrder[i][j]);
+                }
+            }
+
+            //rebulidNewHalfedgeP.Vertices.AddVertices(rebuildPPlanktonVertex);
+            //// rebulidNewHalfedgeP.Faces.AddFaces(rpFaceVertexOrder);
+            //for (int i = 0; i < rebuildPFaceVertexOrder.Count; i++)
+            //{
+            //    rebulidNewHalfedgeP.Faces.AddFace(rebuildPFaceVertexOrder[i][0]);
+            //}
 
             #endregion
 
             // debug
-            List<string> printFaces2 = new List<string>();
-            printFaces2 = UtilityFunctions.PrintFaces(rebulidNewHalfedgeP);
+            List<List<string>> printFaces2 = new List<List<string>>();
+            for (int i = 0; i < rebulidNewHalfedgeP.Count; i++)
+            {
+                printFaces2.Add(new List<string>());
+                printFaces2[i] = UtilityFunctions.PrintFacesVertices(rebulidNewHalfedgeP[i]);
+            }
+
             #endregion
 
             return rebulidNewHalfedgeP;
+
+            
+        }
+
+        public bool RelationOfTwoVerticesInFaceVertexList(int vertexToSplitIndex, int targetVertexIndex, List<int> viAroundFaceList)
+        {
+            int counterClockwiseCount;
+            int clockwiseCount;
+            int index0 = 0;
+            int index1 = 0;
+            bool flag = false;
+
+            for (int i = 0; i < viAroundFaceList.Count; i++)
+            {
+
+                if (viAroundFaceList[i] == vertexToSplitIndex)
+                {
+                    index0 = i;
+                }
+                if (viAroundFaceList[i] == targetVertexIndex)
+                {
+                    index1 = i;
+                }
+            }
+
+            if (index0 < index1)
+            {
+                counterClockwiseCount = index1 - index0;
+                clockwiseCount = viAroundFaceList.Count - index1 + index0;
+            }
+            else
+            {
+                counterClockwiseCount = viAroundFaceList.Count - index0 + index1;
+                clockwiseCount = index0 - index1;
+            }
+
+            // 如果VertexToSplit和TargetVertex逆时针数的间隔大于顺时针数的间隔，那么VertexToSplit在TargetVertex的左边
+            if (counterClockwiseCount < clockwiseCount)
+            {
+                flag = true;
+            }
+            else
+            {
+                flag = false;
+            }
+
+            return flag;
+        }
+
+        public void SplitFaceVertexList(bool flag,
+                                        int vertexToSplitIndex, 
+                                        int targetVertexIndex, 
+                                        List<int> faceVertexList, 
+                                        out List<List<int>> splitedFaceWithOriginIndexLoL, 
+                                        out List<List<int>> splitedFaceWithNewIndexLoL)
+        {
+            splitedFaceWithNewIndexLoL = new List<List<int>>();
+            splitedFaceWithOriginIndexLoL = new List<List<int>>();
+
+            if (flag)
+            {
+                #region usedVertexIndex用来存储目前构成过子面的顶点
+                List<int> usedVertexIndexs = new List<int>();
+                // 添加vertexToSplit
+                usedVertexIndexs.Add(vertexToSplitIndex);
+                // 添加targetVertex
+                usedVertexIndexs.Add(targetVertexIndex);
+                // 添加targetVertex的下一个顶点，同时为了防止数组越界，用取余的方式来做index
+                // 添加这个点进入usedVertex的目的是，避免vertexToSplit产生新的连接（即构成了vertexToSplit，targetVertex，targerVertexNext的三角形），使得它的度超过了4
+                usedVertexIndexs.Add(faceVertexList[(faceVertexList.IndexOf(targetVertexIndex) + 1) % faceVertexList.Count]);
+                #endregion
+                // for循环计数
+                int iteration = 0;
+
+                for (int i = (faceVertexList.IndexOf(targetVertexIndex) + 2) % faceVertexList.Count; i < faceVertexList.Count - 1; i++)
+                {
+                    #region 求差集，得到除了usedVertex外的其他的点
+                    List<int> unusedVertexIndexs = new List<int>();
+                    unusedVertexIndexs = faceVertexList.Except(usedVertexIndexs).ToList<int>();
+                    #endregion
+
+                    #region 从targetVertex的下下一个顶点开始构造新分割产生的三角形newFace
+                    // 此时usedVertexIndexs中不包含当前的faceVertexList[i]
+                    splitedFaceWithNewIndexLoL.Add(new List<int>());
+                    splitedFaceWithNewIndexLoL[iteration].Add(vertexToSplitIndex);
+                    splitedFaceWithNewIndexLoL[iteration].Add(targetVertexIndex);
+                    splitedFaceWithNewIndexLoL[iteration].AddRange(unusedVertexIndexs);
+                    #endregion
+
+                    #region 构造完新的三角形后剩余的顶点，组成originFace
+                    splitedFaceWithOriginIndexLoL.Add(new List<int>());
+                    // 求差集即可
+                    List<int> remainingVertex = faceVertexList.Except(splitedFaceWithNewIndexLoL[iteration]).ToList<int>();
+                    splitedFaceWithOriginIndexLoL[iteration].AddRange(remainingVertex);
+                    splitedFaceWithOriginIndexLoL[iteration].Add(targetVertexIndex);
+                    // 注意这里是add了splitedFaceWithNewIndexLoL[iteration].Last()
+                    splitedFaceWithOriginIndexLoL[iteration].Add(splitedFaceWithNewIndexLoL[iteration].Last());
+                    #endregion
+
+                    // 持续更新usedVertexIndex和iteration
+                    usedVertexIndexs.Add(faceVertexList[i]);
+                    iteration++;
+                }
+            }
+            else
+            {
+                // 把列表反一下，就可以复用上面的计算过程，相当于正好把vertexToSplit跟targetVertex两个顺序反过来
+                faceVertexList.Reverse();
+
+                #region usedVertexIndex用来存储目前构成过子面的顶点
+                List<int> usedVertexIndexs = new List<int>();
+                // 添加vertexToSplit
+                usedVertexIndexs.Add(vertexToSplitIndex);
+                // 添加targetVertex
+                usedVertexIndexs.Add(targetVertexIndex);
+                // 添加targetVertex的下一个顶点，同时为了防止数组越界，用取余的方式来做index
+                // 添加这个点进入usedVertex的目的是，避免vertexToSplit产生新的连接（即构成了vertexToSplit，targetVertex，targerVertexNext的三角形），使得它的度超过了4
+                usedVertexIndexs.Add(faceVertexList[(faceVertexList.IndexOf(targetVertexIndex) + 1) % faceVertexList.Count]);
+                #endregion
+                // for循环计数
+                int iteration = 0;
+
+                for (int i = (faceVertexList.IndexOf(targetVertexIndex) + 2) % faceVertexList.Count; i < faceVertexList.Count - 1; i++)
+                {
+                    #region 求差集，得到除了usedVertex外的其他点
+                    List<int> unusedVertexIndexs = new List<int>();
+                    unusedVertexIndexs = faceVertexList.Except(usedVertexIndexs).ToList<int>();
+                    #endregion
+
+                    #region 从targetVertex的下下一个顶点开始构造新分割产生的三角形newFace
+                    // 此时usedVertexIndexs中不包含当前的faceVertexList[i]
+                    splitedFaceWithOriginIndexLoL.Add(new List<int>());
+                    splitedFaceWithOriginIndexLoL[iteration].Add(vertexToSplitIndex);
+                    splitedFaceWithOriginIndexLoL[iteration].Add(targetVertexIndex);
+                    splitedFaceWithOriginIndexLoL[iteration].AddRange(unusedVertexIndexs);
+
+                    splitedFaceWithOriginIndexLoL[iteration].Reverse();
+                    #endregion
+
+                    #region 构造完新的三角形后剩余的顶点，组成originFace
+                    splitedFaceWithNewIndexLoL.Add(new List<int>());
+
+                    // 求差集即可
+                    List<int> remainingVertex = faceVertexList.Except(splitedFaceWithOriginIndexLoL[iteration]).ToList<int>();
+                    splitedFaceWithNewIndexLoL[iteration].AddRange(remainingVertex);
+                    splitedFaceWithNewIndexLoL[iteration].Add(targetVertexIndex);
+                    // 注意这里是add了splitedFaceWithNewIndexLoL[iteration].First()
+                    splitedFaceWithNewIndexLoL[iteration].Add(splitedFaceWithOriginIndexLoL[iteration].First());
+                    // splitedFaceWithNewIndexLoL[iteration].Reverse();
+                    #endregion
+
+                    // 持续更新usedVertexIndex和iteration
+                    usedVertexIndexs.Add(faceVertexList[i]);
+                    iteration++;
+                }
+
+                faceVertexList.Reverse();
+
+                //int iteration = 0;
+                //List<int> usedVertexIndexs = new List<int>();
+                //// 添加targetVertex的上一个顶点，同时为了防止数组越界，用取余的方式来做index
+                //// usedVertexIndexs.Add(faceVertexList[(faceVertexList.IndexOf(targetVertexIndex) - 1 + faceVertexList.Count) % faceVertexList.Count]);
+                //// 添加targetVertex
+                //usedVertexIndexs.Add(targetVertexIndex);
+                //// 添加vertexToSplit
+                //usedVertexIndexs.Add(vertexToSplitIndex);
+
+
+                //List<int> unusedVertexIndexs = new List<int>();
+
+                //for (int i = (faceVertexList.IndexOf(vertexToSplitIndex) + 1) % faceVertexList.Count; i < faceVertexList.Count; i++)
+                //{
+                //    usedVertexIndexs.Add(faceVertexList[i]);
+
+                //    // 求差集
+                //    unusedVertexIndexs = (List<int>)faceVertexList.Except(usedVertexIndexs);
+
+                //    #region 从vertexToSplit的下一个顶点开始构造新分割产生的三角形newFace
+
+                //    #endregion
+                //    // 此时usedVertexIndexs中不包含当前的faceVertexList[i]
+                //    splitedFaceWithNewIndexLoL.Add(new List<int>());
+                //    splitedFaceWithNewIndexLoL[iteration].AddRange(usedVertexIndexs);
+
+
+
+
+                //    // 持续更新iteration
+                //    iteration++;
+
+                //}
+            }
         }
 
         /// <summary>
