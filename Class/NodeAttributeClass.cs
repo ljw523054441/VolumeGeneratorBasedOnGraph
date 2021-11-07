@@ -5,22 +5,17 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph
 {
-    public  class NodeAttribute
+    public  class NodeAttribute : ICloneable
     {
-        // 包括NEWS点的boundaryNodeCount
-        //public static int BoundaryNodeCount = 4;
-
-        //public static int VolumeNodeCount;
-        
         /// <summary>
         /// 体量的名称标签
         /// </summary>
-        public string NodeLabel;
+        public string NodeLabel { get; set; }
 
         /// <summary>
         /// 体量的输入面积，需要除以全部体量的面积和，再乘以场地面积，来得到占地比例
         /// </summary>
-        public double NodeArea;
+        public double NodeArea { get; set; }
 
         /// <summary>
         /// 每个体量占场地的面积比例，[0,1]区间
@@ -39,29 +34,50 @@ namespace VolumeGeneratorBasedOnGraph
         /// <summary>
         /// 开间数
         /// </summary>
-        public int SpanNumX;
+        public int SpanNumX { get; set; }
         /// <summary>
         /// 进深数
         /// </summary>
-        public int SpanNumY;
+        public int SpanNumY { get; set; }
 
         /// <summary>
         /// 开间方向的柱跨尺寸
         /// </summary>
-        public double SpanSizeX;
+        public double SpanSizeX { get; set; }
         /// <summary>
         /// 进深方向的柱跨尺寸
         /// </summary>
-        public double SpanSizeY;
+        public double SpanSizeY { get; set; }
 
         /// <summary>
         /// 层数
         /// </summary>
-        public int FloorNumZ;
+        public int FloorNumZ { get; set; }
         /// <summary>
         /// 层高
         /// </summary>
-        public double FloorHeightZ;
+        public double FloorHeightZ { get; set; }
+
+        /// <summary>
+        /// 利用拷贝构造函数实现深拷贝
+        /// </summary>
+        /// <param name="nodeAttribute"></param>
+        public NodeAttribute(NodeAttribute nodeAttribute)
+        {
+            this.NodeLabel = nodeAttribute.NodeLabel;
+            this.NodeArea = nodeAttribute.NodeArea;
+            this.NodeAreaProportion = nodeAttribute.NodeAreaProportion;
+
+            this.ConnectivityTable = (int[])nodeAttribute.ConnectivityTable.Clone();
+            this.AdjacencyTable = (int[])nodeAttribute.AdjacencyTable.Clone();
+
+            this.SpanNumX = nodeAttribute.SpanNumX;
+            this.SpanNumY = nodeAttribute.SpanNumY;
+            this.SpanSizeX = nodeAttribute.SpanSizeX;
+            this.SpanSizeY = nodeAttribute.SpanSizeY;
+            this.FloorNumZ = nodeAttribute.FloorNumZ;
+            this.FloorHeightZ = nodeAttribute.FloorHeightZ;
+        }
 
         /// <summary>
         /// 构造边界node
@@ -121,10 +137,17 @@ namespace VolumeGeneratorBasedOnGraph
             this.FloorHeightZ = floorHeightZ;
         }
 
-        //public void SetNodeAreaProportion(double x)
-        //{
-        //    this.NodeAreaProportion = x;
-        //}
+        /// <summary>
+        /// 调用ICloneable接口实现深拷贝
+        /// </summary>
+        /// <returns></returns>
+        public object Clone()
+        {
+            NodeAttribute nodeAttribute = (NodeAttribute)MemberwiseClone();
+            nodeAttribute.ConnectivityTable = (int[])ConnectivityTable.Clone();
+            nodeAttribute.AdjacencyTable = (int[])AdjacencyTable.Clone();
+            return nodeAttribute;
+        }
 
 
     }
