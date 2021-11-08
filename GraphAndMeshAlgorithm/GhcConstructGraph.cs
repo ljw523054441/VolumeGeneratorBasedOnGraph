@@ -13,12 +13,12 @@ using System.Linq;
 
 namespace VolumeGeneratorBasedOnGraph
 {
-    public class ConstructGraph : GH_Component
+    public class GhcConstructGraph : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the ConstructGraph class.
         /// </summary>
-        public ConstructGraph()
+        public GhcConstructGraph()
           : base("ConstructGraph", "ConstructGraph",
               "构建图结构",
               "VolumeGeneratorBasedOnGraph", "Construct Graph")
