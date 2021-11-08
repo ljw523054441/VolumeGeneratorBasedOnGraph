@@ -83,46 +83,31 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            // 全局参数传递
+            #region 全局参数传递
             GlobalParameter globalParameter = new GlobalParameter();
             DA.GetData("GlobalParameter", ref globalParameter);
             int innerNodeCount = globalParameter.VolumeNodeCount;
             int outerNodeCount = globalParameter.BoundaryNodeCount;
+            #endregion
 
+            #region 局部变量初始化
             List<Node> nodes = new List<Node>();
 
             List<Point3d> nodePoints = new List<Point3d>();
             List<Point3d> outerPoints = new List<Point3d>();
             List<Curve> convexFaceBorderCurves = new List<Curve>();
-            List<Polyline> convexFaceBorderPolylines = new List<Polyline>();        // list3 -> convexFaceBorderPolylines
+            List<Polyline> convexFaceBorderPolylines = new List<Polyline>();
 
             int index = 0;
             bool flag = false;
 
             Thickness = 2;
+            #endregion
 
             if (DA.GetDataList<Node>("GraphNode", nodes)
                 && DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
             {
-                ConvexPolylinesPoints.Clear();
-                SelectedTriangleMeshEdges.Clear();
-                InnerNodeTextDot.Clear();
-                OuterNodeTextDot.Clear();
-
-                // 设置用于可视化的TextDot
-                for (int i = 0; i < nodes.Count; i++)
-                {
-                    if (nodes[i].IsInner)
-                    {
-                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
-                        InnerNodeTextDot.Add(textDot);
-                    }
-                    else
-                    {
-                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
-                        OuterNodeTextDot.Add(textDot);
-                    }
-                }
+                
 
 
                 // 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
@@ -232,7 +217,10 @@ namespace VolumeGeneratorBasedOnGraph
 
 
 
-
+                ConvexPolylinesPoints.Clear();
+                SelectedTriangleMeshEdges.Clear();
+                InnerNodeTextDot.Clear();
+                OuterNodeTextDot.Clear();
 
                 // 在DrawViewportMeshes绘制选中的mesh
                 SelectedIsomorphismTriangleMesh = result[index];
@@ -253,8 +241,23 @@ namespace VolumeGeneratorBasedOnGraph
                         DottedCurve.Add(segment);
                     }
                 }
+
                 
-                
+
+                // 设置用于可视化的TextDot
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    if (nodes[i].IsInner)
+                    {
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
+                        InnerNodeTextDot.Add(textDot);
+                    }
+                    else
+                    {
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), nodes[i].NodeVertex);
+                        OuterNodeTextDot.Add(textDot);
+                    }
+                }
             }
         }
 
