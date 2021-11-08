@@ -7,12 +7,12 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph
 {
-    public class CSVReader : GH_Component
+    public class GhcCSVReader : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the CSVReader class.
         /// </summary>
-        public CSVReader()
+        public GhcCSVReader()
           : base("CSVReader", "CSVReader",
               "读取CSV文件",
               "VolumeGeneratorBasedOnGraph", "Construct Graph")
