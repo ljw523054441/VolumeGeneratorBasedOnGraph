@@ -140,17 +140,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #endregion
 
-                //for (int i = 0; i < P.Faces.Count; i++)
-                //{
-                //    int[] pFaceHalfedges = P.Faces.GetHalfedges(i);
-
-                //    for (int j = 0; j < pFaceHalfedges.Length; j++)
-                //    {
-                //        PlanktonHalfedge pFaceHalfedge = P.Halfedges[pFaceHalfedges[j]];
-                //        PlanktonHalfedge pFacePairHalfedge = P.Halfedges[P.Halfedges.GetPairHalfedge(pFaceHalfedges[j])];
-                //    }
-                //}
-
                 #region 得到所有的innerNode的序号和outerNode的序号
                 List<int> innerNodeIndexs = new List<int>();
                 List<int> outerNodeIndexs = new List<int>();
@@ -167,38 +156,41 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 #endregion
 
-
+                #region 找到每个outerNode相关的面和发出的半边
                 // 对于每个outerNode找到由它发出的半边
-                List<List<int>> halfedgeIndexsFromOuterNodes = new List<List<int>>();
+                List<List<int>> halfedgeIndexsStartFromOuterNodes = new List<List<int>>();
                 // 对于每个outerNode找到与它相关的面
-                List<List<int>> faceIndexsFromOuterNodes = new List<List<int>>();
+                List<List<int>> faceIndexsAroundOuterNodes = new List<List<int>>();
 
                 for (int i = 0; i < outerNodeIndexs.Count; i++)
                 {
-                    int[] halfedgeIndexsFromOuterNode = P.Vertices.GetHalfedges(outerNodeIndexs[i]);
-                    halfedgeIndexsFromOuterNodes.Add(new List<int>());
-                    halfedgeIndexsFromOuterNodes[i].AddRange(halfedgeIndexsFromOuterNode);
-                    int[] faceIndexsFromOuterNode = P.Vertices.GetVertexFaces(outerNodeIndexs[i]);
-                    faceIndexsFromOuterNodes.Add(new List<int>());
-                    faceIndexsFromOuterNodes[i].AddRange(faceIndexsFromOuterNode);
+                    // 找到每个outerNode所发出的halfedge的index
+                    int[] halfedgeIndexsStartFromOuterNode = P.Vertices.GetHalfedges(outerNodeIndexs[i]);
+                    halfedgeIndexsStartFromOuterNodes.Add(new List<int>());
+                    halfedgeIndexsStartFromOuterNodes[i].AddRange(halfedgeIndexsStartFromOuterNode);
+                    // 找到每个outerNode所邻接的Face的index，-1表示邻接外界
+                    int[] faceIndexsAroundOuterNode = P.Vertices.GetVertexFaces(outerNodeIndexs[i]);
+                    faceIndexsAroundOuterNodes.Add(new List<int>());
+                    faceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNode);
                 }
+                #endregion
+                DA.SetDataTree(5, UtilityFunctions.LoLToDataTree<int>(faceIndexsAroundOuterNodes));
 
-                DA.SetDataTree(5, UtilityFunctions.LoLToDataTree<int>(faceIndexsFromOuterNodes));
-
-                List<List<int[]>> pairFaceIndexsFromOuterNodes = new List<List<int[]>>();
+                #region 将每个outerNode相关的面的index的列表，分割成两个一组两个一组
+                List<List<int[]>> pairFaceIndexsAroundOuterNodes = new List<List<int[]>>();
                 /* 对于每个outerNode，找到跟它相关的面中，每两个相邻面的index，这个面的index就是Dual中顶点的index
                  * int[2]中表示围绕顶点顺时针排列的两个相邻面的index，如[0][1],[1][2],[2][3]...
                  */
-                for (int i = 0; i < faceIndexsFromOuterNodes.Count; i++)
+                for (int i = 0; i < faceIndexsAroundOuterNodes.Count; i++)
                 {
-                    pairFaceIndexsFromOuterNodes.Add(new List<int[]>());
-                    for (int j = 0; j < faceIndexsFromOuterNodes[i].Count - 1; j++)
+                    pairFaceIndexsAroundOuterNodes.Add(new List<int[]>());
+                    for (int j = 0; j < faceIndexsAroundOuterNodes[i].Count - 1; j++)
                     {
-                        int[] pairFaceIndexs = new int[2] { faceIndexsFromOuterNodes[i][j], faceIndexsFromOuterNodes[i][j + 1] };
-                        pairFaceIndexsFromOuterNodes[i].Add(pairFaceIndexs);
+                        int[] pairFaceIndexs = new int[2] { faceIndexsAroundOuterNodes[i][j], faceIndexsAroundOuterNodes[i][j + 1] };
+                        pairFaceIndexsAroundOuterNodes[i].Add(pairFaceIndexs);
                     }
                 }
-
+                #endregion
 
                 #region 可视化部分
 
