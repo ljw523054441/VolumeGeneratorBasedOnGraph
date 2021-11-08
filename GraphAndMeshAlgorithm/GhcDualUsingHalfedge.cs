@@ -192,41 +192,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 #endregion
 
-                #region 可视化部分
 
-                #region clear
-                // 对偶图
-                DualVertices.Clear();
-                DualPolylines.Clear();
-                DualVertexTextDots.Clear();
-                // 原来的图
-                NodePoints.Clear();
                 NodePointIndex.Clear();
-                GraphEdges.Clear();
-                NodeTextDots.Clear();
-                #endregion
-
-                #region 对偶图
-                DualVertices = PlanktonGh.RhinoSupport.GetPositions(D).ToList();
-
-                Polyline[] dualPolylines = PlanktonGh.RhinoSupport.ToPolylines(D);
-                for (int i = 0; i < dualPolylines.Length; i++)
-                {
-                    DualPolylines.Add(new List<Point3d>());
-                    DualPolylines[i].AddRange(dualPolylines[i]);
-                }
-
-                for (int i = 0; i < D.Vertices.Count; i++)
-                {
-                    string arg = string.Join<int>(";", D.Vertices.GetVertexFaces(i));
-                    TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), DualVertices[i]);
-                    DualVertexTextDots.Add(textDot);
-                }
-                #endregion
-
-                #region 原来的图
-
-                #region 找到对偶图中的面所对应的InnerNode的序号，即NodePointIndex
+                #region 找到对偶图中的面所对应的InnerNode的序号，即NodePointIndex，NodePointIndex实际上是对偶图每个面所对应的原来图中的InnerNode的序号
                 List<List<int>> pFaceIndexAroundInnerNode = new List<List<int>>();
                 List<int> correspondingInnerNodeIndex = new List<int>();
                 for (int i = 0; i < nodes.Count; i++)
@@ -239,7 +207,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         pFaceIndexAroundInnerNode.Add(P.Vertices.GetVertexFaces(i).ToList<int>());
                         correspondingInnerNodeIndex.Add(i);
                     }
-                    
+
                 }
 
                 for (int i = 0; i < D.Faces.Count; i++)
@@ -257,6 +225,67 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
                 #endregion
+
+                #region 找到对偶图中每个顶点属于哪个InnerNode
+                // 找到对偶图中每个顶点邻接的Face的Index，要去掉-1
+                List<List<int>> dFaceIndexAroundVertice = new List<List<int>>();
+                for (int i = 0; i < D.Vertices.Count; i++)
+                {
+                    dFaceIndexAroundVertice.Add(new List<int>());
+                    List<int> currentDFaceIndex = D.Vertices.GetVertexFaces(i).ToList<int>();
+                    // 去掉-1
+                    currentDFaceIndex.RemoveAt(0);
+                    dFaceIndexAroundVertice[i].AddRange(currentDFaceIndex);
+                }
+
+                // 对于每个对偶图上的vertex，它属于哪个InnerNode
+                List<List<int>> dVertexBelongsToWhichInnerNode = new List<List<int>>();
+                for (int i = 0; i < D.Vertices.Count; i++)
+                {
+                    dVertexBelongsToWhichInnerNode.Add(new List<int>());
+                    foreach (int dFaceIndex in dFaceIndexAroundVertice[i])
+                    {
+                        // NodePointIndex实际上是对偶图每个面所对应的原来图中的InnerNode的序号
+                        dVertexBelongsToWhichInnerNode[i].Add(NodePointIndex[dFaceIndex]);
+                    }
+                }
+                #endregion
+
+                #region 可视化部分
+
+                #region clear
+                // 对偶图
+                DualVertices.Clear();
+                DualPolylines.Clear();
+                DualVertexTextDots.Clear();
+                // 原来的图
+                NodePoints.Clear();
+                
+                GraphEdges.Clear();
+                NodeTextDots.Clear();
+                #endregion
+
+                #region 对偶图
+                DualVertices = PlanktonGh.RhinoSupport.GetPositions(D).ToList();
+
+                Polyline[] dualPolylines = PlanktonGh.RhinoSupport.ToPolylines(D);
+                for (int i = 0; i < dualPolylines.Length; i++)
+                {
+                    DualPolylines.Add(new List<Point3d>());
+                    DualPolylines[i].AddRange(dualPolylines[i]);
+                }
+
+                for (int i = 0; i < D.Vertices.Count; i++)
+                {
+                    // 这里不能是D.Vertices.GetVertexFaces(i)，这样才能正确显示原来图中的InnerNode的序号
+                    // string arg = string.Join<int>(";", D.Vertices.GetVertexFaces(i));
+                    string arg = string.Join<int>(";", dVertexBelongsToWhichInnerNode[i]);
+                    TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), DualVertices[i]);
+                    DualVertexTextDots.Add(textDot);
+                }
+                #endregion
+
+                #region 原来的图
 
                 #region 添加对偶图所有面的中心点作为NodePoint的坐标位置
                 for (int i = 0; i < D.Faces.Count; i++)
