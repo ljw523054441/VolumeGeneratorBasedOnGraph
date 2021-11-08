@@ -12,12 +12,12 @@ using System.Drawing;
 
 namespace VolumeGeneratorBasedOnGraph
 {
-    public class TutteConvexDrawing : GH_Component
+    public class GhcTutteConvexDrawing : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the TutteConvexDrawing class.
         /// </summary>
-        public TutteConvexDrawing()
+        public GhcTutteConvexDrawing()
           : base("TutteConvexDrawing", "TutteDrawing",
               "Finds a unique convex drawing of a bi-connected graph. A bi-connected graph is a graph in which every vertex(node) is connected to others at least through two edges (links)",
               "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
