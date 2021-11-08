@@ -108,7 +108,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                  * 按照Label进行
                  * 排完后，调整From和To的顺序
                  */
-
                 #region 获取outerNodeLabel列表
                 List<string> outerNodeLabels = new List<string>();
                 //for (int i = 0; i < nodes.Count - innerNodeCount; i++)
@@ -173,8 +172,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
                 DA.SetData("ReorganizedBoundary", reorganizedBoundary);
 
-                // 计算ReorganizedCornerIndex的部分
 
+
+                #region 计算场地边界与角点所对应的对偶图中顶点的序号
+
+                #region 输出从W开始的逆时针方向的，场地边界每个角点所对应的对偶图顶点的序号
                 // 从GH_Structure<GH_Integer>转化为DataTree<int>
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_structure_FaceIndexs, ref faceIndexsAroundOuterNodes);
                 // 去除-1的情况，第0个永远是-1
@@ -182,8 +184,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     faceIndexsAroundOuterNodes.Branch(i).RemoveAt(0);
                 }
-
-                #region 输出从W开始的逆时针方向的，场地边界每个角点所对应的对偶图顶点的序号
                 List<int> sortedBoundaryCornerIndexs = new List<int>();
                 for (int i = 0; i < sortedBoundarySegments.Count; i++)
                 {
@@ -200,6 +200,36 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     verticesIndexForEachBoundarySegment[i].AddRange(faceIndexsAroundOuterNodes.Branch(i));
                 }
                 #endregion
+
+                #endregion
+
+                List<List<int>> faceIndexsAroundVertex = new List<List<int>>();
+                for (int i = 0; i < D.Vertices.Count; i++)
+                {
+                    faceIndexsAroundVertex.Add(new List<int>());
+                    faceIndexsAroundVertex[i].AddRange(D.Vertices.GetVertexFaces(i));
+                    // 去除-1
+                    faceIndexsAroundVertex[i].Remove(0);
+                }
+
+                #region 计算每个segment上的中间点的t值
+                List<List<double>> tOnSegment = new List<List<double>>();
+                for (int i = 0; i < verticesIndexForEachBoundarySegment.Count; i++)
+                {
+                    if (verticesIndexForEachBoundarySegment[i].Count == 2)
+                    {
+                        tOnSegment.Add(new List<double>());
+                    }
+                    else
+                    {
+                        List<int> centralVertexIndex = verticesIndexForEachBoundarySegment[i].GetRange(1, verticesIndexForEachBoundarySegment[i].Count - 2);
+
+                        
+                    }
+                }
+
+                #endregion
+
 
 
 
