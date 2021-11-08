@@ -10,12 +10,12 @@ using System.Linq;
 
 namespace VolumeGeneratorBasedOnGraph
 {
-    public class Triangulate : GH_Component
+    public class GhcTriangulate : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the Triangulate class.
         /// </summary>
-        public Triangulate()
+        public GhcTriangulate()
           : base("Triangulate", "Triangulate",
               "Finds all possible triangulations of a [convex] mesh",
               "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
