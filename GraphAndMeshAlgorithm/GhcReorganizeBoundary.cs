@@ -24,14 +24,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             base.Message = "开发中 Todo:对偶图中，度为2的顶点布置方式";
 
-            BoundaryPolyline = new List<Point3d>();
+            BoundaryPolylinePoints = new List<Point3d>();
             BoundaryCornerTextDots = new List<TextDot>();
             BoundarySegmentTextDots = new List<TextDot>();
         }
 
         private int Thickness;
 
-        private List<Point3d> BoundaryPolyline;
+        private List<Point3d> BoundaryPolylinePoints;
 
         private List<TextDot> BoundaryCornerTextDots;
         private List<TextDot> BoundarySegmentTextDots;
@@ -68,12 +68,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            // 全局参数传递
+            #region 全局参数传递
             GlobalParameter globalParameter = new GlobalParameter();
             DA.GetData("GlobalParameter", ref globalParameter);
             int innerNodeCount = globalParameter.VolumeNodeCount;
             int outerNodeCount = globalParameter.BoundaryNodeCount;
+            #endregion
 
+            #region 局部变量初始化
             Thickness = 2;
 
             // Curve boundaryPolylineCurve = null;
@@ -82,9 +84,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             PlanktonMesh D = new PlanktonMesh();
 
             GH_Structure<GH_Integer> gh_structure_FaceIndexs = new GH_Structure<GH_Integer>();
-            DataTree<int> faceIndexsFromOuterNodes = new DataTree<int>();
+            DataTree<int> faceIndexsAroundOuterNodes = new DataTree<int>();
 
             List<Node> nodes = new List<Node>();
+            #endregion
 
             if (DA.GetDataList<BoundarySegment>("BoundarySegments", boundarySegments)
                 && DA.GetData<PlanktonMesh>("DualHalfedgeMesh", ref D)
@@ -99,45 +102,56 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //// 对输入的Curve类型的boundaryPolyline进行类型转换，转换成Curve类的子类Polyline
                 //boundaryPolylineCurve.TryGetPolyline(out boundaryPolyline);
 
-                
-                
+
+
                 /* 先对无序的boundarySegment进行排序
                  * 按照Label进行
                  * 排完后，调整From和To的顺序
                  */
-                List<string> outerLabels = new List<string>();
-                for (int i = 0; i < nodes.Count - innerNodeCount; i++)
-                {
-                    outerLabels.Add(nodes[i + innerNodeCount].NodeAttribute.NodeLabel);
-                }
 
-                // 按照Label进行排序
+                #region 获取outerNodeLabel列表
+                List<string> outerNodeLabels = new List<string>();
+                //for (int i = 0; i < nodes.Count - innerNodeCount; i++)
+                //{
+                //    outerLabels.Add(nodes[i + innerNodeCount].NodeAttribute.NodeLabel);
+                //}
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    if (!nodes[i].IsInner)
+                    {
+                        outerNodeLabels.Add(nodes[i].NodeAttribute.NodeLabel);
+                    }
+                }
+                #endregion
+                #region 按照Label进行排序：把输入的boundarySegement按照outerNodeLabels的顺序来排序
                 List<BoundarySegment> sortedBoundarySegments = new List<BoundarySegment>();
-                for (int i = 0; i < outerLabels.Count; i++)
+                for (int i = 0; i < outerNodeLabels.Count; i++)
                 {
                     for (int j = 0; j < boundarySegments.Count; j++)
                     {
-                        if (boundarySegments[j].Label == outerLabels[i])
+                        if (boundarySegments[j].Label == outerNodeLabels[i])
                         {
                             sortedBoundarySegments.Add(boundarySegments[j]);
                         }
                     }
                 }
+                #endregion
 
+                #region 按照从W开始，逆时针的顺序，输出场地边界的角点
                 List<Point3d> boundaryCorner = new List<Point3d>();
-                
+
                 // 利用叉积来判断第一个Segment的方向时候需要反转
                 if (IsFirstSegmentOpppsite(sortedBoundarySegments[0].Line.Direction,
                                            new Vector3d((sortedBoundarySegments[1].From + sortedBoundarySegments[1].To) / 2 - sortedBoundarySegments[0].From)))
                 {
                     sortedBoundarySegments[0].Reverse();
                 }
-                
+
                 boundaryCorner.Add(sortedBoundarySegments[0].From);
                 // 从第二个开始，调整from和to
                 for (int i = 1; i < sortedBoundarySegments.Count; i++)
                 {
-                    if (sortedBoundarySegments[i].From != sortedBoundarySegments[i-1].To)
+                    if (sortedBoundarySegments[i].From != sortedBoundarySegments[i - 1].To)
                     {
                         sortedBoundarySegments[i].Reverse();
                     }
@@ -148,55 +162,70 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Boundary不闭合");
                 }
-                // 输出多边形的角点
+                #endregion
                 DA.SetDataList("BoundaryCorner", boundaryCorner);
 
-                // 输出闭合的多段线
+                #region 输出闭合的多段线
                 List<Point3d> closedBoundaryPoints = new List<Point3d>();
                 closedBoundaryPoints.AddRange(boundaryCorner);
                 closedBoundaryPoints.Add(boundaryCorner[0]);
                 Polyline reorganizedBoundary = new Polyline(closedBoundaryPoints);
+                #endregion
                 DA.SetData("ReorganizedBoundary", reorganizedBoundary);
 
-
-
                 // 计算ReorganizedCornerIndex的部分
+
                 // 从GH_Structure<GH_Integer>转化为DataTree<int>
-                UtilityFunctions.GH_StructureToDataTree_Int(gh_structure_FaceIndexs, ref faceIndexsFromOuterNodes);
-                // 去除-1的情况
-                for (int i = 0; i < faceIndexsFromOuterNodes.BranchCount; i++)
+                UtilityFunctions.GH_StructureToDataTree_Int(gh_structure_FaceIndexs, ref faceIndexsAroundOuterNodes);
+                // 去除-1的情况，第0个永远是-1
+                for (int i = 0; i < faceIndexsAroundOuterNodes.BranchCount; i++)
                 {
-                    faceIndexsFromOuterNodes.Branch(i).RemoveAt(0);
+                    faceIndexsAroundOuterNodes.Branch(i).RemoveAt(0);
                 }
 
-                List<int> boundaryCornerIndexs = new List<int>();
+                #region 输出从W开始的逆时针方向的，场地边界每个角点所对应的对偶图顶点的序号
+                List<int> sortedBoundaryCornerIndexs = new List<int>();
                 for (int i = 0; i < sortedBoundarySegments.Count; i++)
                 {
-                    boundaryCornerIndexs.Add(faceIndexsFromOuterNodes.Branch(i).First());
+                    sortedBoundaryCornerIndexs.Add(faceIndexsAroundOuterNodes.Branch(i).First());
                 }
-                DA.SetDataList("ReorganizedCornerIndex", boundaryCornerIndexs);
+                #endregion
+                DA.SetDataList("ReorganizedCornerIndex", sortedBoundaryCornerIndexs);
+
+                #region 输出从W开始的逆时针方向的，场地边界上所应该布置的对偶图顶点序号
+                List<List<int>> verticesIndexForEachBoundarySegment = new List<List<int>>();
+                for (int i = 0; i < sortedBoundarySegments.Count; i++)
+                {
+                    verticesIndexForEachBoundarySegment.Add(new List<int>());
+                    verticesIndexForEachBoundarySegment[i].AddRange(faceIndexsAroundOuterNodes.Branch(i));
+                }
+                #endregion
 
 
-                // 绘制部分
-                BoundaryPolyline.Clear();
+
+                #region 可视化部分
+                BoundaryPolylinePoints.Clear();
                 BoundaryCornerTextDots.Clear();
                 BoundarySegmentTextDots.Clear();
 
-                BoundaryPolyline = closedBoundaryPoints;
+                #region 设置表示场地边界的Polyline
+                BoundaryPolylinePoints = closedBoundaryPoints;
+                #endregion
 
+                #region 设置场地角点的TextDot
                 List<string> args = new List<string>();
                 for (int i = 0; i < D.Vertices.Count; i++)
                 {
                     args.Add(string.Join<int>(";", D.Vertices.GetVertexFaces(i)));
                 }
-
                 for (int i = 0; i < boundaryCorner.Count; i++)
                 {
-                    TextDot boundaryCornerTextDot = new TextDot(string.Format("{0} | {1}", boundaryCornerIndexs[i], args[boundaryCornerIndexs[i]]), boundaryCorner[i]);
+                    TextDot boundaryCornerTextDot = new TextDot(string.Format("{0} | {1}", sortedBoundaryCornerIndexs[i], args[sortedBoundaryCornerIndexs[i]]), boundaryCorner[i]);
                     BoundaryCornerTextDots.Add(boundaryCornerTextDot);
                 }
+                #endregion
 
-
+                #region 设置场地边界Segment的TextDot
                 List<Point3d> boundarySegmentTextDotLocations = new List<Point3d>();
                 for (int i = 0; i < boundarySegments.Count; i++)
                 {
@@ -208,9 +237,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 for (int i = 0; i < boundarySegments.Count; i++)
                 {
-                    TextDot boundarySegmentTextDot = new TextDot(string.Format("{0} | {1}", i + innerNodeCount, outerLabels[i]), boundarySegmentTextDotLocations[i]);
+                    TextDot boundarySegmentTextDot = new TextDot(string.Format("{0} | {1}", i + innerNodeCount, outerNodeLabels[i]), boundarySegmentTextDotLocations[i]);
                     BoundarySegmentTextDots.Add(boundarySegmentTextDot);
                 }
+                #endregion
+
+                #endregion
+
 
 
                 //if (boundaryPolyline.Count < 3)
@@ -496,6 +529,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
         }
 
+        /// <summary>
+        /// 用叉积来判断第一段Segment是否反了
+        /// </summary>
+        /// <param name="lineDirection"></param>
+        /// <param name="vector02"></param>
+        /// <returns></returns>
         private bool IsFirstSegmentOpppsite(Vector3d lineDirection, Vector3d vector02)
         {
             Vector3d Z = Vector3d.CrossProduct(lineDirection, vector02);
@@ -513,7 +552,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             // base.DrawViewportWires(args);
 
-            args.Display.DrawPolyline(BoundaryPolyline, Color.DarkOrange, Thickness);
+            args.Display.DrawPolyline(BoundaryPolylinePoints, Color.DarkOrange, Thickness);
 
             for (int i = 0; i < BoundaryCornerTextDots.Count; i++)
             {
@@ -534,7 +573,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             // base.DrawViewportMeshes(args);
 
-            args.Display.DrawPolyline(BoundaryPolyline, Color.DarkOrange, Thickness);
+            args.Display.DrawPolyline(BoundaryPolylinePoints, Color.DarkOrange, Thickness);
 
             for (int i = 0; i < BoundaryCornerTextDots.Count; i++)
             {
