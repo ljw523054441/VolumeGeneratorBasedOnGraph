@@ -66,23 +66,23 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CellGraph.cs" />
+    <Compile Include="Temporary\CellGraph.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />
-    <Compile Include="CoinGraph.cs" />
-    <Compile Include="CoinGraphToDiskDrawing.cs" />
+    <Compile Include="Temporary\CoinGraph.cs" />
+    <Compile Include="Temporary\CoinGraphToDiskDrawing.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructBoundarySegment.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDecomposeVertex.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcReorganizeBoundary.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructGraph.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcCSVReader.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDualGraph.cs" />
-    <Compile Include="ForceDirectedDrawing.cs" />
+    <Compile Include="Temporary\ForceDirectedDrawing.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDualUsingHalfedge.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcGlobalParameters.cs" />
     <Compile Include="Class\GlobalParameterStruct.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcShowPlanktonMesh.cs" />
-    <Compile Include="GraphFromVolumeAndBoundaryNode.cs" />
-    <Compile Include="GraphToDiskDrawing.cs" />
+    <Compile Include="Temporary\GraphFromVolumeAndBoundaryNode.cs" />
+    <Compile Include="Temporary\GraphToDiskDrawing.cs" />
     <Compile Include="Class\NodeClass.cs" />
     <Compile Include="Class\NodeAttributeClass.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcTriangulate.cs" />
@@ -90,7 +90,7 @@
     <Compile Include="Class\UtilityFunctions.cs" />
     <Compile Include="VolumeGeneratorBasedOnGraphInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="WeightedVoroni.cs" />
+    <Compile Include="Temporary\WeightedVoroni.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
