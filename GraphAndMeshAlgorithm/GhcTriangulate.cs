@@ -75,6 +75,7 @@ namespace VolumeGeneratorBasedOnGraph
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
+            pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -107,10 +108,7 @@ namespace VolumeGeneratorBasedOnGraph
             if (DA.GetDataList<Node>("GraphNode", nodes)
                 && DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
             {
-                
-
-
-                // 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
+                #region 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
                 for (int i = 0; i < convexFaceBorderCurves.Count; i++)
                 {
                     Polyline polyline = null;
@@ -120,14 +118,17 @@ namespace VolumeGeneratorBasedOnGraph
                         {
                             convexFaceBorderPolylines.Add(polyline);
 
+                            #region 设置可视化中的实线部分
                             ConvexPolylinesPoints.Add(new List<Point3d>());
                             ConvexPolylinesPoints[i].AddRange(polyline);
                             // ConvexPolylinesPoints[i].RemoveAt(ConvexPolylinesPoints[i].Count - 1);
+                            #endregion
                         }
                     }
                 }
+                #endregion
 
-
+                #region 获取Node的坐标和构造Point3d
                 for (int i = 0; i < nodes.Count; i++)
                 {
                     nodePoints.Add(nodes[i].NodeVertex);
@@ -136,29 +137,32 @@ namespace VolumeGeneratorBasedOnGraph
                 {
                     outerPoints.Add(nodes[i + innerNodeCount].NodeVertex);
                 }
+                #endregion
 
-
+                #region 可能的报错
                 if (convexFaceBorderCurves.Count != convexFaceBorderPolylines.Count)
                 {
                     this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "the ConvexFaceBorders are supposed to be closed polylines or polygons, but apparently at least one is not closed or is not a polyline!");
                 }
+                #endregion
 
                 DA.GetData<int>("IndexOfTriangularMesh", ref index);
                 DA.GetData<bool>("ExcludeDegenerateTINS", ref flag);
 
-
-                // 得到这样一个图结构下，所有的同形异构的整体的三角形网格
+                #region 得到这样一个图结构下，所有的同形异构的整体的三角形网格
                 List<Mesh> allPolylineCorrespondIsomorphismTriangleMeshes = GetAllIsomorphismTriangleMeshes(ClosedPolylineToTriangleMesh(convexFaceBorderPolylines));
-                // 剔除细分后的三角形全部由outerNode构成的情况
+                #endregion
+                #region 剔除细分后的三角形全部由outerNode构成的情况
                 List<Mesh> allPolylineCorrespondIsomorphismTriangleMeshesExceptOuterNode = RemoveTriangleMeshWithAllOuterNode(allPolylineCorrespondIsomorphismTriangleMeshes, outerPoints);
+                #endregion
 
-                // 对于新生成的三角网格，其中的顶点顺序是跟原来的nodePoints列表中的点的顺序不同的，需要重新匹配
+                #region 对于新生成的三角网格，其中的顶点顺序是跟原来的nodePoints列表中的点的顺序不同的，需要重新匹配
                 List<Mesh> regeneratedIsomorphismMeshes = new List<Mesh>();
                 foreach (Mesh IsomorphismMesh in allPolylineCorrespondIsomorphismTriangleMeshesExceptOuterNode)
                 {
                     regeneratedIsomorphismMeshes.Add(MatchVerticesIndex(nodePoints, IsomorphismMesh));
                 }
-
+                // 是否删除存在顶点的度为3的剖分
                 List<Mesh> result;
                 if (flag)
                 {
@@ -168,19 +172,21 @@ namespace VolumeGeneratorBasedOnGraph
                 {
                     result = regeneratedIsomorphismMeshes;
                 }
-
+                #endregion
                 DA.SetDataList("AllTriangularMeshes", result);
 
+
+                #region 选择生成的三角剖分
                 if (index >= result.Count)
                 {
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "输入的序号超过了所有三角形网格的总数");
                     return;
                 }
+                #endregion
                 DA.SetData("TheChosenTriangularMesh", result[index]);
 
 
-
-                // 构造半边数据结构
+                #region 构造半边数据结构
                 PlanktonMesh planktonMesh = new PlanktonMesh();
 
                 for (int i = 0; i < nodePoints.Count; i++)
@@ -199,31 +205,49 @@ namespace VolumeGeneratorBasedOnGraph
                     faceVertexOrder[i].AddRange(faceTopologicalVerticesList);
                 }
                 planktonMesh.Faces.AddFaces(faceVertexOrder);
+                #endregion
                 DA.SetData("TheChosenTriangleHalfedgeMesh", planktonMesh);
 
+                #region Debug显示
 
+                #region HalfedgeMesh的顶点数据
                 List<string> printVertices = new List<string>();
                 printVertices = UtilityFunctions.PrintVertices(planktonMesh);
                 DA.SetDataList("DebugVerticesOutput", printVertices);
+                #endregion
 
+                #region HalfedgeMesh的半边数据
                 List<string> printHalfedges = new List<string>();
                 printHalfedges = UtilityFunctions.PrintHalfedges(planktonMesh);
                 DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
+                #endregion
 
-
+                #region HalfedgeMesh的每个面由哪些顶点构成
                 List<string> printFaces = new List<string>();
                 printFaces = UtilityFunctions.PrintFacesVertices(planktonMesh);
                 DA.SetDataList("DebugFacesOutput", printFaces);
+                #endregion
 
+                #region HalfedgeMesh的每个面由哪些半边构成
+                List<string> printFacesHalfedge = new List<string>();
+                printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(planktonMesh);
+                DA.SetDataList("DebugFacesHalfedges", printFacesHalfedge);
+                #endregion
 
+                #endregion
 
+                #region 可视化部分
                 ConvexPolylinesPoints.Clear();
                 SelectedTriangleMeshEdges.Clear();
                 InnerNodeTextDot.Clear();
                 OuterNodeTextDot.Clear();
 
+                #region 设置用于可视化的Mesh
                 // 在DrawViewportMeshes绘制选中的mesh
                 SelectedIsomorphismTriangleMesh = result[index];
+                #endregion
+
+                #region 设置用于可视化的虚线
                 // 在DrawViewportWires绘制mesh的edge
                 for (int i = 0; i < SelectedIsomorphismTriangleMesh.TopologyEdges.Count; i++)
                 {
@@ -241,10 +265,9 @@ namespace VolumeGeneratorBasedOnGraph
                         DottedCurve.Add(segment);
                     }
                 }
+                #endregion
 
-                
-
-                // 设置用于可视化的TextDot
+                #region 设置用于可视化的TextDot
                 for (int i = 0; i < nodes.Count; i++)
                 {
                     if (nodes[i].IsInner)
@@ -258,11 +281,10 @@ namespace VolumeGeneratorBasedOnGraph
                         OuterNodeTextDot.Add(textDot);
                     }
                 }
+                #endregion
+                #endregion
             }
         }
-
-        
-
 
         /// <summary>
         /// 将每个polyline所对应的一列表代表所有可能的连接方式的小的Convex形状的三角网格，穷尽所有的排列组合，合成一列表大的三角网格
@@ -519,7 +541,6 @@ namespace VolumeGeneratorBasedOnGraph
             return removedTriangleMesh;
         }
 
-
         /// <summary>
         /// 判断vertices中的点跟对应的最近的testpoint中的点，距离是否小于公差
         /// </summary>
@@ -535,8 +556,6 @@ namespace VolumeGeneratorBasedOnGraph
             bool bool3 = Math.Abs(point3d.Z - testPoint.Z) < tolerance;
             return bool1 & bool2 & bool3;
         }
-
-
 
         /// <summary>
         /// 预览模式为WireFrame模式时，调用此函数
@@ -610,8 +629,6 @@ namespace VolumeGeneratorBasedOnGraph
                 args.Display.DrawDot(OuterNodeTextDot[i], Color.Gray, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
             }
-
-
         }
 
 
@@ -865,11 +882,6 @@ namespace VolumeGeneratorBasedOnGraph
                 return dividedConvexPolygonList;
             }
         }
-
-
-
-
-
 
         /// <summary>
         /// Provides an Icon for the component.
