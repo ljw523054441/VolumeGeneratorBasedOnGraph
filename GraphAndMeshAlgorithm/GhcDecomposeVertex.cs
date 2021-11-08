@@ -119,8 +119,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             Thickness = 2;
 
             if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
-                && DA.GetDataList<Node>("GraphNode", pNodes)
-                && DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph))
+                && DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph)
+                && DA.GetDataList<Node>("GraphNode", pNodes))
             {
                 // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>，再转化为LoL
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
@@ -492,7 +492,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // nodes[startVertexIndex].NodeAttribute.NodeAreaProportion = nodes[startVertexIndex].NodeAttribute.NodeAreaProportion / splitParts;
 
             // 对新生成的顶点，构造新的node
-            NodeAttribute nodeAttribute = new NodeAttribute((startNodeLabel + (midVertexIndex - 8).ToString()),
+            NodeAttribute nodeAttribute = new NodeAttribute((startNodeLabel + (midVertexIndex - (pNodes.Count - 1)).ToString()),
                                                              startNodeArea / splitParts);
             nodeAttribute.ConnectivityTable = new int[] { startVertexIndex, endVertexIndex };
             nodeAttribute.AdjacencyTable = new int[] { };
