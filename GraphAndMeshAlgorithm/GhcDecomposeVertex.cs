@@ -82,6 +82,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddGenericParameter("NewTriangleHalfedgeMesh", "NTHMesh", "新生成的三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
 
             pManager.AddGenericParameter("NewGraph", "NG", "描述VolumeNode和BoundaryNode的所有连接关系的图结构(包括新分裂产生的点)", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("NewGraphNode", "NGN", "更新后的图结构中的节点", GH_ParamAccess.list);
 
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
@@ -251,7 +252,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         break;
                 }
 
-                #region 输出所选的HalfedgeMesh结果
+
                 // 获取要选择的序号
                 DA.GetData<int>("IndexOfSplittedHalfedgeMesh", ref index);
                 if (index >= allPossiblePMeshForCurrentVertexSplit.Count)
@@ -259,12 +260,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     index = index % allPossiblePMeshForCurrentVertexSplit.Count;
                 }
 
+                #region 电池结果输出
+                #region 输出所选的HalfedgeMesh结果
                 /* 注意这里第二个[]中，暂时填0 */
                 PlanktonMesh selectedHalfedgeMesh = allPossiblePMeshForCurrentVertexSplit[index][0];
-
                 DA.SetData("NewTriangleHalfedgeMesh", selectedHalfedgeMesh);
                 #endregion
-
+                #region 输出所选的HalfedgeMesh对应的NewGraphLoL
+                List<List<int>> newGraphLoL = allPossiblePGraphLoL[index];
+                DA.SetDataTree(1, UtilityFunctions.LoLToDataTree<int>(newGraphLoL));
+                #endregion
+                #region 输出所选的HalfedgeMesh对应的NewGraphNode
+                List<Node> newGraphNode = allPossiblePNodes[index];
+                DA.SetDataList("NewGraphNode", newGraphNode);
+                #endregion
+                #endregion
 
                 #region 用于输出Debug数据
 
