@@ -11,9 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.IO;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
+using VolumeGeneratorBasedOnGraph.Class;
 
 namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {

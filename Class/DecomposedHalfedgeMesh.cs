@@ -4,6 +4,7 @@ using Plankton;
 using PlanktonGh;
 using System;
 using System.Collections.Generic;
+using VolumeGeneratorBasedOnGraph.Class;
 
 namespace VolumeGeneratorBasedOnGraph
 {

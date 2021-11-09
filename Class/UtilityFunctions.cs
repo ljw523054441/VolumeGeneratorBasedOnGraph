@@ -13,7 +13,7 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace VolumeGeneratorBasedOnGraph
+namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class UtilityFunctions
     {

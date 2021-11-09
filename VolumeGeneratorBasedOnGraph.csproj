@@ -66,6 +66,8 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Class\ConvexPolygon.cs" />
+    <Compile Include="Class\DecomposedHalfedgeMesh.cs" />
     <Compile Include="Temporary\CellGraph.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />
     <Compile Include="Temporary\CoinGraph.cs" />

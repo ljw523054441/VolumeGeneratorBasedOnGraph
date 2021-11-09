@@ -9,6 +9,7 @@ using Rhino.Collections;
 using System;
 using System.Drawing;
 using System.Collections.Generic;
+using VolumeGeneratorBasedOnGraph.Class;
 
 namespace VolumeGeneratorBasedOnGraph
 {
