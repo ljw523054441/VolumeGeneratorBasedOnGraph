@@ -97,12 +97,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            // 全局参数传递
+            #region 全局参数传递
             GlobalParameter globalParameter = new GlobalParameter();
             DA.GetData("GlobalParameter", ref globalParameter);
             int innerNodeCount = globalParameter.VolumeNodeCount;
             int outerNodeCount = globalParameter.BoundaryNodeCount;
+            #endregion
 
+            #region 局部变量初始化
             PlanktonMesh P = new PlanktonMesh();
 
             List<Node> pNodes = new List<Node>();
@@ -117,17 +119,26 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             int index = 0;
 
             Thickness = 2;
+            #endregion
 
             if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
                 && DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph)
                 && DA.GetDataList<Node>("GraphNode", pNodes))
             {
+                // 利用PlanktonMesh为复制准备的构造函数，进行深拷贝
+                PlanktonMesh PDeepCopy = new PlanktonMesh(P);
+
+                // 利用Node为复制准备的构造函数，进行深拷贝
+                List<Node> pNodesDeepCopy = new List<Node>();
+                for (int i = 0; i < pNodes.Count; i++)
+                {
+                    pNodesDeepCopy.Add(new Node(pNodes[i]));
+                }
+
                 // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>，再转化为LoL
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
                 pGraphLoL = UtilityFunctions.DataTreeToLoL<int>(graph);
 
-                // 利用PlanktonMesh为复制准备的构造函数，进行深拷贝
-                PlanktonMesh PDeepCopy = new PlanktonMesh(P);
 
                 #region 存储所有结果的列表，包括图结构，图节点，PlanktonMesh
                 List<List<List<int>>> allPossiblePGraphLoL = new List<List<List<int>>>();
@@ -135,11 +146,26 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<List<PlanktonMesh>> allPossiblePMeshForCurrentVertexSplit = new List<List<PlanktonMesh>>();
                 #endregion
 
+                // 存储所有的DecomposedHalfedgeMesh
+                //List<>
+
                 // 对于每个InnerNode来说，判断它的度是否大于4
                 //for (int i = 0; i < PDeepCopy.Vertices.Count - outerNodeCount; i++)
                 //{
                 //    //int degree = PDeepCopy.Vertices.GetValence(i);
                 //}
+
+                for (int i = 0; i < pNodes.Count; i++)
+                {
+                    if (pNodes[i].IsInner)
+                    {
+
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
 
                 /* 这里先只分割0点 */
                 // 计算0点的度
@@ -232,16 +258,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             // 将得到的所有的可能的分裂情况，对应添加到代表对应的相邻2条半边情况的分支中
                             allPossiblePMeshForCurrentVertexSplit[i].AddRange(edgeResetStartP);
 
-                            //int exceptionIndex;
-                            //try
-                            //{
+                            //List<decomp>
+                            for (int j = 0; j < edgeResetStartP.Count; j++)
+                            {
 
-                            //}
-                            //catch (Exception)
-                            //{
-                            //    allPossiblePMeshForCurrentVertexSplit[i].AddRange(new List<PlanktonMesh>());
-                            //    exceptionIndex = i;
-                            //}
+                            }
                         }
                         #endregion
 
