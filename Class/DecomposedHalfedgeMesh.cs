@@ -4,9 +4,9 @@ using Plankton;
 using PlanktonGh;
 using System;
 using System.Collections.Generic;
-using VolumeGeneratorBasedOnGraph.Class;
+//using VolumeGeneratorBasedOnGraph.Class;
 
-namespace VolumeGeneratorBasedOnGraph
+namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class DecomposedHalfedgeMesh
     {

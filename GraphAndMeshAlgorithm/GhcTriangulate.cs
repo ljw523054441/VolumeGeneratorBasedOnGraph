@@ -9,7 +9,7 @@ using System.Drawing;
 using System.Linq;
 using VolumeGeneratorBasedOnGraph.Class;
 
-namespace VolumeGeneratorBasedOnGraph
+namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {
     public class GhcTriangulate : GH_Component
     {

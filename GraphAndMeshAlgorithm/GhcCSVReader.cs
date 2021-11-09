@@ -4,8 +4,9 @@ using Grasshopper.Kernel.Data;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
+using VolumeGeneratorBasedOnGraph.Class;
 
-namespace VolumeGeneratorBasedOnGraph
+namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {
     public class GhcCSVReader : GH_Component
     {

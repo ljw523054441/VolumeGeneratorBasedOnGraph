@@ -10,8 +10,9 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using VolumeGeneratorBasedOnGraph.Class;
 
-namespace VolumeGeneratorBasedOnGraph
+namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {
     public class GhcConstructGraph : GH_Component
     {

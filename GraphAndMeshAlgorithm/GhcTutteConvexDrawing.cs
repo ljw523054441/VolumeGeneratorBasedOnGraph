@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using VolumeGeneratorBasedOnGraph.Class;
 
-namespace VolumeGeneratorBasedOnGraph
+namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {
     public class GhcTutteConvexDrawing : GH_Component
     {
