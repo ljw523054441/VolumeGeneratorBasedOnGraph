@@ -9,6 +9,7 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
+using VolumeGeneratorBasedOnGraph.Class;
 
 namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {
