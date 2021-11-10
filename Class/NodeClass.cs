@@ -13,6 +13,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public bool IsInner { get; }
 
+        public bool IsDecomposed { get; }
+
         /// <summary>
         /// 利用拷贝构造函数实现深拷贝
         /// </summary>
@@ -23,6 +25,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.NodeAttribute = new NodeAttribute(node.NodeAttribute);
 
             this.IsInner = node.IsInner;
+            this.IsDecomposed = node.IsDecomposed;
         }
 
         public Node(Point3d nodeVertex, NodeAttribute nodeAttribute, bool isInner)
@@ -30,6 +33,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.NodeVertex = nodeVertex;
             this.NodeAttribute = nodeAttribute;
             this.IsInner = isInner;
+            this.IsDecomposed = false;
         }
 
         /// <summary>

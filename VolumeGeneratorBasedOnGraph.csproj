@@ -67,7 +67,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class\ConvexPolygon.cs" />
-    <Compile Include="Class\DecomposedHalfedgeMesh.cs" />
+    <Compile Include="Class\DecomposedHM.cs" />
+    <Compile Include="Class\HierarchicalExtensions.cs" />
+    <Compile Include="Class\IHierarchical.cs" />
+    <Compile Include="Class\Tree.cs" />
     <Compile Include="Temporary\CellGraph.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />
     <Compile Include="Temporary\CoinGraph.cs" />

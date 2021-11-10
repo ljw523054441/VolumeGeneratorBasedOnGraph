@@ -411,6 +411,19 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return output;
         }
 
+        internal static List<string> PrintHalfedgeStartAndEnd(PlanktonMesh mesh)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < mesh.Halfedges.Count; i++)
+            {
+                string str = "Halfedges[" + i.ToString() + "]=";
+                str += mesh.Halfedges[i].StartVertex.ToString() + "," +
+                       mesh.Halfedges.EndVertex(i).ToString();
+                output.Add(str);
+            }
+            return output;
+        }
+
         /// <summary>
         /// HalfedgeMesh的面由哪些顶点组成
         /// </summary>
