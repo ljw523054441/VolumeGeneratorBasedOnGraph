@@ -704,5 +704,43 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         #endregion
 
+        #region 图结构DebugPrint
+
+        public static List<string> PrintGraphNode(Graph graph)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < graph.GraphNodes.Count; i++)
+            {
+                string str = string.Format("Node[{0}]:{1}--{2}", i, graph.GraphNodes[i].NodeAttribute.NodeLabel, graph.GraphNodes[i].IsInner);
+                output.Add(str);
+            }
+            return output;
+        }
+
+        public static List<string> PrintGraphLoL(Graph graph)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < graph.GraphTables.Count; i++)
+            {
+                string str = string.Format("Node[{0}]:", i);
+                for (int j = 0; j < graph.GraphTables[i].Count; j++)
+                {
+                    if (j == graph.GraphTables[i].Count - 1)
+                    {
+                        str += string.Format("{0}.", graph.GraphTables[i][j]);
+                    }
+                    else
+                    {
+                        str += string.Format("{0},", graph.GraphTables[i][j]);
+                    }
+                    
+                }
+                output.Add(str);
+            }
+            return output;
+        }
+
+        #endregion
+
     }
 }
