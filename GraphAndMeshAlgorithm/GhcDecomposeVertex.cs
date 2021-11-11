@@ -91,6 +91,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             pManager.AddGenericParameter("NewTriangleHalfedgeMesh", "NTHMesh", "新生成的三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
 
+            pManager.AddIntegerParameter("CountOfAllPossibleHFM", "C", "所有可能的结果的总数量", GH_ParamAccess.item);
+
             pManager.AddGenericParameter("NewGraph", "NG", "描述VolumeNode和BoundaryNode的所有连接关系的图结构(包括新分裂产生的点)", GH_ParamAccess.tree);
             pManager.AddGenericParameter("NewGraphNode", "NGN", "更新后的图结构中的节点", GH_ParamAccess.list);
 
@@ -292,6 +294,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
                 #region 电池结果输出
+
+                DA.SetData("CountOfAllPossibleHFM", allPossibleDecomposedHMesh.Count);
+
                 #region 输出所选的HalfedgeMesh结果
                 /* 注意这里第二个[]中，暂时填0 */
                 // PlanktonMesh selectedHalfedgeMesh = allPossiblePMesh[index];
