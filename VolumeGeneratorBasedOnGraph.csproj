@@ -68,7 +68,9 @@
   <ItemGroup>
     <Compile Include="Class\ConvexPolygon.cs" />
     <Compile Include="Class\DecomposedHM.cs" />
+    <Compile Include="Class\Graph.cs" />
     <Compile Include="Class\Tree.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\GhcLaplaceSmooth.cs" />
     <Compile Include="Temporary\CellGraph.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />
     <Compile Include="Temporary\CoinGraph.cs" />
