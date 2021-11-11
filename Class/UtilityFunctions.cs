@@ -18,6 +18,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
     public class UtilityFunctions
     {
 
+        #region 数据类型转化
+
         /// <summary>
         /// 将GH_Structure<GH_Integer>类型的树形数据，转化为DataTree<int>类型的树形数据
         /// </summary>
@@ -36,31 +38,47 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
         }
 
-        internal static void GraphToSubGraph(DataTree<int> graph, GlobalParameter globalParameter, out DataTree<int> connectivityGraph, out DataTree<int> adjacencyGraph)
+        /// <summary>
+        /// 由LoL转化成DataTree的泛型方法
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="LoL"></param>
+        /// <returns></returns>
+        internal static DataTree<T> LoLToDataTree<T>(List<List<T>> LoL)
         {
-            connectivityGraph = new DataTree<int>();
-            adjacencyGraph = new DataTree<int>();
+            DataTree<T> dataTree = new DataTree<T>();
 
-            for (int i = 0; i < graph.BranchCount; i++)
+            for (int i = 0; i < LoL.Count; i++)
             {
-                for (int j = 0; j < graph.Branch(i).Count; j++)
-                {
-                    if (i < globalParameter.VolumeNodeCount)
-                    {
-                        connectivityGraph.EnsurePath(i);
-                        if (graph.Branch(i)[j] < globalParameter.VolumeNodeCount)
-                        {
-                            connectivityGraph.Branch(i).Add(graph.Branch(i)[j]);
-                        }
-                    }
-                    else
-                    {
-                        adjacencyGraph.EnsurePath(i - globalParameter.VolumeNodeCount);
-                        adjacencyGraph.Branch(i - globalParameter.VolumeNodeCount).Add(graph.Branch(i)[j]);
-                    }
-                }
+                dataTree.EnsurePath(i);
+                dataTree.Branch(i).AddRange(LoL[i]);
             }
+
+            return dataTree;
         }
+
+        /// <summary>
+        /// 由DataTree转化为LoL的泛型方法
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="dataTree"></param>
+        /// <returns></returns>
+        internal static List<List<T>> DataTreeToLoL<T>(DataTree<T> dataTree)
+        {
+            List<List<T>> LoL = new List<List<T>>();
+
+            for (int i = 0; i < dataTree.BranchCount; i++)
+            {
+                LoL.Add(new List<T>());
+                LoL[i].AddRange(dataTree.Branch(i));
+            }
+
+            return LoL;
+        }
+
+        #endregion
+
+        #region 图形绘制
 
         /// <summary>
         /// 将Connectivity图结构中的Edge转化为可以显示的Line线段
@@ -111,44 +129,68 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return lineList;
         }
 
-        /// <summary>
-        /// 由LoL转化成DataTree的泛型方法
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="LoL"></param>
-        /// <returns></returns>
-        internal static DataTree<T> LoLToDataTree<T>(List<List<T>> LoL)
-        {
-            DataTree<T> dataTree = new DataTree<T>();
+        #endregion
 
-            for (int i = 0; i < LoL.Count; i++)
-            {
-                dataTree.EnsurePath(i);
-                dataTree.Branch(i).AddRange(LoL[i]);
-            }
-
-            return dataTree;
-        }
+        #region Display相关
 
         /// <summary>
-        /// 由DataTree转化为LoL的泛型方法
+        /// 用来画虚线，详见Triangulate电池
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="dataTree"></param>
+        /// <param name="curve"></param>
+        /// <param name="pattern"></param>
         /// <returns></returns>
-        internal static List<List<T>> DataTreeToLoL<T>(DataTree<T> dataTree)
+        internal static IEnumerable<Curve> ApplyDashPattern(Curve curve, double[] pattern)
         {
-            List<List<T>> LoL = new List<List<T>>();
-
-            for (int i = 0; i < dataTree.BranchCount; i++)
+            if (pattern == null || pattern.Length == 0)
             {
-                LoL.Add(new List<T>());
-                LoL[i].AddRange(dataTree.Branch(i));
+                return new Curve[] { curve };
             }
 
-            return LoL;
+            double curveLength = curve.GetLength();
+            List<Curve> dashes = new List<Curve>();
+
+            double offset0 = 0.0;
+            int index = 0;
+            while (true)
+            {
+                double dashLength = pattern[index++];
+                if (index >= pattern.Length)
+                    index = 0;
+
+                // Compute the offset of the current dash from the curve start.
+                double offset1 = offset0 + dashLength;
+                if (offset1 > curveLength)
+                    offset1 = curveLength;
+
+                // Solve the curve parameters at the current dash start and end.
+                double t0, t1;
+                curve.LengthParameter(offset0, out t0);
+                curve.LengthParameter(offset1, out t1);
+
+                Curve dash = curve.Trim(t0, t1);
+                if (dash != null)
+                    dashes.Add(dash);
+
+                // Get the current gap length.
+                double gapLength = pattern[index++];
+                if (index >= pattern.Length)
+                    index = 0;
+
+                // Set the start of the next dash to be the end of the current
+                // dash + the length of the adjacent gap.
+                offset0 = offset1 + gapLength;
+
+                // Abort when we've reached the end of the curve.
+                if (offset0 >= curveLength)
+                    break;
+            }
+
+            return dashes;
         }
 
+        #endregion
+
+        #region Point相关计算
 
         /// <summary>
         /// 将一个列表的点，由一个坐标系整体平移到另一个坐标系
@@ -265,6 +307,37 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         }
 
+        #endregion
+
+        #region 图结构相关操作
+        internal static void GraphToSubGraph(DataTree<int> graph, GlobalParameter globalParameter, out DataTree<int> connectivityGraph, out DataTree<int> adjacencyGraph)
+        {
+            connectivityGraph = new DataTree<int>();
+            adjacencyGraph = new DataTree<int>();
+
+            for (int i = 0; i < graph.BranchCount; i++)
+            {
+                for (int j = 0; j < graph.Branch(i).Count; j++)
+                {
+                    if (i < globalParameter.VolumeNodeCount)
+                    {
+                        connectivityGraph.EnsurePath(i);
+                        if (graph.Branch(i)[j] < globalParameter.VolumeNodeCount)
+                        {
+                            connectivityGraph.Branch(i).Add(graph.Branch(i)[j]);
+                        }
+                    }
+                    else
+                    {
+                        adjacencyGraph.EnsurePath(i - globalParameter.VolumeNodeCount);
+                        adjacencyGraph.Branch(i - globalParameter.VolumeNodeCount).Add(graph.Branch(i)[j]);
+                    }
+                }
+            }
+        }
+
+        #endregion
+
         /// <summary>
         /// 计算体量占地面积的比例
         /// </summary>
@@ -283,94 +356,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
         }
 
-
-
-        /// <summary>
-        /// 用来画虚线，详见Triangulate电池
-        /// </summary>
-        /// <param name="curve"></param>
-        /// <param name="pattern"></param>
-        /// <returns></returns>
-        internal static IEnumerable<Curve> ApplyDashPattern(Curve curve, double[] pattern)
-        {
-            if (pattern == null || pattern.Length == 0)
-            {
-                return new Curve[] { curve };
-            }
-
-            double curveLength = curve.GetLength();
-            List<Curve> dashes = new List<Curve>();
-
-            double offset0 = 0.0;
-            int index = 0;
-            while (true)
-            {
-                double dashLength = pattern[index++];
-                if (index >= pattern.Length)
-                    index = 0;
-
-                // Compute the offset of the current dash from the curve start.
-                double offset1 = offset0 + dashLength;
-                if (offset1 > curveLength)
-                    offset1 = curveLength;
-
-                // Solve the curve parameters at the current dash start and end.
-                double t0, t1;
-                curve.LengthParameter(offset0, out t0);
-                curve.LengthParameter(offset1, out t1);
-
-                Curve dash = curve.Trim(t0, t1);
-                if (dash != null)
-                    dashes.Add(dash);
-
-                // Get the current gap length.
-                double gapLength = pattern[index++];
-                if (index >= pattern.Length)
-                    index = 0;
-
-                // Set the start of the next dash to be the end of the current
-                // dash + the length of the adjacent gap.
-                offset0 = offset1 + gapLength;
-
-                // Abort when we've reached the end of the curve.
-                if (offset0 >= curveLength)
-                    break;
-            }
-
-            return dashes;
-        }
-
-
-        /// <summary>
-        /// 获取半边数据结构中，每个面所邻接的面的序号
-        /// </summary>
-        /// <param name="D"></param>
-        /// <returns></returns>
-        internal static List<List<int>> GetAdjacencyFaceIndexs(PlanktonMesh D)
-        {
-            List<List<int>> faceAdjacency = new List<List<int>>();
-            for (int i = 0; i < D.Faces.Count; i++)
-            {
-                faceAdjacency.Add(new List<int>());
-                int[] halfedges = D.Faces.GetHalfedges(i);
-                // length = halfedges.Length;
-                for (int j = 0; j < halfedges.Length; j++)
-                {
-                    // 找D.Halfedges[halfedges[j]]的对边，然后再.AdjacentFace
-                    int index = D.Halfedges[D.Halfedges.GetPairHalfedge(halfedges[j])].AdjacentFace;
-                    if (index < 0)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        faceAdjacency[i].Add(index);
-                    }
-                }
-            }
-            return faceAdjacency;
-        }
-
+        #region 半边结构DebugPrint
         /// <summary>
         /// HalfedgeMesh中每个顶点的属性
         /// </summary>
@@ -467,6 +453,127 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             return output;
         }
+        #endregion
+
+        #region 半边结构相关操作
+
+        /// <summary>
+        /// 获取半边数据结构中，每个面所邻接的面的序号
+        /// </summary>
+        /// <param name="D"></param>
+        /// <returns></returns>
+        internal static List<List<int>> GetAdjacencyFaceIndexs(PlanktonMesh D)
+        {
+            List<List<int>> faceAdjacency = new List<List<int>>();
+            for (int i = 0; i < D.Faces.Count; i++)
+            {
+                faceAdjacency.Add(new List<int>());
+                int[] halfedges = D.Faces.GetHalfedges(i);
+                // length = halfedges.Length;
+                for (int j = 0; j < halfedges.Length; j++)
+                {
+                    // 找D.Halfedges[halfedges[j]]的对边，然后再.AdjacentFace
+                    int index = D.Halfedges[D.Halfedges.GetPairHalfedge(halfedges[j])].AdjacentFace;
+                    if (index < 0)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        faceAdjacency[i].Add(index);
+                    }
+                }
+            }
+            return faceAdjacency;
+        }
+
+        /// <summary>
+        /// 拉普拉斯网格平滑
+        /// </summary>
+        /// <param name="P"></param>
+        /// <param name="W"></param>
+        /// <param name="Strength"></param>
+        /// <returns></returns>
+        internal static Vector3d[] LaplacianSmooth(PlanktonMesh P, int W, double Strength)
+        {
+            int vertCount = P.Vertices.Count;
+            Vector3d[] smooth = new Vector3d[vertCount];
+
+            for (int i = 0; i < vertCount; i++)
+            {
+                if (P.Vertices[i].IsUnused == false
+                    && P.Vertices.IsBoundary(i) == false)
+                {
+                    int[] neighbours = P.Vertices.GetVertexNeighbours(i);
+                    Point3d vertex = P.Vertices[i].ToPoint3d();
+                    Point3d centroid = new Point3d();
+                    if (W == 0)
+                    {
+                        for (int j = 0; j < neighbours.Length; j++)
+                        {
+                            centroid = centroid + P.Vertices[neighbours[j]].ToPoint3d();
+                        }
+                        smooth[i] = ((centroid * (1.0 / P.Vertices.GetValence(i))) - vertex) * Strength;
+                    }
+                    if (W == 1)
+                    {
+                        //get the radial vectors of the 1-ring
+                        //get the vectors around the 1-ring
+                        //get the cotangent weights for each edge
+
+                        int valence = neighbours.Length;
+
+                        Point3d[] neighbourPts = new Point3d[valence];
+                        Vector3d[] radial = new Vector3d[valence];
+                        Vector3d[] around = new Vector3d[valence];
+                        double[] cotWeight = new double[valence];
+                        double weightSum = 0;
+
+                        for (int j = 0; j < valence; j++)
+                        {
+                            neighbourPts[j] = P.Vertices[neighbours[j]].ToPoint3d();
+                            radial[j] = neighbourPts[j] - vertex;
+                        }
+
+                        for (int j = 0; j < valence; j++)
+                        {
+                            around[j] = neighbourPts[(j + 1) % valence] - neighbourPts[j];
+                        }
+
+                        for (int j = 0; j < neighbours.Length; j++)
+                        {
+                            //get the cotangent weights
+                            int previous = (j + valence - 1) % valence;
+                            Vector3d cross1 = Vector3d.CrossProduct(radial[previous], around[previous]);
+                            double cross1Length = cross1.Length;
+                            double dot1 = radial[previous] * around[previous];
+
+                            int next = (j + 1) % valence;
+                            Vector3d cross2 = Vector3d.CrossProduct(radial[next], around[j]);
+                            double cross2Length = cross2.Length;
+                            double dot2 = radial[next] * around[j];
+
+                            cotWeight[j] = Math.Abs(dot1 / cross1Length) + Math.Abs(dot2 / cross2Length);
+                            weightSum += cotWeight[j];
+                        }
+
+                        double invWeightSum = 1.0 / weightSum;
+                        Vector3d thisSmooth = new Vector3d();
+                        for (int j = 0; j < neighbours.Length; j++)
+                        {
+                            thisSmooth = thisSmooth + radial[j] * cotWeight[j];
+                        }
+
+                        smooth[i] = thisSmooth * invWeightSum * Strength;
+                    }
+                }
+            }
+            return smooth;
+        }
+
+        #endregion
+
+        #region Segment操作
 
         /// <summary>
         /// 将给定超想的segment按照对应朝向的规则进行排序
@@ -573,88 +680,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return flag;
         }
 
-        /// <summary>
-        /// 拉普拉斯网格平滑
-        /// </summary>
-        /// <param name="P"></param>
-        /// <param name="W"></param>
-        /// <param name="Strength"></param>
-        /// <returns></returns>
-        internal static Vector3d[] LaplacianSmooth(PlanktonMesh P,int W, double Strength)
-        {
-            int vertCount = P.Vertices.Count;
-            Vector3d[] smooth = new Vector3d[vertCount];
+        #endregion
 
-            for(int i = 0; i < vertCount; i++)
-            {
-                if (P.Vertices[i].IsUnused == false 
-                    && P.Vertices.IsBoundary(i) == false)
-                {
-                    int[] neighbours = P.Vertices.GetVertexNeighbours(i);
-                    Point3d vertex = P.Vertices[i].ToPoint3d();
-                    Point3d centroid = new Point3d();
-                    if (W == 0)
-                    {
-                        for (int j = 0; j < neighbours.Length; j++)
-                        {
-                            centroid = centroid + P.Vertices[neighbours[j]].ToPoint3d();
-                        }
-                        smooth[i] = ((centroid * (1.0 / P.Vertices.GetValence(i))) - vertex) * Strength;
-                    }
-                    if (W == 1)
-                    {
-                        //get the radial vectors of the 1-ring
-                        //get the vectors around the 1-ring
-                        //get the cotangent weights for each edge
-
-                        int valence = neighbours.Length;
-
-                        Point3d[] neighbourPts = new Point3d[valence];
-                        Vector3d[] radial = new Vector3d[valence];
-                        Vector3d[] around = new Vector3d[valence];
-                        double[] cotWeight = new double[valence];
-                        double weightSum = 0;
-
-                        for (int j = 0; j < valence; j++)
-                        {
-                            neighbourPts[j] = P.Vertices[neighbours[j]].ToPoint3d();
-                            radial[j] = neighbourPts[j] - vertex;
-                        }
-
-                        for (int j = 0; j < valence; j++)
-                        {
-                            around[j] = neighbourPts[(j + 1) % valence] - neighbourPts[j];
-                        }
-
-                        for (int j = 0; j < neighbours.Length; j++)
-                        {
-                            //get the cotangent weights
-                            int previous = (j + valence - 1) % valence;
-                            Vector3d cross1 = Vector3d.CrossProduct(radial[previous], around[previous]);
-                            double cross1Length = cross1.Length;
-                            double dot1 = radial[previous] * around[previous];
-
-                            int next = (j + 1) % valence;
-                            Vector3d cross2 = Vector3d.CrossProduct(radial[next], around[j]);
-                            double cross2Length = cross2.Length;
-                            double dot2 = radial[next] * around[j];
-
-                            cotWeight[j] = Math.Abs(dot1 / cross1Length) + Math.Abs(dot2 / cross2Length);
-                            weightSum += cotWeight[j];
-                        }
-
-                        double invWeightSum = 1.0 / weightSum;
-                        Vector3d thisSmooth = new Vector3d();
-                        for (int j = 0; j < neighbours.Length; j++)
-                        {
-                            thisSmooth = thisSmooth + radial[j] * cotWeight[j];
-                        }
-
-                        smooth[i] = thisSmooth * invWeightSum * Strength;
-                    }
-                }
-            }
-            return smooth;
-        }
     }
 }
