@@ -129,9 +129,31 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return lineList;
         }
 
-        #endregion
+        /// <summary>
+        /// 绘制表示图结构关系的Line
+        /// </summary>
+        /// <param name="graph"></param>
+        /// <param name="graphVertices"></param>
+        /// <returns></returns>
+        public static List<Line> GraphEdgeLine(List<List<int>> graph, List<Node> graphNodes)
+        {
+            List<Point3d> graphVertices = new List<Point3d>();
+            for (int i = 0; i < graphNodes.Count; i++)
+            {
+                graphVertices.Add(graphNodes[i].NodeVertex);
+            }
 
-        #region Display相关
+            List<Line> list = new List<Line>();
+            for (int i = 0; i < graph.Count; i++)
+            {
+                for (int j = 0; j < graph[i].Count; j++)
+                {
+                    Line item = new Line(graphVertices[i], graphVertices[graph[i][j]]);
+                    list.Add(item);
+                }
+            }
+            return list;
+        }
 
         /// <summary>
         /// 用来画虚线，详见Triangulate电池
