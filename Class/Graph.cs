@@ -7,68 +7,86 @@ namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class Graph
     {
-        public List<Node> GraphNodes 
+        private List<Node> _graphNodes;
+        private List<List<int>> _graphTables;
+        private int _innerNodeCount;
+        private int _outerNodeCount;
+        private List<int> _innerNodeIndexList;
+        private List<int> _outerNodeIndexList;
+        
+        public List<Node> GraphNodes
         {
             get
             {
-                return this.GraphNodes;
+                return _graphNodes;
             }
             set
             {
-                this.GraphNodes = new List<Node>();
+                _graphNodes = new List<Node>();
                 for (int i = 0; i < value.Count; i++)
                 {
-                    this.GraphNodes.Add(new Node(value[i]));
+                    _graphNodes.Add(new Node(value[i]));
                 }
 
-                this.InnerNodeCount = 0;
-                this.OuterNodeCount = 0;
-                this.InnerNodeIndexList = new List<int>();
-                this.OuterNodeIndexList = new List<int>();
-                for (int i = 0; i < this.GraphNodes.Count; i++)
+                _innerNodeCount = 0;
+                _outerNodeCount = 0;
+                _innerNodeIndexList = new List<int>();
+                _outerNodeIndexList = new List<int>();
+                for (int i = 0; i < _graphNodes.Count; i++)
                 {
-                    if (this.GraphNodes[i].IsInner)
+                    if (_graphNodes[i].IsInner)
                     {
-                        this.InnerNodeCount++;
-                        this.InnerNodeIndexList.Add(i);
+                        _innerNodeCount++;
+                        _innerNodeIndexList.Add(i);
                     }
                     else
                     {
-                        this.OuterNodeCount++;
-                        this.OuterNodeIndexList.Add(i);
+                        _outerNodeCount++;
+                        _outerNodeIndexList.Add(i);
                     }
                 }
+
             }
         }
-        public List<List<int>> GraphTables 
+        public List<List<int>> GraphTables
         {
             get
             {
-                return this.GraphTables;
+                return _graphTables;
             }
             set
             {
-                if (value.Count != this.GraphNodes.Count)
+                if (value.Count != _graphNodes.Count && _graphNodes.Count != 0)
                 {
                     throw new Exception("未能设置GraphTables，因为GraphTables.Count与当前Graph中的Node数量不同");
                 }
-                else
+                if (value.Count != _graphNodes.Count && _graphNodes.Count == 0)
                 {
-                    this.GraphTables = new List<List<int>>();
+                    _graphTables = new List<List<int>>();
                     for (int i = 0; i < value.Count; i++)
                     {
-                        this.GraphTables.Add(new List<int>());
-                        this.GraphTables[i].AddRange(value[i]);
+                        _graphTables.Add(new List<int>());
+                        _graphTables[i].AddRange(value[i]);
                     }
                 }
+                else
+                {
+                    _graphTables = new List<List<int>>();
+                    for (int i = 0; i < value.Count; i++)
+                    {
+                        _graphTables.Add(new List<int>());
+                        _graphTables[i].AddRange(value[i]);
+                    }
+                }
+                
             }
         }
 
-        public int InnerNodeCount { get; internal set; }
-        public int OuterNodeCount { get; internal set; }
+        public int InnerNodeCount { get; }
+        public int OuterNodeCount { get;}
 
-        public List<int> InnerNodeIndexList { get; internal set; }
-        public List<int> OuterNodeIndexList { get; internal set; }
+        public List<int> InnerNodeIndexList { get; }
+        public List<int> OuterNodeIndexList { get; }
 
         public Graph()
         {
@@ -78,26 +96,28 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public Graph(List<Node> graphNodes, List<List<int>> graphTables)
         {
-            this.GraphNodes = new List<Node>();
+            List<Node> nodes = new List<Node>();
             for (int i = 0; i < graphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(graphNodes[i]));
+                nodes.Add(new Node(graphNodes[i]));
             }
+            this.GraphNodes = nodes;
 
-            this.GraphTables = new List<List<int>>();
+            List<List<int>> tables = new List<List<int>>();
             for (int i = 0; i < graphTables.Count; i++)
             {
-                this.GraphTables.Add(new List<int>());
-                this.GraphTables[i].AddRange(graphTables[i]);
+                tables.Add(new List<int>());
+                tables[i].AddRange(graphTables[i]);
             }
+            this.GraphTables = tables;
 
             this.InnerNodeCount = 0;
             this.OuterNodeCount = 0;
             this.InnerNodeIndexList = new List<int>();
             this.OuterNodeIndexList = new List<int>();
-            for (int i = 0; i < this.GraphNodes.Count; i++)
+            for (int i = 0; i < nodes.Count; i++)
             {
-                if (this.GraphNodes[i].IsInner)
+                if (nodes[i].IsInner)
                 {
                     this.InnerNodeCount++;
                     this.InnerNodeIndexList.Add(i);
@@ -112,26 +132,28 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public Graph(Graph graph)
         {
-            this.GraphNodes = new List<Node>();
+            List<Node> nodes = new List<Node>();
             for (int i = 0; i < graph.GraphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(graph.GraphNodes[i]));
+                nodes.Add(new Node(graph.GraphNodes[i]));
             }
+            this.GraphNodes = nodes;
 
-            this.GraphTables = new List<List<int>>();
+            List<List<int>> tables = new List<List<int>>();
             for (int i = 0; i < graph.GraphTables.Count; i++)
             {
-                this.GraphTables.Add(new List<int>());
-                this.GraphTables[i].AddRange(graph.GraphTables[i]);
+                tables.Add(new List<int>());
+                tables[i].AddRange(graph.GraphTables[i]);
             }
+            this.GraphTables = tables;
 
             this.InnerNodeCount = 0;
             this.OuterNodeCount = 0;
             this.InnerNodeIndexList = new List<int>();
             this.OuterNodeIndexList = new List<int>();
-            for (int i = 0; i < this.GraphNodes.Count; i++)
+            for (int i = 0; i < nodes.Count; i++)
             {
-                if (this.GraphNodes[i].IsInner)
+                if (nodes[i].IsInner)
                 {
                     this.InnerNodeCount++;
                     this.InnerNodeIndexList.Add(i);
