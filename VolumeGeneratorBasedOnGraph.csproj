@@ -70,6 +70,7 @@
     <Compile Include="Class\DecomposedHM.cs" />
     <Compile Include="Class\Graph.cs" />
     <Compile Include="Class\Tree.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\GhcDebugGraph.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcLaplaceSmooth.cs" />
     <Compile Include="Temporary\CellGraph.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />
@@ -101,8 +102,10 @@
     <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="ToDoList.md" />
+    <None Include="Version\VolumeGeneratorBasedOnGraph_1024.gha" />
     <None Include="测试文件夹\1024Test.csv" />
     <None Include="测试文件夹\1024_test.gh" />
+    <None Include="测试文件夹\1111_test.gh" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="image\Snipaste_2021-11-08_17-29-33.png" />
