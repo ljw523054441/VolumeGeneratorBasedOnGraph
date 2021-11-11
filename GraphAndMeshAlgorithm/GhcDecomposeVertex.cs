@@ -137,7 +137,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
                 && DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph)
-                && DA.GetDataList<Node>("GraphNode", pNodes))
+                && DA.GetDataList<Node>("GraphNode", pNodes)
+                && DA.GetData<int>("IndexOfSplittedHalfedgeMesh", ref index))
             {
                 // 利用PlanktonMesh为复制准备的构造函数，进行深拷贝
                 PlanktonMesh PDeepCopy = new PlanktonMesh(P);
@@ -340,10 +341,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 InnerNodeTextDot.Clear();
                 OuterNodeTextDot.Clear();
 
-                // List<List<int>> selectedHalfedgeMeshPGraphLoL = allPossiblePGraphLoL[index];
-                // List<Node> selectedHalfedgeMeshPNodes = allPossiblePNodes[index];
-
-
                 for (int i = 0; i < selectedGraphNode.Count; i++)
                 {
                     if (selectedGraphNode[i].IsInner)
@@ -385,13 +382,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 绘制表示图结构关系的实线
                 GraphEdges.Clear();
-                GraphEdges.AddRange(GraphEdgeLine(selectedGraphLoL, selectedGraphNode));
+                GraphEdges.AddRange(UtilityFunctions.GraphEdgeLine(selectedGraphLoL, selectedGraphNode));
                 #endregion
 
                 #endregion
             }
         }
 
+        /// <summary>
+        /// 对顶点进行递归分裂
+        /// </summary>
+        /// <param name="dHMToSplit"></param>
+        /// <param name="viOfNewDecomposed"></param>
+        /// <param name="viHasBeenDecomposed"></param>
         public void GenerateDecomposedHMs(INode<DecomposedHM> dHMToSplit, List<int> viOfNewDecomposed, List<int> viHasBeenDecomposed)
         {
             // 深拷贝DecomposedHM
@@ -1379,31 +1382,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
         }
 
-        /// <summary>
-        /// 绘制表示图结构关系的Line
-        /// </summary>
-        /// <param name="graph"></param>
-        /// <param name="graphVertices"></param>
-        /// <returns></returns>
-        public List<Line> GraphEdgeLine(List<List<int>> graph, List<Node> graphNodes)
-        {
-            List<Point3d> graphVertices = new List<Point3d>();
-            for (int i = 0; i < graphNodes.Count; i++)
-            {
-                graphVertices.Add(graphNodes[i].NodeVertex);
-            }
-
-            List<Line> list = new List<Line>();
-            for (int i = 0; i < graph.Count; i++)
-            {
-                for (int j = 0; j < graph[i].Count; j++)
-                {
-                    Line item = new Line(graphVertices[i], graphVertices[graph[i][j]]);
-                    list.Add(item);
-                }
-            }
-            return list;
-        }
+        
 
         /// <summary>
         /// 利用System.Runtime.Serialization序列化与反序列化完成引用对象的复制
