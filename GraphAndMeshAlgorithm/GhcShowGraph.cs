@@ -1,4 +1,5 @@
 ﻿using Grasshopper.Kernel;
+using Grasshopper.Kernel.Types;
 using Rhino.Collections;
 using Rhino.Geometry;
 using Rhino.Geometry.Collections;
@@ -8,17 +9,18 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using VolumeGeneratorBasedOnGraph.Class;
 
 namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {
-    public class GhcShowPlanktonMesh : GH_Component
+    public class GhcShowGraph : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the ShowPlanktonMesh class.
         /// </summary>
-        public GhcShowPlanktonMesh()
-          : base("ShowPlanktonMesh", "ShowPlanktonMesh",
-              "显示PlanktonMesh",
+        public GhcShowGraph()
+          : base("ShowGraph", "ShowGraph",
+              "显示Graph",
               "VolumeGeneratorBasedOnGraph", "GraphEmbeding")
         {
             InnerNodeTextDot = new List<TextDot>();
@@ -47,11 +49,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
-            pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
+            pManager.AddGenericParameter("GraphWithHFMesh", "G", "GraphWithHFMesh对象或者PlanktonMesh对象，电池会自动区分", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("PlanktonMesh", "P", "半边数据结构对象", GH_ParamAccess.item);
 
             pManager.AddNumberParameter("OffsetDistance", "OD", "Offset的距离", GH_ParamAccess.item);
             pManager.AddNumberParameter("ScreenSize", "SS", "", GH_ParamAccess.item, 1.0);
             pManager.AddNumberParameter("RelativeSize", "RS", "", GH_ParamAccess.item, 1.0);
+
+            pManager[0].Optional = true;
+            pManager[1].Optional = true;
         }
 
         /// <summary>
@@ -72,14 +78,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             //DA.GetData("GlobalParameter", ref globalParameter);
             //int innerNodeCount = globalParameter.VolumeNodeCount;
             //int outerNodeCount = globalParameter.BoundaryNodeCount;
+            
+
 
             List<Point3d> innerPoints = new List<Point3d>();
             List<Point3d> outerPoints = new List<Point3d>();
             List<int> innerPointsIndex = new List<int>();
             List<int> outerPointsIndex = new List<int>();
 
-            
-
+            GraphWithHFMesh G = new GraphWithHFMesh();
             PlanktonMesh P = new PlanktonMesh();
 
             double distance = 0.0;
@@ -87,11 +94,37 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             double screenSize = 0.0;
             double relativeSize = 0.0;
 
-            if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
-                && DA.GetData<double>("OffsetDistance", ref distance))
+            GH_ObjectWrapper obj = new GH_ObjectWrapper();
+
+            DA.GetData<GH_ObjectWrapper>("GraphWithHFMesh", ref obj);
+            // bool flagPlanktonMesh = DA.GetData<GH_ObjectWrapper>("PlanktonMesh", ref planktonMesh);
+
+            bool flagGraph = false;
+            bool flagPlanktonMesh = false;
+
+            if (obj.Value is GraphWithHFMesh)
             {
-                PlanktonMesh PDeepCopy = new PlanktonMesh(P);
+                flagGraph = DA.GetData<GraphWithHFMesh>("GraphWithHFMesh", ref G);
+            }
+            if (obj.Value is PlanktonMesh)
+            {
+                flagPlanktonMesh = DA.GetData<PlanktonMesh>("GraphWithHFMesh", ref P);
+            }
+
+            if (flagGraph ^ flagPlanktonMesh)
+            {
+                DA.GetData<double>("OffsetDistance", ref distance);
                 
+                PlanktonMesh PDeepCopy;
+                if (flagGraph)
+                {
+                    PDeepCopy = new PlanktonMesh(G.PlanktonMesh);
+                }
+                else
+                {
+                    PDeepCopy = new PlanktonMesh(P);
+                }
+
                 InnerNodeTextDot.Clear();
                 OuterNodeTextDot.Clear();
                 FaceTextDot.Clear();
@@ -169,7 +202,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //            index = j;
                 //        }
                 //    }
-                    
+
                 //    Curve offset = offsets[index];
                 //    Polyline offsetPolyline;
                 //    // 这一句，在三点共线时，会有问题
