@@ -99,7 +99,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region Read the data of the CSV files as individual lines 按行读取csv文件中的数据
-                string[] csvLines = System.IO.File.ReadAllLines(csvPath);
+                string[] csvLines = null;
+                try
+                {
+                    
+                    csvLines = System.IO.File.ReadAllLines(csvPath);
+                    
+                }
+                catch (System.IO.DirectoryNotFoundException)
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "没有找到CSV文件，请检查文件路径");
+                    return;
+                }
                 #endregion
 
                 #region Parse all lines 解析所有行的数据
