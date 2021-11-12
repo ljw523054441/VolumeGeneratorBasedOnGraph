@@ -51,11 +51,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+
+            pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
 
             pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果。", GH_ParamAccess.item);
 
-            pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -87,25 +89,31 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            #region 全局参数传递
-            GlobalParameter globalParameter = new GlobalParameter();
-            DA.GetData("GlobalParameter", ref globalParameter);
-            int volumeNodeCount = globalParameter.VolumeNodeCount;
-            int boundaryNodeCount = globalParameter.BoundaryNodeCount;
-            #endregion
+            //#region 全局参数传递
+            //GlobalParameter globalParameter = new GlobalParameter();
+            //DA.GetData("GlobalParameter", ref globalParameter);
+            //int volumeNodeCount = globalParameter.VolumeNodeCount;
+            //int boundaryNodeCount = globalParameter.BoundaryNodeCount;
+            //#endregion
 
             #region 局部变量初始化
             Thickness = 2;
 
+            Graph graph = new Graph();
+
             PlanktonMesh P = new PlanktonMesh();
 
-            List<Node> nodes = new List<Node>();
+            List<Node> graphNodes = new List<Node>();
+
+
+
             #endregion
 
-            if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh",ref P))
+            if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh",ref P)
+                && DA.GetData<Graph>("Graph",ref graph))
             {
                 // 获取节点
-                DA.GetDataList<Node>("GraphNode", nodes);
+                graphNodes = graph.GraphNodes;
 
                 #region 获得对偶图
                 // 利用半边数据结构求出对偶
@@ -142,19 +150,24 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 得到所有的innerNode的序号和outerNode的序号
-                List<int> innerNodeIndexs = new List<int>();
-                List<int> outerNodeIndexs = new List<int>();
-                for (int i = 0; i < nodes.Count; i++)
-                {
-                    if (nodes[i].IsInner)
-                    {
-                        innerNodeIndexs.Add(i);
-                    }
-                    else
-                    {
-                        outerNodeIndexs.Add(i);
-                    }
-                }
+                //List<int> innerNodeIndexs = new List<int>();
+                //List<int> outerNodeIndexs = new List<int>();
+                //for (int i = 0; i < graphNodes.Count; i++)
+                //{
+                //    if (graphNodes[i].IsInner)
+                //    {
+                //        innerNodeIndexs.Add(i);
+                //    }
+                //    else
+                //    {
+                //        outerNodeIndexs.Add(i);
+                //    }
+                //}
+
+                List<int> innerNodeIndexs = graph.InnerNodeIndexList;
+                List<int> outerNodeIndexs = graph.OuterNodeIndexList;
+                int innerNodeCount = graph.InnerNodeCount;
+                int outerNodeCount = graph.OuterNodeCount;
                 #endregion
 
                 #region 找到每个outerNode相关的面和发出的半边
@@ -198,9 +211,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #region 找到对偶图中的面所对应的InnerNode的序号，即NodePointIndex，NodePointIndex实际上是对偶图每个面所对应的原来图中的InnerNode的序号
                 List<List<int>> pFaceIndexAroundInnerNode = new List<List<int>>();
                 List<int> correspondingInnerNodeIndex = new List<int>();
-                for (int i = 0; i < nodes.Count; i++)
+                for (int i = 0; i < graphNodes.Count; i++)
                 {
-                    if (nodes[i].IsInner)
+                    if (graphNodes[i].IsInner)
                     {
                         //pFaceIndexAroundInnerNode.Add(new List<int>());
                         //pFaceIndexAroundInnerNode[i].AddRange(P.Vertices.GetVertexFaces(i));
@@ -296,11 +309,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 根据innerNode的序号，写入对应的NodeTextDots
-                for (int i = 0; i < nodes.Count; i++)
+                for (int i = 0; i < graphNodes.Count; i++)
                 {
-                    if (nodes[i].IsInner)
+                    if (graphNodes[i].IsInner)
                     {
-                        NodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, nodes[i].NodeAttribute.NodeLabel), this.NodePoints[NodePointIndex.IndexOf(i)]));
+                        NodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, graphNodes[i].NodeAttribute.NodeLabel), this.NodePoints[NodePointIndex.IndexOf(i)]));
                     }
                 }
                 #endregion
