@@ -73,7 +73,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 1
             pManager.AddMeshParameter("TheChosenTriangularMesh", "TMesh", "所选择的那个三角形剖分结果。The one you have chosen with index I", GH_ParamAccess.item);
             // 2
-            pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
+            pManager.AddGenericParameter("TheChosenGraphWithHFMesh", "THFMesh", "所选择的那个三角形剖分结果(GraphWithHFMesh对象)", GH_ParamAccess.item);
             // 3
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
@@ -213,7 +213,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 planktonMesh.Faces.AddFaces(faceVertexOrder);
                 #endregion
-                DA.SetData("TheChosenTriangleHalfedgeMesh", planktonMesh);
+
+                GraphWithHFMesh theChosenOne = new GraphWithHFMesh(planktonMesh, graph.GraphTables, graph.GraphNodes);
+
+                DA.SetData("TheChosenGraphWithHFMesh", theChosenOne);
 
                 #region Debug显示
 
