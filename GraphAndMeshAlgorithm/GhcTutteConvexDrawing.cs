@@ -249,178 +249,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         }
 
         /// <summary>
-        /// double列表求和
-        /// </summary>
-        /// <param name="x"></param>
-        /// <returns></returns>
-        public double Sum(List<double> x)
-        {
-            //int num = 0;
-            //int num2 = x.Count - 1;
-            //int num3 = num;
-            double sum = 0;
-            for (int i = 0; i < x.Count; i++)
-            {
-                sum += x[i];
-            }
-            return sum;
-        }
-
-        /// <summary>
-        /// 从一个矩阵中，取出与indices有关的那几行和几列数据，形成一个子矩阵
-        /// </summary>
-        /// <param name="adjacencyMatrixOfGraph"></param>
-        /// <param name="indicesForSubMatrix"></param>
-        /// <returns></returns>
-        public DataTree<int> SubAdjacencyMatrix(DataTree<int> adjacencyMatrixOfGraph, List<int> indicesForSubMatrix)
-        {
-            // indicesRowData中存储MatrixOfGraph中，有indicesForSubMatrix中序号的，那几行0,1数据
-            DataTree<int> indicesRowData = new DataTree<int>();
-            // indicesRowAndColumeData中存储MatrixOfGraph中，有indicesForSubMatrix中序号的那几行和有indicesForSubMatrix中序号的那几列0,1数据
-            DataTree<int> indicesRowAndColumeData = new DataTree<int>();
-
-            // 取MatrixOfGraph中，有indicesForSubMatrix中序号的那几行
-            for (int i = 0; i < indicesForSubMatrix.Count; i++)
-            {
-                indicesRowData.EnsurePath(i);
-                indicesRowData.Branch(i).AddRange(adjacencyMatrixOfGraph.Branch(indicesForSubMatrix[i]));
-            }
-
-            // 取上面取到的那几行中，有indicesForSubMatrix中序号的那几列
-            for (int i = 0; i < indicesForSubMatrix.Count; i++)
-            {
-                indicesRowAndColumeData.EnsurePath(i);
-                for (int j = 0; j < indicesForSubMatrix.Count; j++)
-                {
-                    indicesRowAndColumeData.Branch(i).Add(indicesRowData.Branch(i)[indicesForSubMatrix[j]]);
-                }
-            }
-            return indicesRowAndColumeData;
-        }
-
-        /// <summary>
-        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix
-        /// </summary>
-        /// <param name="graphForNxN"></param>
-        /// <returns></returns>
-        public DataTree<int> GraphToAdjacencyMatrix_NxN(DataTree<int> graphForNxN)
-        {
-            DataTree<int> dataTreeForNxN = new DataTree<int>();
-
-            for (int i = 0; i < graphForNxN.BranchCount; i++)
-            {
-                dataTreeForNxN.EnsurePath(i);
-                for (int j = 0; j < graphForNxN.BranchCount; j++)
-                {
-                    if (graphForNxN.Branch(i).Contains(j))
-                    {
-                        //list[i].Add(1);
-                        dataTreeForNxN.Branch(i).Add(1);
-                    }
-                    else
-                    {
-                        //list[i].Add(0);
-                        dataTreeForNxN.Branch(i).Add(0);
-                    }
-                }
-            }
-            return dataTreeForNxN;
-        }
-
-        public DataTree<int> GraphToAdjacencyMatrix_NxM(DataTree<int> graphForNxM, int volumeNodeCount,int boundaryNodeCount)
-        {
-            DataTree<int> dataTreeForNxM = new DataTree<int>();
-
-            for (int i = 0; i < graphForNxM.BranchCount; i++)
-            {
-                dataTreeForNxM.EnsurePath(i);
-                for (int j = 0; j < boundaryNodeCount; j++)
-                {
-                    if (graphForNxM.Branch(i).Contains(j + volumeNodeCount))
-                    {
-                        dataTreeForNxM.Branch(i).Add(1);
-                    }
-                    else
-                    {
-                        dataTreeForNxM.Branch(i).Add(0);
-                    }
-                }
-            }
-            return dataTreeForNxM;
-        }
-
-        /// <summary>
-        /// 将DataTree<int>结构的矩阵转化为Rhino.Geometry.Matrix结构
-        /// </summary>
-        /// <param name="dataTree"></param>
-        /// <returns></returns>
-        public Matrix ToGHMatrix(DataTree<int> dataTree)
-        {
-            Matrix matrix = new Matrix(dataTree.Branch(0).Count, dataTree.BranchCount);
-
-            if (dataTree == null)
-            {
-                matrix = null;
-            }
-            else
-            {
-                for (int i = 0; i < dataTree.BranchCount; i++)
-                {
-                    if (dataTree.Branch(i).Count != dataTree.Branch(0).Count)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Matrix must be rectagular! Your input graph is not valid");
-                        matrix = null;
-                    }
-
-                    for (int j = 0; j < dataTree.Branch(0).Count; j++)
-                    {
-                        for (int k = 0; k < dataTree.BranchCount; k++)
-                        {
-                            matrix[j, k] = (double)dataTree.Branch(k)[j];
-                        }
-                    }
-                }
-            }
-            return matrix;
-        }
-
-        /// <summary>
-        /// 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix。是图的矩阵表示
-        /// 在图论和计算机科学中，邻接矩阵A（英语：adjacency matrix）是一种方阵，用来表示有限图。它的每个元素代表各点之间是否有边相连。
-        /// 在数学领域图论中，度数矩阵D是一个对角矩阵 ，其中包含的信息为的每一个顶点的度数，也就是说，每个顶点相邻的边数[1] 它可以和邻接矩阵一起使用以构造图的拉普拉斯算子矩阵。
-        /// L = D - A
-        /// </summary>
-        /// <param name="adjacencyMatrix">邻接矩阵 Adjacency Matrix，对角线都是0，其他部分有数据0或1</param>
-        /// <param name="degreesMatrix">度数矩阵 Degrees Matrix，因为是只有对角线有数据，其他部分都是零，所以可以用list存储</param>
-        /// <returns></returns>
-        public DataTree<int> LaplacianMatrix(DataTree<int> adjacencyMatrix, List<int> degreesMatrix)
-        {
-            // 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix
-            DataTree<int> laplacianMatrix = new DataTree<int>();
-
-            for (int i = 0; i < adjacencyMatrix.BranchCount; i++)
-            {
-                laplacianMatrix.EnsurePath(i);
-                for (int j = 0; j < adjacencyMatrix.BranchCount; j++)
-                {
-                    // L = D - A
-                    // 如果是对角线上的位置
-                    if (j == i)
-                    {
-                        laplacianMatrix.Branch(i).Add(degreesMatrix[j] - 0);
-                    }
-                    // 其他位置
-                    else
-                    {
-                        laplacianMatrix.Branch(i).Add(0 - adjacencyMatrix.Branch(i)[j]);
-                    }
-                }
-            }
-
-            return laplacianMatrix;
-        }
-
-        /// <summary>
         /// 将排好序的点连接成多段线（NurbsCurve类型）
         /// </summary>
         /// <param name="sortedBoundaryPoints"></param>
@@ -434,7 +262,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             Polyline convex = new Polyline(sortedBoundaryPoints);
             return convex;
         }
-
 
         public Matrix GraphLoLToMatrix(List<List<int>> graphLoL,
                                      List<int> innerNodeIndexList,
@@ -511,7 +338,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             return wholeMatrix;
         }
 
-
         public List<Polyline> GMeshFaceBoundaries(List<Point3d> sortedBoundaryPoints, List<Line> edges, Plane basePlane)
         {
             List<Curve> splitLines = new List<Curve>();
@@ -557,9 +383,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             return list;
         }
-
-
-
 
         /// <summary>
         /// 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix。是图的矩阵表示
