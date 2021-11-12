@@ -51,13 +51,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
-
+            // 0
             pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
-
+            // 1
             pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果。", GH_ParamAccess.item);
-
-            // pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -65,22 +62,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            // pManager.AddPointParameter("DualVertices", "DV", "所有构成对偶多边形的顶点", GH_ParamAccess.list);
-            // pManager.AddTextParameter("DualFacesDescriptions", "DFD", "生成的对偶面的描述，包括对于第几个innerNode，周围由哪几个三角形的中心点包围形成", GH_ParamAccess.list);
-            // pManager.AddCurveParameter("DualConvexPolygons", "DFB", "生成的对偶多边形", GH_ParamAccess.list);
-
-            // pManager.AddIntegerParameter("DualConvexConnectivityGraph", "DCCGraph", "A graph representation as an adjacency list datatree", GH_ParamAccess.list);
-            // pManager.AddPointParameter("DualConvexCenterPointsAsGraphNodes", "DCGraphNode", "Graph vertices as [edge] centrpoids of cells", GH_ParamAccess.list);
-
+            // 0
             pManager.AddGenericParameter("DualHalfedgeMesh", "DHM", "生成的对偶图（半边数据结构）", GH_ParamAccess.item);
-
+            // 1
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
-
+            // 2
             pManager.AddIntegerParameter("faceIndexsFromOuterNodes", "", "", GH_ParamAccess.tree);
-
         }
 
         /// <summary>
@@ -89,30 +79,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            //#region 全局参数传递
-            //GlobalParameter globalParameter = new GlobalParameter();
-            //DA.GetData("GlobalParameter", ref globalParameter);
-            //int volumeNodeCount = globalParameter.VolumeNodeCount;
-            //int boundaryNodeCount = globalParameter.BoundaryNodeCount;
-            //#endregion
-
             #region 局部变量初始化
             Thickness = 2;
 
             Graph graph = new Graph();
-
             PlanktonMesh P = new PlanktonMesh();
-
-            List<Node> graphNodes = new List<Node>();
-
-
-
             #endregion
 
             if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh",ref P)
                 && DA.GetData<Graph>("Graph",ref graph))
             {
                 // 获取节点
+                List<Node> graphNodes = new List<Node>();
                 graphNodes = graph.GraphNodes;
 
                 #region 获得对偶图
@@ -150,19 +128,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 得到所有的innerNode的序号和outerNode的序号
-                //List<int> innerNodeIndexs = new List<int>();
-                //List<int> outerNodeIndexs = new List<int>();
-                //for (int i = 0; i < graphNodes.Count; i++)
-                //{
-                //    if (graphNodes[i].IsInner)
-                //    {
-                //        innerNodeIndexs.Add(i);
-                //    }
-                //    else
-                //    {
-                //        outerNodeIndexs.Add(i);
-                //    }
-                //}
 
                 List<int> innerNodeIndexs = graph.InnerNodeIndexList;
                 List<int> outerNodeIndexs = graph.OuterNodeIndexList;
