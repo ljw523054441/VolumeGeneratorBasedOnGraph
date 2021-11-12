@@ -246,7 +246,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 可视化部分
-                ConvexPolylinesPoints.Clear();
+                // ConvexPolylinesPoints.Clear();
                 SelectedTriangleMeshEdges.Clear();
                 InnerNodeTextDot.Clear();
                 OuterNodeTextDot.Clear();

@@ -30,12 +30,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
-
+            // 0
             pManager.AddPlaneParameter("BasePlane", "BP", "生成Tutte嵌入的平面", GH_ParamAccess.item, Plane.WorldXY);
-            // pManager.AddIntegerParameter("Graph", "G", "描述VolumeNode和BoundaryNode的所有连接关系的图结构", GH_ParamAccess.tree);
-            // pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
-
+            // 1
             pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
         }
 
@@ -44,15 +41,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            // pManager.AddGenericParameter("GraphNode", "GNode", "经过Tutte嵌入后得到的节点", GH_ParamAccess.list);
+            // 0
             pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
-
+            // 1
             pManager.AddCurveParameter("ConvexFaceBorders", "CFBorders", "Tutte嵌入后得到的TutteConvex列表", GH_ParamAccess.list);
-
+            // 2
             pManager.AddGenericParameter("SubGraph", "SG", "只包含InnerNode的子图", GH_ParamAccess.item);
-
-            //pManager.AddIntegerParameter("SubGraph", "SubG", "InnerNode内部点之间的连接关系", GH_ParamAccess.tree);
-            //pManager.AddGenericParameter("SubGraphNode", "SubGNode", "InnerNode内部节点", GH_ParamAccess.list);
+            // 3
             pManager.AddLineParameter("GraphEdge", "GEdge", "用直线来代表图结构中的连接关系", GH_ParamAccess.list);
         }
 
@@ -64,205 +59,389 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             #region 局部变量初始化
             Graph graph = new Graph();
-            Graph subGraph = new Graph();
-
-            Plane worldXY = Plane.WorldXY;
+            Plane targetPlane = Plane.WorldXY;
             #endregion
 
-            if (DA.GetData("Graph", ref graph))
+            if (DA.GetData<Graph>("Graph", ref graph))
             {
-                DA.GetData<Plane>("BasePlane", ref worldXY);
-                #region 计算相关矩阵的前置条件
+                DA.GetData<Plane>("BasePlane", ref targetPlane);
 
-                int outerNodeCount = graph.OuterNodeCount;
+                List<List<int>> graphLoL = graph.GraphTables;
+                List<Node> graphNodes = graph.GraphNodes;
+
                 int innerNodeCount = graph.InnerNodeCount;
+                int outerNodeCount = graph.OuterNodeCount;
                 List<int> outerNodeIndexList = graph.OuterNodeIndexList;
                 List<int> innerNodeIndexList = graph.InnerNodeIndexList;
 
-                List<List<int>> graphLoL = graph.GraphTables;
-                // List<Node> graphNode = graph.GraphNodes;
+                DataTree<int> graphDT = UtilityFunctions.LoLToDataTree<int>(graphLoL);
 
+                #region 计算相关矩阵的前置条件
                 // 每个volume点，其连接的数量，即该节点的度
                 List<int> innerNodeDegreeList = new List<int>();
                 for (int i = 0; i < innerNodeCount; i++)
                 {
-                    innerNodeDegreeList.Add(graphLoL[i].Count);
+                    innerNodeDegreeList.Add(graphDT.Branch(i).Count);
                 }
+
+                // 每个volume点与其他点的连接关系，包括其他volume点和boundary点
+                DataTree<int> volumeNodeGraph = new DataTree<int>();
+                for (int i = 0; i < innerNodeCount; i++)
+                {
+                    volumeNodeGraph.EnsurePath(i);
+                    volumeNodeGraph.Branch(i).AddRange(graphDT.Branch(i));
+                }
+
+
                 #endregion
 
                 #region 计算矩阵 P(outer)
-                // 回0,0,0附近进行计算
-                Point3d boundaryCenter = new Point3d(0.0, 0.0, 0.0);
-                for (int i = 0; i < graph.GraphNodes.Count; i++)
-                {
-                    if (!graph.GraphNodes[i].IsInner)
-                    {
-                        boundaryCenter += graph.GraphNodes[i].NodeVertex;
-                    }
-                }
-                boundaryCenter = boundaryCenter / outerNodeCount;
-
-                //矩阵 P(outer)，回0,0,0附近进行计算
                 Matrix P_outer = new Matrix(outerNodeCount, 2);
                 for (int i = 0; i < graph.GraphNodes.Count; i++)
                 {
                     if (!graph.GraphNodes[i].IsInner)
                     {
-                        P_outer[outerNodeIndexList.IndexOf(i), 0] = graph.GraphNodes[i].NodeVertex.X - boundaryCenter.X;
-                        P_outer[outerNodeIndexList.IndexOf(i), 1] = graph.GraphNodes[i].NodeVertex.Y - boundaryCenter.Y;
+                        P_outer[outerNodeIndexList.IndexOf(i), 0] = graph.GraphNodes[i].NodeVertex.X;
+                        P_outer[outerNodeIndexList.IndexOf(i), 1] = graph.GraphNodes[i].NodeVertex.Y;
                     }
                 }
-
                 #endregion
 
-                #region 整个大的矩阵，包含四个部分  inner行-inner列  inner行-outer列：Q  outer行-inner列：Q(上标T)  outer行-outer列
-
+                #region 计算inner，outer相关矩阵
                 Matrix inner_innerM;
                 // 矩阵Q：inner_OuterAdjacencyMatrix
                 Matrix inner_outerM;
                 Matrix outer_innerM;
                 Matrix outer_outerM;
-                Matrix wholeM = GraphLoLToMatrix(graphLoL, 
-                                 innerNodeIndexList, 
-                                 outerNodeIndexList, 
-                                 out inner_innerM, 
-                                 out inner_outerM, 
-                                 out outer_innerM, 
+                Matrix wholeM = GraphLoLToMatrix(graphLoL,
+                                 innerNodeIndexList,
+                                 outerNodeIndexList,
+                                 out inner_innerM,
+                                 out inner_outerM,
+                                 out outer_innerM,
                                  out outer_outerM);
+
+                Matrix inner_InnerLaplacianM = LaplacianMatrix(inner_innerM, innerNodeDegreeList);
+
+                bool flag = inner_InnerLaplacianM.Invert(0.0);
+                Matrix inverse_Inner_InnerLaplacianM = inner_InnerLaplacianM;
+
                 #endregion
 
-                List<string> Mstring = PrintMatrix(wholeM);
 
-                #region 矩阵L(下标1)：inner_InnerLaplacianMatrix
-                //DataTree<int> inner_InnerAdjacencyDataTree = SubAdjacencyMatrix(wholeAdjacencyDataTree, volumeNodeIndexList);
-                //Matrix inner_InnerAdjacencyMatrix = ToGHMatrix(inner_InnerAdjacencyDataTree);
-                // 拉普拉斯矩阵
-                //DataTree<int> inner_InnerLaplacianDataTree = LaplacianMatrix(inner_InnerAdjacencyDataTree, volumeNodeDegreeList);
-                //Matrix inner_InnerLaplacianMatrix = ToGHMatrix(inner_InnerLaplacianDataTree);
-
-                Matrix inner_InnerLaplacianMatrix = LaplacianMatrix(inner_innerM, innerNodeDegreeList);
-                #endregion
-
-                List<string> LMstring = PrintMatrix(inner_InnerLaplacianMatrix);
-
-                #region 拉普拉斯矩阵的逆
-                inner_InnerLaplacianMatrix.Invert(0.0);
-                // 拉普拉斯矩阵的逆 L(下标1)(上标-1)：inverse_Inner_InnerLaplacianMatrix
-                Matrix inverse_Inner_InnerLaplacianMatrix = inner_InnerLaplacianMatrix;
-                #endregion
 
                 #region 求解矩阵 P(inner)
+                // 求解矩阵 P(inner)
                 Matrix P_inner = new Matrix(innerNodeCount, 2);
-                P_inner = inverse_Inner_InnerLaplacianMatrix * inner_outerM * P_outer;
-                // 原插件这里没乘负号
+                P_inner = inverse_Inner_InnerLaplacianM * inner_outerM * P_outer;
                 // P_inner.Scale(-1.0);
                 #endregion
+
 
                 #region 从P_inner矩阵中生成新的inner点的坐标
                 List<Point3d> newInnerPoints = new List<Point3d>();
                 Point3d innerPoint;
                 for (int i = 0; i < innerNodeCount; i++)
                 {
-                    innerPoint = new Point3d(P_inner[i, 0] + boundaryCenter.X, P_inner[i, 1] + boundaryCenter.Y, 0.0);
+                    innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
                     newInnerPoints.Add(innerPoint);
                 }
                 #endregion
 
                 #region Relocate重定位，形成Graph的Node
+
+                #region 新的NodePoint列表
                 // 将新的inner点与原来的outer点合并成一个新的列表
                 List<Point3d> newNodePoints = new List<Point3d>();
-                for (int i = 0; i < graph.GraphNodes.Count; i++)
+                newNodePoints.AddRange(newInnerPoints);
+                List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
+                for (int i = 0; i < outerNodeCount; i++)
                 {
-                    if (graph.GraphNodes[i].IsInner)
-                    {
-                        newNodePoints.Add(newInnerPoints[innerNodeIndexList.IndexOf(i)]);
-                    }
-                    else
-                    {
-                        newNodePoints.Add(graph.GraphNodes[i].NodeVertex);
-                    }
+                    sortedBoundaryNodePoints.Add(graphNodes[innerNodeCount + i].NodeVertex);
                 }
+                newNodePoints.AddRange(sortedBoundaryNodePoints);
+                #endregion
 
+                Point3d currentCenter = new Point3d();
+                for (int i = 0; i < newNodePoints.Count; i++)
+                {
+                    currentCenter += newNodePoints[i];
+                }
+                currentCenter /= newNodePoints.Count;
+
+                Plane currentPlane = Plane.WorldXY;
+                currentPlane.Origin = currentCenter;
 
                 // 将新的inner+outer列表重新定位在基于worldXY变量的另一个地方
-                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newNodePoints, Plane.WorldXY, worldXY);
-                for (int i = 0; i < graph.GraphNodes.Count; i++)
+                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newNodePoints, currentPlane, targetPlane);
+                for (int i = 0; i < graphNodes.Count; i++)
                 {
-                    graph.GraphNodes[i].NodeVertex = newNodePointsRelocated[i];
+                    graphNodes[i].NodeVertex = newNodePointsRelocated[i];
                 }
+
                 #endregion
-                // DA.SetDataList("GraphNode", nodes);
-                DA.SetData("Graph", graph);
 
-
+                Graph newGraph = new Graph(graphNodes, graphLoL);
+                DA.SetData("Graph", newGraph);
 
 
                 #region 绘制Graph的edge
                 // Graph的所有Edge，在新的位置上画Edge
-                List<Line> graphEdge = GraphEdgeList(graph.GraphTables, newNodePointsRelocated);
+                List<Line> graphEdge = GraphEdgeList(graphDT, newNodePointsRelocated);
                 DA.SetDataList("GraphEdge", graphEdge);
                 #endregion
 
                 #region 绘制Graph形成的Convex
                 // Graph形成的每个convex，在新的位置上画Convex
-                List<Point3d> sortedBoundaryNodePointsRelocated = new List<Point3d>();
-                for (int i = 0; i < outerNodeCount; i++)
+                List<Point3d> newOuterNodePointsRelocated = new List<Point3d>();
+                //for (int i = innerNodeCount; i < newNodePointsRelocated.Count; i++)
+                //{
+                //    sortedBoundaryNodePointsRelocated.Add(newNodePointsRelocated[i]);
+                //}
+                for (int i = 0; i < graph.GraphNodes.Count; i++)
                 {
-                    sortedBoundaryNodePointsRelocated.Add(newNodePointsRelocated[outerNodeIndexList[i]]);
+                    if (!graph.GraphNodes[i].IsInner)
+                    {
+                        newOuterNodePointsRelocated.Add(newNodePointsRelocated[i]);
+                    }
                 }
-                List<Polyline> allSplitFaceBoundarys = GMeshFaceBoundaries(sortedBoundaryNodePointsRelocated, graphEdge, worldXY);
+
+                List<Polyline> allSplitFaceBoundarys = GMeshFaceBoundaries(newOuterNodePointsRelocated, graphEdge, targetPlane);
                 #endregion
                 DA.SetDataList("ConvexFaceBorders", allSplitFaceBoundarys);
 
+
+
+                /* 这里要把inner_InnerAdjacencyDataTree找回来*/
+
+
+
                 #region 输出subGraph
-
+                // subGraph的每一支表示一个volumeNode与哪些其他的volumeNode相连
                 List<List<int>> subGraphLoL = new List<List<int>>();
-                List<Node> subGraphNodes = new List<Node>();
-                for (int i = 0; i < graph.GraphNodes.Count; i++)
+                for (int i = 0; i < inner_innerM.RowCount; i++)
                 {
-                    
-                    if (graph.GraphNodes[i].IsInner)
+                    subGraphLoL.Add(new List<int>());
+                    for (int j = 0; j < inner_innerM.ColumnCount; j++)
                     {
-                        subGraphLoL.Add(new List<int>());
-                        int index = subGraphLoL.Count - 1;
-                        for (int j = 0; j < graph.GraphNodes.Count; j++)
+                        if (inner_innerM[i,j] == 1)
                         {
-                            if (graph.GraphNodes[j].IsInner)
-                            {
-                                if (wholeM[i, j] == 1)
-                                {
-                                    subGraphLoL[index].Add(j);
-                                }
-                            }
+                            subGraphLoL[i].Add(j);
                         }
-                        subGraphNodes.Add(graph.GraphNodes[i]);
                     }
-
-                    
                 }
                 #endregion
 
-                subGraph = new Graph(subGraphNodes, subGraphLoL);
-                DA.SetData("SubGraph", subGraph);
                 #region 输出subGraphNode
-                // DA.SetDataTree(2, subGraph);
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    subNodes.Add(nodes[i]);
-                //}
-
-                
+                List<Node> subGraphNodes = new List<Node>();
+                for (int i = 0; i < graph.GraphNodes.Count; i++)
+                {
+                    if (graph.GraphNodes[i].IsInner)
+                    {
+                        subGraphNodes.Add(graph.GraphNodes[i]);
+                    }
+                }
                 #endregion
-                // DA.SetDataList("SubGraphNode", subNodes);
+
+                Graph subGraph = new Graph(subGraphNodes, subGraphLoL);
+                DA.SetData("SubGraph", subGraph);
             }
         }
+
+        /// <summary>
+        /// double列表求和
+        /// </summary>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        public double Sum(List<double> x)
+        {
+            //int num = 0;
+            //int num2 = x.Count - 1;
+            //int num3 = num;
+            double sum = 0;
+            for (int i = 0; i < x.Count; i++)
+            {
+                sum += x[i];
+            }
+            return sum;
+        }
+
+        /// <summary>
+        /// 从一个矩阵中，取出与indices有关的那几行和几列数据，形成一个子矩阵
+        /// </summary>
+        /// <param name="adjacencyMatrixOfGraph"></param>
+        /// <param name="indicesForSubMatrix"></param>
+        /// <returns></returns>
+        public DataTree<int> SubAdjacencyMatrix(DataTree<int> adjacencyMatrixOfGraph, List<int> indicesForSubMatrix)
+        {
+            // indicesRowData中存储MatrixOfGraph中，有indicesForSubMatrix中序号的，那几行0,1数据
+            DataTree<int> indicesRowData = new DataTree<int>();
+            // indicesRowAndColumeData中存储MatrixOfGraph中，有indicesForSubMatrix中序号的那几行和有indicesForSubMatrix中序号的那几列0,1数据
+            DataTree<int> indicesRowAndColumeData = new DataTree<int>();
+
+            // 取MatrixOfGraph中，有indicesForSubMatrix中序号的那几行
+            for (int i = 0; i < indicesForSubMatrix.Count; i++)
+            {
+                indicesRowData.EnsurePath(i);
+                indicesRowData.Branch(i).AddRange(adjacencyMatrixOfGraph.Branch(indicesForSubMatrix[i]));
+            }
+
+            // 取上面取到的那几行中，有indicesForSubMatrix中序号的那几列
+            for (int i = 0; i < indicesForSubMatrix.Count; i++)
+            {
+                indicesRowAndColumeData.EnsurePath(i);
+                for (int j = 0; j < indicesForSubMatrix.Count; j++)
+                {
+                    indicesRowAndColumeData.Branch(i).Add(indicesRowData.Branch(i)[indicesForSubMatrix[j]]);
+                }
+            }
+            return indicesRowAndColumeData;
+        }
+
+        /// <summary>
+        /// 将一个graph转化为有0,1的表示关系的邻接矩阵 Adjacency Matrix
+        /// </summary>
+        /// <param name="graphForNxN"></param>
+        /// <returns></returns>
+        public DataTree<int> GraphToAdjacencyMatrix_NxN(DataTree<int> graphForNxN)
+        {
+            DataTree<int> dataTreeForNxN = new DataTree<int>();
+
+            for (int i = 0; i < graphForNxN.BranchCount; i++)
+            {
+                dataTreeForNxN.EnsurePath(i);
+                for (int j = 0; j < graphForNxN.BranchCount; j++)
+                {
+                    if (graphForNxN.Branch(i).Contains(j))
+                    {
+                        //list[i].Add(1);
+                        dataTreeForNxN.Branch(i).Add(1);
+                    }
+                    else
+                    {
+                        //list[i].Add(0);
+                        dataTreeForNxN.Branch(i).Add(0);
+                    }
+                }
+            }
+            return dataTreeForNxN;
+        }
+
+        public DataTree<int> GraphToAdjacencyMatrix_NxM(DataTree<int> graphForNxM, int volumeNodeCount,int boundaryNodeCount)
+        {
+            DataTree<int> dataTreeForNxM = new DataTree<int>();
+
+            for (int i = 0; i < graphForNxM.BranchCount; i++)
+            {
+                dataTreeForNxM.EnsurePath(i);
+                for (int j = 0; j < boundaryNodeCount; j++)
+                {
+                    if (graphForNxM.Branch(i).Contains(j + volumeNodeCount))
+                    {
+                        dataTreeForNxM.Branch(i).Add(1);
+                    }
+                    else
+                    {
+                        dataTreeForNxM.Branch(i).Add(0);
+                    }
+                }
+            }
+            return dataTreeForNxM;
+        }
+
+        /// <summary>
+        /// 将DataTree<int>结构的矩阵转化为Rhino.Geometry.Matrix结构
+        /// </summary>
+        /// <param name="dataTree"></param>
+        /// <returns></returns>
+        public Matrix ToGHMatrix(DataTree<int> dataTree)
+        {
+            Matrix matrix = new Matrix(dataTree.Branch(0).Count, dataTree.BranchCount);
+
+            if (dataTree == null)
+            {
+                matrix = null;
+            }
+            else
+            {
+                for (int i = 0; i < dataTree.BranchCount; i++)
+                {
+                    if (dataTree.Branch(i).Count != dataTree.Branch(0).Count)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Matrix must be rectagular! Your input graph is not valid");
+                        matrix = null;
+                    }
+
+                    for (int j = 0; j < dataTree.Branch(0).Count; j++)
+                    {
+                        for (int k = 0; k < dataTree.BranchCount; k++)
+                        {
+                            matrix[j, k] = (double)dataTree.Branch(k)[j];
+                        }
+                    }
+                }
+            }
+            return matrix;
+        }
+
+        /// <summary>
+        /// 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix。是图的矩阵表示
+        /// 在图论和计算机科学中，邻接矩阵A（英语：adjacency matrix）是一种方阵，用来表示有限图。它的每个元素代表各点之间是否有边相连。
+        /// 在数学领域图论中，度数矩阵D是一个对角矩阵 ，其中包含的信息为的每一个顶点的度数，也就是说，每个顶点相邻的边数[1] 它可以和邻接矩阵一起使用以构造图的拉普拉斯算子矩阵。
+        /// L = D - A
+        /// </summary>
+        /// <param name="adjacencyMatrix">邻接矩阵 Adjacency Matrix，对角线都是0，其他部分有数据0或1</param>
+        /// <param name="degreesMatrix">度数矩阵 Degrees Matrix，因为是只有对角线有数据，其他部分都是零，所以可以用list存储</param>
+        /// <returns></returns>
+        public DataTree<int> LaplacianMatrix(DataTree<int> adjacencyMatrix, List<int> degreesMatrix)
+        {
+            // 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix
+            DataTree<int> laplacianMatrix = new DataTree<int>();
+
+            for (int i = 0; i < adjacencyMatrix.BranchCount; i++)
+            {
+                laplacianMatrix.EnsurePath(i);
+                for (int j = 0; j < adjacencyMatrix.BranchCount; j++)
+                {
+                    // L = D - A
+                    // 如果是对角线上的位置
+                    if (j == i)
+                    {
+                        laplacianMatrix.Branch(i).Add(degreesMatrix[j] - 0);
+                    }
+                    // 其他位置
+                    else
+                    {
+                        laplacianMatrix.Branch(i).Add(0 - adjacencyMatrix.Branch(i)[j]);
+                    }
+                }
+            }
+
+            return laplacianMatrix;
+        }
+
+        /// <summary>
+        /// 将排好序的点连接成多段线（NurbsCurve类型）
+        /// </summary>
+        /// <param name="sortedBoundaryPoints"></param>
+        /// <param name="basePlane"></param>
+        /// <returns></returns>
+        public Polyline SortedPointsToPolyline(List<Point3d> sortedBoundaryPoints, Plane basePlane)
+        {
+            // 把startPoint放到最后作为endPoint，这样polyline才会闭合
+            sortedBoundaryPoints.Add(sortedBoundaryPoints[0]);
+
+            Polyline convex = new Polyline(sortedBoundaryPoints);
+            return convex;
+        }
+
 
         public Matrix GraphLoLToMatrix(List<List<int>> graphLoL,
                                      List<int> innerNodeIndexList,
                                      List<int> outerNodeIndexList,
-                                     out Matrix inner_innerM, 
-                                     out Matrix inner_outerM, 
-                                     out Matrix outer_innerM, 
+                                     out Matrix inner_innerM,
+                                     out Matrix inner_outerM,
+                                     out Matrix outer_innerM,
                                      out Matrix outer_outerM)
         {
             Matrix wholeMatrix = new Matrix(graphLoL.Count, graphLoL.Count);
@@ -333,80 +512,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         }
 
 
-
-
-        /// <summary>
-        /// 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix。是图的矩阵表示
-        /// 在图论和计算机科学中，邻接矩阵A（英语：adjacency matrix）是一种方阵，用来表示有限图。它的每个元素代表各点之间是否有边相连。
-        /// 在数学领域图论中，度数矩阵D是一个对角矩阵 ，其中包含的信息为的每一个顶点的度数，也就是说，每个顶点相邻的边数[1] 它可以和邻接矩阵一起使用以构造图的拉普拉斯算子矩阵。
-        /// L = D - A
-        /// </summary>
-        /// <param name="M">邻接矩阵 Adjacency Matrix，对角线都是0，其他部分有数据0或1</param>
-        /// <param name="degrees">度数矩阵 Degrees Matrix，因为是只有对角线有数据，其他部分都是零，所以可以用list存储</param>
-        /// <returns></returns>
-        public Matrix LaplacianMatrix(Matrix M, List<int> degrees)
-        {
-            if (!M.IsSquare)
-            {
-                return null;
-            }
-            if (M.RowCount != degrees.Count)
-            {
-                return null;
-            }
-            
-            Matrix LaplacianM = new Matrix(M.RowCount, M.ColumnCount);
-            for (int i = 0; i < M.RowCount; i++)
-            {
-                for (int j = 0; j < M.ColumnCount; j++)
-                {
-                    if (i == j)
-                    {
-                        LaplacianM[i, j] = degrees[j] - 0;
-                    }
-                    else
-                    {
-                        LaplacianM[i, j] = 0 - degrees[j];
-                    }
-                }
-            }
-
-            return LaplacianM;
-        }
-
-        public List<string> PrintMatrix(Matrix M)
-        {
-            List<string> output = new List<string>();
-            for (int i = 0; i < M.RowCount; i++)
-            {
-                string str = string.Format("{0}行:", i);
-                for (int j = 0; j < M.ColumnCount; j++)
-                {
-                    str += string.Format("{0},", M[i, j]);
-                }
-                output.Add(str);
-            }
-
-            return output;
-        }
-
-
-        /// <summary>
-        /// 将排好序的点连接成多段线（NurbsCurve类型）
-        /// </summary>
-        /// <param name="sortedBoundaryPoints"></param>
-        /// <param name="basePlane"></param>
-        /// <returns></returns>
-        public Polyline SortedPointsToPolyline(List<Point3d> sortedBoundaryPoints, Plane basePlane)
-        {
-            // 把startPoint放到最后作为endPoint，这样polyline才会闭合
-            sortedBoundaryPoints.Add(sortedBoundaryPoints[0]);
-
-            Polyline convex = new Polyline(sortedBoundaryPoints);
-            return convex;
-        }
-
-
         public List<Polyline> GMeshFaceBoundaries(List<Point3d> sortedBoundaryPoints, List<Line> edges, Plane basePlane)
         {
             List<Curve> splitLines = new List<Curve>();
@@ -437,21 +542,80 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             return allConvexPolyline;
         }
 
-        public List<Line> GraphEdgeList(List<List<int>> graphLoL, List<Point3d> graphVertices)
+        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices)
         {
             List<Line> list = new List<Line>();
 
-            for (int i = 0; i < graphLoL.Count; i++)
+            for (int i = 0; i < graph.BranchCount; i++)
             {
-                for (int j = 0; j < graphLoL[i].Count; j++)
+                for (int j = 0; j < graph.Branch(i).Count; j++)
                 {
-                    Line item = new Line(graphVertices[i], graphVertices[graphLoL[i][j]]);
+                    Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j]]);
                     list.Add(item);
                 }
             }
 
             return list;
         }
+
+
+
+
+        /// <summary>
+        /// 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix。是图的矩阵表示
+        /// 在图论和计算机科学中，邻接矩阵A（英语：adjacency matrix）是一种方阵，用来表示有限图。它的每个元素代表各点之间是否有边相连。
+        /// 在数学领域图论中，度数矩阵D是一个对角矩阵 ，其中包含的信息为的每一个顶点的度数，也就是说，每个顶点相邻的边数[1] 它可以和邻接矩阵一起使用以构造图的拉普拉斯算子矩阵。
+        /// L = D - A
+        /// </summary>
+        /// <param name="M">邻接矩阵 Adjacency Matrix，对角线都是0，其他部分有数据0或1</param>
+        /// <param name="degrees">度数矩阵 Degrees Matrix，因为是只有对角线有数据，其他部分都是零，所以可以用list存储</param>
+        /// <returns></returns>
+        public Matrix LaplacianMatrix(Matrix M, List<int> degrees)
+        {
+            if (!M.IsSquare)
+            {
+                return null;
+            }
+            if (M.RowCount != degrees.Count)
+            {
+                return null;
+            }
+
+            Matrix LaplacianM = new Matrix(M.RowCount, M.ColumnCount);
+            for (int i = 0; i < M.RowCount; i++)
+            {
+                for (int j = 0; j < M.ColumnCount; j++)
+                {
+                    if (i == j)
+                    {
+                        LaplacianM[i, j] = degrees[j] - 0;
+                    }
+                    else
+                    {
+                        LaplacianM[i, j] = 0 - M[i,j];
+                    }
+                }
+            }
+
+            return LaplacianM;
+        }
+
+        public List<string> PrintMatrix(Matrix M)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < M.RowCount; i++)
+            {
+                string str = string.Format("{0}行:", i);
+                for (int j = 0; j < M.ColumnCount; j++)
+                {
+                    str += string.Format("{0},", M[i, j]);
+                }
+                output.Add(str);
+            }
+
+            return output;
+        }
+
 
 
         /// <summary>
