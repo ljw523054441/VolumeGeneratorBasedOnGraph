@@ -62,22 +62,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            //#region 全局参数传递
-            //GlobalParameter globalParameter = new GlobalParameter();
-            //DA.GetData("GlobalParameter", ref globalParameter);
-            //int volumeNodeCount = globalParameter.VolumeNodeCount;
-            //int boundaryNodeCount = globalParameter.BoundaryNodeCount;
-            //#endregion
-
             #region 局部变量初始化
-            //GH_Structure<GH_Integer> gh_Structure_graph = null;
-            //DataTree<int> graph = new DataTree<int>();
-
-            //List<Node> nodes = new List<Node>();
             Graph graph = new Graph();
-
             Graph subGraph = new Graph();
-            // List<Node> subNodes = new List<Node>();
 
             Plane worldXY = Plane.WorldXY;
             #endregion
@@ -86,49 +73,26 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 DA.GetData<Plane>("BasePlane", ref worldXY);
                 #region 计算相关矩阵的前置条件
-                // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>
-                // UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graphLoL);
-
 
                 int outerNodeCount = graph.OuterNodeCount;
                 int innerNodeCount = graph.InnerNodeCount;
                 List<int> outerNodeIndexList = graph.OuterNodeIndexList;
                 List<int> innerNodeIndexList = graph.InnerNodeIndexList;
 
-
                 List<List<int>> graphLoL = graph.GraphTables;
-
-                List<int> volumeNodeIndexList = new List<int>();
-                for (int i = 0; i < innerNodeCount; i++)
-                {
-                    volumeNodeIndexList.Add(i);
-                }
+                // List<Node> graphNode = graph.GraphNodes;
 
                 // 每个volume点，其连接的数量，即该节点的度
-                List<int> volumeNodeDegreeList = new List<int>();
+                List<int> innerNodeDegreeList = new List<int>();
                 for (int i = 0; i < innerNodeCount; i++)
                 {
-                    volumeNodeDegreeList.Add(graphLoL[i].Count);
-                }
-
-                // 每个volume点与其他点的连接关系，包括其他volume点和boundary点
-                DataTree<int> volumeNodeGraphDT = new DataTree<int>();
-                for (int i = 0; i < innerNodeCount; i++)
-                {
-                    volumeNodeGraphDT.EnsurePath(i);
-                    volumeNodeGraphDT.Branch(i).AddRange(graphLoL[i]);
+                    innerNodeDegreeList.Add(graphLoL[i].Count);
                 }
                 #endregion
 
                 #region 计算矩阵 P(outer)
                 // 回0,0,0附近进行计算
                 Point3d boundaryCenter = new Point3d(0.0, 0.0, 0.0);
-                //for (int i = 0; i < graph.OuterNodeCount; i++)
-                //{
-                //    boundaryCenter = boundaryCenter + nodes[volumeNodeCount + i].NodeVertex;
-                //    boundaryCenter = boundaryCenter + graph.GraphNodes[];
-                //}
-                //boundaryCenter = boundaryCenter / boundaryNodeCount;
                 for (int i = 0; i < graph.GraphNodes.Count; i++)
                 {
                     if (!graph.GraphNodes[i].IsInner)
@@ -140,12 +104,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 //矩阵 P(outer)，回0,0,0附近进行计算
                 Matrix P_outer = new Matrix(outerNodeCount, 2);
-
-                //for (int i = 0; i < outerNodeCount; i++)
-                //{
-                //    P_outer[i, 0] = nodes[innerNodeCount + i].NodeVertex.X - boundaryCenter.X;
-                //    P_outer[i, 1] = nodes[innerNodeCount + i].NodeVertex.Y - boundaryCenter.Y;
-                //}
                 for (int i = 0; i < graph.GraphNodes.Count; i++)
                 {
                     if (!graph.GraphNodes[i].IsInner)
@@ -158,10 +116,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 整个大的矩阵，包含四个部分  inner行-inner列  inner行-outer列：Q  outer行-inner列：Q(上标T)  outer行-outer列
-                //DataTree<int> wholeAdjacencyDataTree = GraphToAdjacencyMatrix_NxN(graphLoL, globalParameter);
-                //Matrix wholeAdjacencyMatrix = ToGHMatrix(wholeAdjacencyDataTree);
 
                 Matrix inner_innerM;
+                // 矩阵Q：inner_OuterAdjacencyMatrix
                 Matrix inner_outerM;
                 Matrix outer_innerM;
                 Matrix outer_outerM;
@@ -176,27 +133,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 List<string> Mstring = PrintMatrix(wholeM);
 
-
-                #region 矩阵Q：inner_OuterAdjacencyMatrix
-                //DataTree<int> volumeBoundaryGraph = new DataTree<int>();
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    volumeBoundaryGraph.EnsurePath(i);
-                //    for (int j = 0; j < volumeNodeGraphDT.Branch(i).Count; j++)
-                //    {
-                //        // 选出outer的部分
-                //        if (volumeNodeGraphDT.Branch(i)[j] >= innerNodeCount)
-                //        {
-                //            volumeBoundaryGraph.Branch(i).Add(volumeNodeGraphDT.Branch(i)[j]);
-                //        }
-                //    }
-                //}
-                //DataTree<int> inner_OuterAdjacencyDataTree = GraphToAdjacencyMatrix_NxM(volumeBoundaryGraph, globalParameter);
-                //// 这里直接得到的矩阵是行列反掉的，需要转置
-                //Matrix inner_OuterAdjacencyMatrix = ToGHMatrix(inner_OuterAdjacencyDataTree);
-                //inner_OuterAdjacencyMatrix.Transpose();
-                #endregion
-
                 #region 矩阵L(下标1)：inner_InnerLaplacianMatrix
                 //DataTree<int> inner_InnerAdjacencyDataTree = SubAdjacencyMatrix(wholeAdjacencyDataTree, volumeNodeIndexList);
                 //Matrix inner_InnerAdjacencyMatrix = ToGHMatrix(inner_InnerAdjacencyDataTree);
@@ -204,7 +140,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //DataTree<int> inner_InnerLaplacianDataTree = LaplacianMatrix(inner_InnerAdjacencyDataTree, volumeNodeDegreeList);
                 //Matrix inner_InnerLaplacianMatrix = ToGHMatrix(inner_InnerLaplacianDataTree);
 
-                Matrix inner_InnerLaplacianMatrix = LaplacianMatrix(inner_innerM, volumeNodeDegreeList);
+                Matrix inner_InnerLaplacianMatrix = LaplacianMatrix(inner_innerM, innerNodeDegreeList);
                 #endregion
 
                 List<string> LMstring = PrintMatrix(inner_InnerLaplacianMatrix);
@@ -235,15 +171,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #region Relocate重定位，形成Graph的Node
                 // 将新的inner点与原来的outer点合并成一个新的列表
                 List<Point3d> newNodePoints = new List<Point3d>();
-
-                //newNodePoints.AddRange(newInnerPoints);
-                //List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
-                //for (int i = 0; i < outerNodeCount; i++)
-                //{
-                //    //sortedBoundaryNodePoints.Add(nodes[innerNodeCount + i].NodeVertex);
-                //    sortedBoundaryNodePoints.Add(graph.GraphNodes[outerNodeIndexList.IndexOf(i)].NodeVertex);
-                //}
-                //newNodePoints.AddRange(sortedBoundaryNodePoints);
                 for (int i = 0; i < graph.GraphNodes.Count; i++)
                 {
                     if (graph.GraphNodes[i].IsInner)
@@ -288,20 +215,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DA.SetDataList("ConvexFaceBorders", allSplitFaceBoundarys);
 
                 #region 输出subGraph
-                // subGraph的每一支表示一个volumeNode与哪些其他的volumeNode相连
-                //DataTree<int> subGraph = new DataTree<int>();
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    subGraph.EnsurePath(i);
-
-                //    for (int j = 0; j < innerNodeCount; j++)
-                //    {
-                //        if (inner_InnerAdjacencyDataTree.Branch(i)[j] == 1)
-                //        {
-                //            subGraph.Branch(i).Add(j);
-                //        }
-                //    }
-                //}
 
                 List<List<int>> subGraphLoL = new List<List<int>>();
                 List<Node> subGraphNodes = new List<Node>();
