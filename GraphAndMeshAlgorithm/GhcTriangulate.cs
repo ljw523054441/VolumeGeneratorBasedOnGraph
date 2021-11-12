@@ -51,16 +51,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
 
-            pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+
+            pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
 
             // pManager.AddPointParameter("TutteOutputVertices", "NGV", "The set of locations of vertices as resulted from Tutte algorithm", GH_ParamAccess.list);
             pManager.AddCurveParameter("ConvexFaceBorders", "CFBorders", "Convex face borders of the Tutte algorithm as a list of polyline curves.", GH_ParamAccess.list);
             pManager.AddIntegerParameter("IndexOfTriangularMesh", "I", "Index of a triangulation to be visualized from the list of all triangulations", GH_ParamAccess.item);
             pManager.AddBooleanParameter("ExcludeDegenerateTINS", "ExT", "排除那些产生三角形房间的三角剖分 Exclude those triangulations that give rise to triangular rooms", GH_ParamAccess.item);
+            pManager[2].Optional = true;
             pManager[3].Optional = true;
-            pManager[4].Optional = true;
         }
 
         /// <summary>
@@ -85,31 +87,23 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            #region 全局参数传递
-            GlobalParameter globalParameter = new GlobalParameter();
-            DA.GetData("GlobalParameter", ref globalParameter);
-            int innerNodeCount = globalParameter.VolumeNodeCount;
-            int outerNodeCount = globalParameter.BoundaryNodeCount;
-            #endregion
-
             #region 局部变量初始化
-            List<Node> nodes = new List<Node>();
-
-            List<Point3d> nodePoints = new List<Point3d>();
-            List<Point3d> outerPoints = new List<Point3d>();
+            Graph graph = new Graph();
             List<Curve> convexFaceBorderCurves = new List<Curve>();
-            List<Polyline> convexFaceBorderPolylines = new List<Polyline>();
-
-            int index = 0;
-            bool flag = false;
 
             Thickness = 2;
             #endregion
 
-            if (DA.GetDataList<Node>("GraphNode", nodes)
+            if (DA.GetData<Graph>("Graph", ref graph)
                 && DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
             {
+                int innerNodeCount = graph.InnerNodeCount;
+                int outerNodeCount = graph.OuterNodeCount;
+                List<int> innerNodeIndexList = graph.InnerNodeIndexList;
+                List<int> outerNodeIndexList = graph.OuterNodeIndexList;
+
                 #region 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
+                List<Polyline> convexFaceBorderPolylines = new List<Polyline>();
                 for (int i = 0; i < convexFaceBorderCurves.Count; i++)
                 {
                     Polyline polyline = null;
@@ -127,25 +121,39 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         }
                     }
                 }
-                #endregion
-
-                #region 获取Node的坐标和构造Point3d
-                for (int i = 0; i < nodes.Count; i++)
-                {
-                    nodePoints.Add(nodes[i].NodeVertex);
-                }
-                for (int i = 0; i < nodes.Count - innerNodeCount; i++)
-                {
-                    outerPoints.Add(nodes[i + innerNodeCount].NodeVertex);
-                }
-                #endregion
-
                 #region 可能的报错
                 if (convexFaceBorderCurves.Count != convexFaceBorderPolylines.Count)
                 {
                     this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "the ConvexFaceBorders are supposed to be closed polylines or polygons, but apparently at least one is not closed or is not a polyline!");
+                    return;
                 }
                 #endregion
+                #endregion
+
+
+
+                #region 获取Node的坐标和构造Point3d
+
+                List<Node> nodes = graph.GraphNodes;
+
+                List<Point3d> nodePoints = new List<Point3d>();
+                List<Point3d> outerPoints = new List<Point3d>();
+
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    nodePoints.Add(nodes[i].NodeVertex);
+                }
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    if (!nodes[i].IsInner)
+                    {
+                        outerPoints.Add(nodes[i].NodeVertex);
+                    }
+                }
+                #endregion
+
+                int index = 0;
+                bool flag = false;
 
                 DA.GetData<int>("IndexOfTriangularMesh", ref index);
                 DA.GetData<bool>("ExcludeDegenerateTINS", ref flag);
