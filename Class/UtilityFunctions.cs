@@ -223,14 +223,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <returns></returns>
         internal static List<Point3d> Relocate(List<Point3d> p, Plane location1, Plane location2)
         {
-            Point3d point3d = new Point3d(0.0, 0.0, 0.0);
+            //Point3d point3d = new Point3d(0.0, 0.0, 0.0);
             List<Point3d> list = new List<Point3d>();
-            foreach (Point3d point3d2 in p)
-            {
-                point3d += point3d2;
-            }
-            point3d /= (double)p.Count;
-            location1.Origin = point3d;
+            //foreach (Point3d point3d2 in p)
+            //{
+            //    point3d += point3d2;
+            //}
+            //point3d /= (double)p.Count;
+            //location1.Origin = point3d;
             foreach (Point3d item in p)
             {
                 item.Transform(Transform.PlaneToPlane(location1, location2));
