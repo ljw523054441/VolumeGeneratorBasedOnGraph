@@ -51,15 +51,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
-
-            // pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
-
+            // 0
             pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
-
-            // pManager.AddPointParameter("TutteOutputVertices", "NGV", "The set of locations of vertices as resulted from Tutte algorithm", GH_ParamAccess.list);
+            // 1
             pManager.AddCurveParameter("ConvexFaceBorders", "CFBorders", "Convex face borders of the Tutte algorithm as a list of polyline curves.", GH_ParamAccess.list);
+            // 2
             pManager.AddIntegerParameter("IndexOfTriangularMesh", "I", "Index of a triangulation to be visualized from the list of all triangulations", GH_ParamAccess.item);
+            // 3
             pManager.AddBooleanParameter("ExcludeDegenerateTINS", "ExT", "排除那些产生三角形房间的三角剖分 Exclude those triangulations that give rise to triangular rooms", GH_ParamAccess.item);
             pManager[2].Optional = true;
             pManager[3].Optional = true;
@@ -70,11 +68,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            // 0
             pManager.AddMeshParameter("AllTriangularMeshes", "AllTMesh", "所有可能的三角形剖分结果。All Computed triangulations; these triangulations describe all possible planar topologies for your plan diagram, the added links are those of adjacencies not connectivities", GH_ParamAccess.list);
+            // 1
             pManager.AddMeshParameter("TheChosenTriangularMesh", "TMesh", "所选择的那个三角形剖分结果。The one you have chosen with index I", GH_ParamAccess.item);
-
+            // 2
             pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
-
+            // 3
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
@@ -98,9 +98,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 && DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
             {
                 int innerNodeCount = graph.InnerNodeCount;
-                int outerNodeCount = graph.OuterNodeCount;
-                List<int> innerNodeIndexList = graph.InnerNodeIndexList;
-                List<int> outerNodeIndexList = graph.OuterNodeIndexList;
+                // int outerNodeCount = graph.OuterNodeCount;
+                // List<int> innerNodeIndexList = graph.InnerNodeIndexList;
+                // List<int> outerNodeIndexList = graph.OuterNodeIndexList;
 
                 #region 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
                 List<Polyline> convexFaceBorderPolylines = new List<Polyline>();
@@ -116,7 +116,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             #region 设置可视化中的实线部分
                             ConvexPolylinesPoints.Add(new List<Point3d>());
                             ConvexPolylinesPoints[i].AddRange(polyline);
-                            // ConvexPolylinesPoints[i].RemoveAt(ConvexPolylinesPoints[i].Count - 1);
                             #endregion
                         }
                     }
@@ -161,6 +160,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #region 得到这样一个图结构下，所有的同形异构的整体的三角形网格
                 List<Mesh> allPolylineCorrespondIsomorphismTriangleMeshes = GetAllIsomorphismTriangleMeshes(ClosedPolylineToTriangleMesh(convexFaceBorderPolylines));
                 #endregion
+
                 #region 剔除细分后的三角形全部由outerNode构成的情况
                 List<Mesh> allPolylineCorrespondIsomorphismTriangleMeshesExceptOuterNode = RemoveTriangleMeshWithAllOuterNode(allPolylineCorrespondIsomorphismTriangleMeshes, outerPoints);
                 #endregion
@@ -184,7 +184,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
                 DA.SetDataList("AllTriangularMeshes", result);
 
-
                 #region 选择生成的三角剖分
                 if (index >= result.Count)
                 {
@@ -193,7 +192,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 #endregion
                 DA.SetData("TheChosenTriangularMesh", result[index]);
-
 
                 #region 构造半边数据结构
                 PlanktonMesh planktonMesh = new PlanktonMesh();
