@@ -6,6 +6,8 @@ using Grasshopper.Kernel.Types;
 using Rhino;
 using Rhino.Collections;
 using Rhino.Geometry;
+using Plankton;
+using PlanktonGh;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -33,7 +35,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 0
             pManager.AddPlaneParameter("BasePlane", "BP", "生成Tutte嵌入的平面", GH_ParamAccess.item, Plane.WorldXY);
             // 1
-            pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Graph or GraphWithHM", "G or GHM", "图结构", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -42,7 +44,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // 0
-            pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Graph or GraphWithHM", "G or GHM", "图结构", GH_ParamAccess.item);
             // 1
             pManager.AddCurveParameter("ConvexFaceBorders", "CFBorders", "Tutte嵌入后得到的TutteConvex列表", GH_ParamAccess.list);
             // 2
@@ -59,10 +61,31 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             #region 局部变量初始化
             Graph graph = new Graph();
+            GraphWithHM graphWithHM = new GraphWithHM();
+
             Plane targetPlane = Plane.WorldXY;
             #endregion
 
-            if (DA.GetData<Graph>("Graph", ref graph))
+            GH_ObjectWrapper obj = new GH_ObjectWrapper();
+
+            DA.GetData<GH_ObjectWrapper>("Graph or GraphWithHM", ref obj);
+
+            bool flagGetGraph = false;
+            bool flagGetGraphWithHFMesh = false;
+
+            if (obj.Value is Graph)
+            {
+                flagGetGraph = DA.GetData<Graph>("Graph or GraphWithHM", ref graph);
+            }
+            if (obj.Value is GraphWithHM)
+            {
+                flagGetGraphWithHFMesh = DA.GetData<GraphWithHM>("Graph or GraphWithHM", ref graphWithHM);
+                graph = graphWithHM;
+            }
+
+
+
+            if (flagGetGraph ^ flagGetGraphWithHFMesh)
             {
                 DA.GetData<Plane>("BasePlane", ref targetPlane);
 
@@ -181,8 +204,39 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #endregion
 
-                Graph newGraph = new Graph(graphNodes, graphLoL);
-                DA.SetData("Graph", newGraph);
+
+                if (flagGetGraph)
+                {
+                    Graph newGraph = new Graph(graphNodes, graphLoL);
+                    DA.SetData("Graph or GraphWithHM", newGraph);
+                }
+
+
+                if (flagGetGraphWithHFMesh)
+                {
+                    PlanktonMesh planktonMesh = graphWithHM.PlanktonMesh;
+
+                    List<List<int>> faceVertexOrder = new List<List<int>>();
+                    for (int i = 0; i < planktonMesh.Faces.Count; i++)
+                    {
+                        faceVertexOrder.Add(new List<int>());
+                        int[] vertexs = planktonMesh.Faces.GetFaceVertices(i);
+                        faceVertexOrder[i].AddRange(vertexs);
+                    }
+
+                    PlanktonMesh newPlanktonMesh = new PlanktonMesh();
+                    // vertices部分
+                    for (int i = 0; i < graphWithHM.GraphNodes.Count; i++)
+                    {
+                        newPlanktonMesh.Vertices.Add(graphNodes[i].NodeVertex.X, graphNodes[i].NodeVertex.Y, graphNodes[i].NodeVertex.Z);
+                    }
+                    // faces部分
+                    newPlanktonMesh.Faces.AddFaces(faceVertexOrder);
+
+                    GraphWithHM newGraphWithHM = new GraphWithHM(newPlanktonMesh, graphNodes, graphLoL);
+                    DA.SetData("Graph or GraphWithHM", newGraphWithHM);
+                }
+
 
 
                 #region 绘制Graph的edge
