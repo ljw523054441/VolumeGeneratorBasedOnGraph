@@ -115,6 +115,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             //int outerNodeCount = globalParameter.BoundaryNodeCount;
             //#endregion
 
+            Tree.Clear();
+
             #region 局部变量初始化
 
             GraphWithHM graphWithHM = new GraphWithHM();
