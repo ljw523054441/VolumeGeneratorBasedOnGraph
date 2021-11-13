@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph.Class
 {
-    public class GraphWithHFMesh : Graph
+    public class GraphWithHM : Graph
     {
         /// <summary>
         /// 对应的半边网格
@@ -29,7 +29,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <summary>
         /// 构造空的GraphWithHFMesh对象
         /// </summary>
-        public GraphWithHFMesh()
+        public GraphWithHM()
         {
             this.GraphTables = new List<List<int>>();
             this.GraphNodes = new List<Node>();
@@ -39,7 +39,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <summary>
         /// 用于在还没有进行Decompose时，构造GraphWithHFMesh对象
         /// </summary>
-        public GraphWithHFMesh(PlanktonMesh planktonMesh, 
+        public GraphWithHM(PlanktonMesh planktonMesh, 
                                List<List<int>> graphLoL,
                                List<Node> graphNode)
         {
@@ -75,7 +75,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="decomposeTheithVertex"></param>
         /// <param name="decomposeTheithPairHFVertexIndex"></param>
         /// <param name="decomposeTheithPairHFResult"></param>
-        public GraphWithHFMesh(PlanktonMesh planktonMesh, 
+        public GraphWithHM(PlanktonMesh planktonMesh, 
                                List<List<int>> graphLoL, 
                                List<Node> graphNode,
                                int decomposeTheithVertex,
@@ -118,7 +118,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// 利用拷贝构造函数实现深拷贝
         /// </summary>
         /// <param name="decomposedHM"></param>
-        public GraphWithHFMesh(GraphWithHFMesh decomposedHM)
+        public GraphWithHM(GraphWithHM decomposedHM)
         {
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(decomposedHM.PlanktonMesh);

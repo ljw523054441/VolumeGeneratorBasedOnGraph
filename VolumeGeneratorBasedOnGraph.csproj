@@ -67,7 +67,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class\ConvexPolygon.cs" />
-    <Compile Include="Class\GraphWithHFMesh.cs" />
+    <Compile Include="Class\GraphWithHM.cs" />
     <Compile Include="Class\Graph.cs" />
     <Compile Include="Class\Tree.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDebugGraph.cs" />

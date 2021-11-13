@@ -33,13 +33,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             InnerNodeTextDot = new List<TextDot>();
             OuterNodeTextDot = new List<TextDot>();
 
-            Tree = NodeTree<GraphWithHFMesh>.NewTree();
+            Tree = NodeTree<GraphWithHM>.NewTree();
 
             ExceptionReports = new List<string>();
             CorrectReports = new List<string>();
             DefaultReports = new List<string>();
 
-            CurrentDHM = new GraphWithHFMesh();
+            CurrentDHM = new GraphWithHM();
         }
 
         private int Thickness;
@@ -61,13 +61,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<TextDot> InnerNodeTextDot;
         private List<TextDot> OuterNodeTextDot;
 
-        private ITree<GraphWithHFMesh> Tree;
+        private ITree<GraphWithHM> Tree;
 
         private List<string> ExceptionReports;
         private List<string> CorrectReports;
         private List<string> DefaultReports;
 
-        private GraphWithHFMesh CurrentDHM;
+        private GraphWithHM CurrentDHM;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -164,7 +164,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 创建一个树
                 // ITree<DecomposedHM> tree = NodeTree<DecomposedHM>.NewTree();
                 // 对输入的PlanktonMesh，GraphLoL，GraphNode构造DecomposedHM，形成树的根节点
-                INode<GraphWithHFMesh> root = Tree.AddChild(new GraphWithHFMesh(PDeepCopy, pGraphLoL, pNodesDeepCopy, -1, new int[2, 2] { { -1, -1 }, { -1, -1 } }, -1));
+                INode<GraphWithHM> root = Tree.AddChild(new GraphWithHM(PDeepCopy, pGraphLoL, pNodesDeepCopy, -1, new int[2, 2] { { -1, -1 }, { -1, -1 } }, -1));
 
 
                 // 新分裂产生的Vertex的Index集合
@@ -273,8 +273,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 GenerateDecomposedHMs(root, viOfNewDecomposed, viHasBeenDecomposed);
 
-                List<GraphWithHFMesh> allPossibleDecomposedHMesh = new List<GraphWithHFMesh>();
-                foreach (INode<GraphWithHFMesh> decomposedHM in Tree.AllChildren.Nodes)
+                List<GraphWithHM> allPossibleDecomposedHMesh = new List<GraphWithHM>();
+                foreach (INode<GraphWithHM> decomposedHM in Tree.AllChildren.Nodes)
                 {
                     if (decomposedHM.HasChild == false)
                     {
@@ -400,10 +400,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="dHMToSplit"></param>
         /// <param name="viOfNewDecomposed"></param>
         /// <param name="viHasBeenDecomposed"></param>
-        public void GenerateDecomposedHMs(INode<GraphWithHFMesh> dHMToSplit, List<int> viOfNewDecomposed, List<int> viHasBeenDecomposed)
+        public void GenerateDecomposedHMs(INode<GraphWithHM> dHMToSplit, List<int> viOfNewDecomposed, List<int> viHasBeenDecomposed)
         {
             // 深拷贝DecomposedHM
-            GraphWithHFMesh dHMDeepCopy = new GraphWithHFMesh(dHMToSplit.Data);
+            GraphWithHM dHMDeepCopy = new GraphWithHM(dHMToSplit.Data);
 
 
             CurrentDHM = dHMDeepCopy;
@@ -534,12 +534,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                 for (int k = 0; k < edgeResetStartP.Count; k++)
                                 {
 
-                                    GraphWithHFMesh currentDHM = new GraphWithHFMesh(edgeResetStartP[k], newPGraphLoL, newPNodes, innerNodeToSplitIndexList[i], allPossibleHalfedgeVertexIndexs[j], k);
+                                    GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPGraphLoL, newPNodes, innerNodeToSplitIndexList[i], allPossibleHalfedgeVertexIndexs[j], k);
                                     //if (!dHMDeepCopy.VertexIndexHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
                                     //{
                                     //    currentDHM.VertexIndexHasBeenDecomposed.AddRange(dHMDeepCopy.VertexIndexHasBeenDecomposed);
                                     //}
-                                    INode<GraphWithHFMesh> childDHMToSplit = dHMToSplit.AddChild(currentDHM);
+                                    INode<GraphWithHM> childDHMToSplit = dHMToSplit.AddChild(currentDHM);
 
                                     viOfNewDecomposed.Add(newVertexIndex);
                                     viHasBeenDecomposed.Add(innerNodeToSplitIndexList[i]);

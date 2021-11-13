@@ -86,7 +86,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             List<int> innerPointsIndex = new List<int>();
             List<int> outerPointsIndex = new List<int>();
 
-            GraphWithHFMesh G = new GraphWithHFMesh();
+            GraphWithHM G = new GraphWithHM();
             PlanktonMesh P = new PlanktonMesh();
 
             double distance = 0.0;
@@ -102,9 +102,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             bool flagGraph = false;
             bool flagPlanktonMesh = false;
 
-            if (obj.Value is GraphWithHFMesh)
+            if (obj.Value is GraphWithHM)
             {
-                flagGraph = DA.GetData<GraphWithHFMesh>("GraphWithHFMesh", ref G);
+                flagGraph = DA.GetData<GraphWithHM>("GraphWithHFMesh", ref G);
             }
             if (obj.Value is PlanktonMesh)
             {
