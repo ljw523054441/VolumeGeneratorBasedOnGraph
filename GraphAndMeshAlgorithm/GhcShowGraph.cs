@@ -49,7 +49,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
-            pManager.AddGenericParameter("GraphWithHFMesh", "G", "GraphWithHFMesh对象或者PlanktonMesh对象，电池会自动区分", GH_ParamAccess.item);
+            pManager.AddGenericParameter("PlanktonMesh or GraphWithHFMesh", "P or GHM", "GraphWithHFMesh对象或者PlanktonMesh对象，电池会自动区分", GH_ParamAccess.item);
             // pManager.AddGenericParameter("PlanktonMesh", "P", "半边数据结构对象", GH_ParamAccess.item);
 
             pManager.AddNumberParameter("OffsetDistance", "OD", "Offset的距离", GH_ParamAccess.item);
@@ -96,7 +96,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             GH_ObjectWrapper obj = new GH_ObjectWrapper();
 
-            DA.GetData<GH_ObjectWrapper>("GraphWithHFMesh", ref obj);
+            DA.GetData<GH_ObjectWrapper>("PlanktonMesh or GraphWithHFMesh", ref obj);
             // bool flagPlanktonMesh = DA.GetData<GH_ObjectWrapper>("PlanktonMesh", ref planktonMesh);
 
             bool flagGraph = false;
@@ -104,11 +104,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             if (obj.Value is GraphWithHM)
             {
-                flagGraph = DA.GetData<GraphWithHM>("GraphWithHFMesh", ref G);
+                flagGraph = DA.GetData<GraphWithHM>("PlanktonMesh or GraphWithHFMesh", ref G);
             }
             if (obj.Value is PlanktonMesh)
             {
-                flagPlanktonMesh = DA.GetData<PlanktonMesh>("GraphWithHFMesh", ref P);
+                flagPlanktonMesh = DA.GetData<PlanktonMesh>("PlanktonMesh or GraphWithHFMesh", ref P);
             }
 
             if (flagGraph ^ flagPlanktonMesh)
