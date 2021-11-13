@@ -41,7 +41,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 0
             pManager.AddPlaneParameter("BasePlane", "BP", "生成Tutte嵌入的平面", GH_ParamAccess.item, Plane.WorldXY);
             // 1
-            pManager.AddGenericParameter("Graph or GraphWithHM", "G or GHM", "图结构", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Graph", "G or GHM", "图结构", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // 0
-            pManager.AddGenericParameter("Graph or GraphWithHM", "G or GHM", "图结构", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Graph", "G or GHM", "图结构", GH_ParamAccess.item);
             // 1
             pManager.AddCurveParameter("ConvexFaceBorders", "CFBorders", "Tutte嵌入后得到的TutteConvex列表", GH_ParamAccess.list);
             // 2
@@ -67,42 +67,44 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             #region 局部变量初始化
             Graph graph = new Graph();
-            GraphWithHM graphWithHM = new GraphWithHM();
+            // GraphWithHM graphWithHM = new GraphWithHM();
 
             Plane targetPlane = Plane.WorldXY;
             #endregion
 
-            GH_ObjectWrapper obj = new GH_ObjectWrapper();
+            //GH_ObjectWrapper obj = new GH_ObjectWrapper();
 
-            DA.GetData<GH_ObjectWrapper>("Graph or GraphWithHM", ref obj);
+            // DA.GetData<GH_ObjectWrapper>("Graph or GraphWithHM", ref obj);
 
-            bool flagGetGraph = false;
-            bool flagGetGraphWithHFMesh = false;
+            //bool flagGetGraph = false;
+            //bool flagGetGraphWithHFMesh = false;
 
-            if (obj.Value is Graph && !(obj.Value is GraphWithHM))
-            {
-                flagGetGraph = DA.GetData<Graph>("Graph or GraphWithHM", ref graph);
-                CompWorkMode = Mode.Graph;
-            }
-            if (obj.Value is GraphWithHM)
-            {
-                flagGetGraphWithHFMesh = DA.GetData<GraphWithHM>("Graph or GraphWithHM", ref graphWithHM);
-                graph = graphWithHM;
-                CompWorkMode = Mode.GraphWithHM;
-            }
+            //if (obj.Value is Graph && !(obj.Value is GraphWithHM))
+            //{
+            //    flagGetGraph = ;
+            //    CompWorkMode = Mode.Graph;
+            //}
+            //if (obj.Value is GraphWithHM)
+            //{
+            //    flagGetGraphWithHFMesh = DA.GetData<GraphWithHM>("Graph or GraphWithHM", ref graphWithHM);
+            //    graph = graphWithHM;
+            //    CompWorkMode = Mode.GraphWithHM;
+            //}
 
 
-            if (flagGetGraph || flagGetGraphWithHFMesh)
+            if (DA.GetData<Graph>("Graph", ref graph))
             {
                 DA.GetData<Plane>("BasePlane", ref targetPlane);
 
-                List<List<int>> graphLoL = graph.GraphTables;
-                List<Node> graphNodes = graph.GraphNodes;
+                Graph graphDeepCopy = new Graph(graph);
 
-                int innerNodeCount = graph.InnerNodeCount;
-                int outerNodeCount = graph.OuterNodeCount;
-                List<int> outerNodeIndexList = graph.OuterNodeIndexList;
-                List<int> innerNodeIndexList = graph.InnerNodeIndexList;
+                List<List<int>> graphLoL = graphDeepCopy.GraphTables;
+                List<Node> graphNodes = graphDeepCopy.GraphNodes;
+
+                int innerNodeCount = graphDeepCopy.InnerNodeCount;
+                int outerNodeCount = graphDeepCopy.OuterNodeCount;
+                List<int> outerNodeIndexList = graphDeepCopy.OuterNodeIndexList;
+                List<int> innerNodeIndexList = graphDeepCopy.InnerNodeIndexList;
 
                 DataTree<int> graphDT = UtilityFunctions.LoLToDataTree<int>(graphLoL);
 
@@ -127,12 +129,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 计算矩阵 P(outer)
                 Matrix P_outer = new Matrix(outerNodeCount, 2);
-                for (int i = 0; i < graph.GraphNodes.Count; i++)
+                for (int i = 0; i < graphDeepCopy.GraphNodes.Count; i++)
                 {
-                    if (!graph.GraphNodes[i].IsInner)
+                    if (!graphDeepCopy.GraphNodes[i].IsInner)
                     {
-                        P_outer[outerNodeIndexList.IndexOf(i), 0] = graph.GraphNodes[i].NodeVertex.X;
-                        P_outer[outerNodeIndexList.IndexOf(i), 1] = graph.GraphNodes[i].NodeVertex.Y;
+                        P_outer[outerNodeIndexList.IndexOf(i), 0] = graphDeepCopy.GraphNodes[i].NodeVertex.X;
+                        P_outer[outerNodeIndexList.IndexOf(i), 1] = graphDeepCopy.GraphNodes[i].NodeVertex.Y;
                     }
                 }
                 #endregion
@@ -182,14 +184,29 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 新的NodePoint列表
                 // 将新的inner点与原来的outer点合并成一个新的列表
+                //List<Point3d> newNodePoints = new List<Point3d>();
+                //newNodePoints.AddRange(newInnerPoints);
+                //List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
+                //for (int i = 0; i < outerNodeCount; i++)
+                //{
+                //    sortedBoundaryNodePoints.Add(graphNodes[innerNodeCount + i].NodeVertex);
+                //}
+                //newNodePoints.AddRange(sortedBoundaryNodePoints);
+
                 List<Point3d> newNodePoints = new List<Point3d>();
-                newNodePoints.AddRange(newInnerPoints);
-                List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
-                for (int i = 0; i < outerNodeCount; i++)
+                for (int i = 0; i < graphNodes.Count; i++)
                 {
-                    sortedBoundaryNodePoints.Add(graphNodes[innerNodeCount + i].NodeVertex);
+                    if (graphNodes[i].IsInner)
+                    {
+                        newNodePoints.Add(newInnerPoints[innerNodeIndexList.IndexOf(i)]);
+                    }
+                    else
+                    {
+                        newNodePoints.Add(graphNodes[i].NodeVertex);
+                    }
                 }
-                newNodePoints.AddRange(sortedBoundaryNodePoints);
+
+
                 #endregion
 
                 Point3d currentCenter = new Point3d();
@@ -211,38 +228,34 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #endregion
 
-
-                if (flagGetGraph)
-                {
-                    Graph newGraph = new Graph(graphNodes, graphLoL);
-                    DA.SetData("Graph or GraphWithHM", newGraph);
-                }
+                Graph newGraph = new Graph(graphNodes, graphLoL);
+                DA.SetData("Graph", newGraph);
 
 
-                if (flagGetGraphWithHFMesh)
-                {
-                    PlanktonMesh planktonMesh = graphWithHM.PlanktonMesh;
+                //if (flagGetGraphWithHFMesh)
+                //{
+                //    PlanktonMesh planktonMesh = graphWithHM.PlanktonMesh;
 
-                    List<List<int>> faceVertexOrder = new List<List<int>>();
-                    for (int i = 0; i < planktonMesh.Faces.Count; i++)
-                    {
-                        faceVertexOrder.Add(new List<int>());
-                        int[] vertexs = planktonMesh.Faces.GetFaceVertices(i);
-                        faceVertexOrder[i].AddRange(vertexs);
-                    }
+                //    List<List<int>> faceVertexOrder = new List<List<int>>();
+                //    for (int i = 0; i < planktonMesh.Faces.Count; i++)
+                //    {
+                //        faceVertexOrder.Add(new List<int>());
+                //        int[] vertexs = planktonMesh.Faces.GetFaceVertices(i);
+                //        faceVertexOrder[i].AddRange(vertexs);
+                //    }
 
-                    PlanktonMesh newPlanktonMesh = new PlanktonMesh();
-                    // vertices部分
-                    for (int i = 0; i < graphWithHM.GraphNodes.Count; i++)
-                    {
-                        newPlanktonMesh.Vertices.Add(graphNodes[i].NodeVertex.X, graphNodes[i].NodeVertex.Y, graphNodes[i].NodeVertex.Z);
-                    }
-                    // faces部分
-                    newPlanktonMesh.Faces.AddFaces(faceVertexOrder);
+                //    PlanktonMesh newPlanktonMesh = new PlanktonMesh();
+                //    // vertices部分
+                //    for (int i = 0; i < graphWithHM.GraphNodes.Count; i++)
+                //    {
+                //        newPlanktonMesh.Vertices.Add(graphNodes[i].NodeVertex.X, graphNodes[i].NodeVertex.Y, graphNodes[i].NodeVertex.Z);
+                //    }
+                //    // faces部分
+                //    newPlanktonMesh.Faces.AddFaces(faceVertexOrder);
 
-                    GraphWithHM newGraphWithHM = new GraphWithHM(newPlanktonMesh, graphNodes, graphLoL);
-                    DA.SetData("Graph or GraphWithHM", newGraphWithHM);
-                }
+                //    GraphWithHM newGraphWithHM = new GraphWithHM(newPlanktonMesh, graphNodes, graphLoL);
+                //    DA.SetData("Graph or GraphWithHM", newGraphWithHM);
+                //}
 
 
 
@@ -259,9 +272,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //{
                 //    sortedBoundaryNodePointsRelocated.Add(newNodePointsRelocated[i]);
                 //}
-                for (int i = 0; i < graph.GraphNodes.Count; i++)
+                for (int i = 0; i < graphDeepCopy.GraphNodes.Count; i++)
                 {
-                    if (!graph.GraphNodes[i].IsInner)
+                    if (!graphDeepCopy.GraphNodes[i].IsInner)
                     {
                         newOuterNodePointsRelocated.Add(newNodePointsRelocated[i]);
                     }
@@ -295,11 +308,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 输出subGraphNode
                 List<Node> subGraphNodes = new List<Node>();
-                for (int i = 0; i < graph.GraphNodes.Count; i++)
+                for (int i = 0; i < graphDeepCopy.GraphNodes.Count; i++)
                 {
-                    if (graph.GraphNodes[i].IsInner)
+                    if (graphDeepCopy.GraphNodes[i].IsInner)
                     {
-                        subGraphNodes.Add(graph.GraphNodes[i]);
+                        subGraphNodes.Add(graphDeepCopy.GraphNodes[i]);
                     }
                 }
                 #endregion
