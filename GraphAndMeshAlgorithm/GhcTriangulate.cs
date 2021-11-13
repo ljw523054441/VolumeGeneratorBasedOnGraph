@@ -71,14 +71,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 0
             pManager.AddMeshParameter("AllTriangularMeshes", "AllTMesh", "所有可能的三角形剖分结果。All Computed triangulations; these triangulations describe all possible planar topologies for your plan diagram, the added links are those of adjacencies not connectivities", GH_ParamAccess.list);
             // 1
-            pManager.AddMeshParameter("TheChosenTriangularMesh", "TMesh", "所选择的那个三角形剖分结果。The one you have chosen with index I", GH_ParamAccess.item);
+            // pManager.AddMeshParameter("TheChosenTriangularMesh", "TMesh", "所选择的那个三角形剖分结果。The one you have chosen with index I", GH_ParamAccess.item);
             // 2
-            pManager.AddGenericParameter("TheChosenGraphWithHFMesh", "THFMesh", "所选择的那个三角形剖分结果(GraphWithHFMesh对象)", GH_ParamAccess.item);
+            pManager.AddGenericParameter("TheChosenGraphWithHM", "THFMesh", "所选择的那个三角形剖分结果(GraphWithHFMesh对象)", GH_ParamAccess.item);
             // 3
-            pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
-            pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
-            pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
-            pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -191,7 +191,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     return;
                 }
                 #endregion
-                DA.SetData("TheChosenTriangularMesh", result[index]);
+                // DA.SetData("TheChosenTriangularMesh", result[index]);
 
                 #region 构造半边数据结构
                 PlanktonMesh planktonMesh = new PlanktonMesh();
@@ -216,35 +216,35 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 GraphWithHM theChosenOne = new GraphWithHM(planktonMesh, graph.GraphNodes, graph.GraphTables);
 
-                DA.SetData("TheChosenGraphWithHFMesh", theChosenOne);
+                DA.SetData("TheChosenGraphWithHM", theChosenOne);
 
-                #region Debug显示
+                //#region Debug显示
 
-                #region HalfedgeMesh的顶点数据
-                List<string> printVertices = new List<string>();
-                printVertices = UtilityFunctions.PrintVertices(planktonMesh);
-                DA.SetDataList("DebugVerticesOutput", printVertices);
-                #endregion
+                //#region HalfedgeMesh的顶点数据
+                //List<string> printVertices = new List<string>();
+                //printVertices = UtilityFunctions.PrintVertices(planktonMesh);
+                //DA.SetDataList("DebugVerticesOutput", printVertices);
+                //#endregion
 
-                #region HalfedgeMesh的半边数据
-                List<string> printHalfedges = new List<string>();
-                printHalfedges = UtilityFunctions.PrintHalfedges(planktonMesh);
-                DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
-                #endregion
+                //#region HalfedgeMesh的半边数据
+                //List<string> printHalfedges = new List<string>();
+                //printHalfedges = UtilityFunctions.PrintHalfedges(planktonMesh);
+                //DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
+                //#endregion
 
-                #region HalfedgeMesh的每个面由哪些顶点构成
-                List<string> printFaces = new List<string>();
-                printFaces = UtilityFunctions.PrintFacesVertices(planktonMesh);
-                DA.SetDataList("DebugFacesOutput", printFaces);
-                #endregion
+                //#region HalfedgeMesh的每个面由哪些顶点构成
+                //List<string> printFaces = new List<string>();
+                //printFaces = UtilityFunctions.PrintFacesVertices(planktonMesh);
+                //DA.SetDataList("DebugFacesOutput", printFaces);
+                //#endregion
 
-                #region HalfedgeMesh的每个面由哪些半边构成
-                List<string> printFacesHalfedge = new List<string>();
-                printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(planktonMesh);
-                DA.SetDataList("DebugFacesHalfedges", printFacesHalfedge);
-                #endregion
+                //#region HalfedgeMesh的每个面由哪些半边构成
+                //List<string> printFacesHalfedge = new List<string>();
+                //printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(planktonMesh);
+                //DA.SetDataList("DebugFacesHalfedges", printFacesHalfedge);
+                //#endregion
 
-                #endregion
+                //#endregion
 
                 #region 可视化部分
                 // ConvexPolylinesPoints.Clear();

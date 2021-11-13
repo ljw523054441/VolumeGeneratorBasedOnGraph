@@ -86,7 +86,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             PlanktonMesh P = new PlanktonMesh();
             #endregion
 
-            if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh",ref P)
+            if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
                 && DA.GetData<Graph>("Graph",ref graph))
             {
                 // 获取节点
