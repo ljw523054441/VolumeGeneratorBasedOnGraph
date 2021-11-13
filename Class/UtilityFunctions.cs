@@ -740,6 +740,18 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return output;
         }
 
+        public static List<string> PrintGraphVertex(Graph graph)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < graph.GraphNodes.Count; i++)
+            {
+                string str = string.Format("Node[{0}]:", i);
+                str += graph.GraphNodes[i].NodeVertex.ToString();
+                output.Add(str);
+            }
+            return output;
+        }
+
         #endregion
 
     }

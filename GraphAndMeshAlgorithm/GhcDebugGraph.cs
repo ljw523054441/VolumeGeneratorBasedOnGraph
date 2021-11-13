@@ -34,6 +34,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddGenericParameter("DebugGraphNode", "DebugGN", "", GH_ParamAccess.list);
 
             pManager.AddGenericParameter("DebugGraphLoL", "DebugGL", "", GH_ParamAccess.list);
+
+            pManager.AddGenericParameter("DebugGraphVertex", "DebugGV", "", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -47,9 +49,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 List<string> printGraphNode = UtilityFunctions.PrintGraphNode(graph);
                 List<string> printGraphLoL = UtilityFunctions.PrintGraphLoL(graph);
+                List<string> printGraphVertex = UtilityFunctions.PrintGraphVertex(graph);
 
                 DA.SetDataList("DebugGraphNode", printGraphNode);
                 DA.SetDataList("DebugGraphLoL", printGraphLoL);
+                DA.SetDataList("DebugGraphVertex", printGraphVertex);
             }
 
         }
