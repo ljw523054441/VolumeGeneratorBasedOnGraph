@@ -93,7 +93,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
 
-            if (flagGetGraph ^ flagGetGraphWithHFMesh)
+            if (flagGetGraph || flagGetGraphWithHFMesh)
             {
                 DA.GetData<Plane>("BasePlane", ref targetPlane);
 
