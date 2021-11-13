@@ -82,11 +82,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
         }
 
-        public int InnerNodeCount { get; }
-        public int OuterNodeCount { get;}
+        public int InnerNodeCount { get; set; }
+        public int OuterNodeCount { get; set; }
 
-        public List<int> InnerNodeIndexList { get; }
-        public List<int> OuterNodeIndexList { get; }
+        public List<int> InnerNodeIndexList { get; set; }
+        public List<int> OuterNodeIndexList { get; set; }
 
         /// <summary>
         /// 构造空的Graph对象
@@ -95,6 +95,50 @@ namespace VolumeGeneratorBasedOnGraph.Class
         {
             this.GraphNodes = new List<Node>();
             this.GraphTables = new List<List<int>>();
+            this.InnerNodeCount = 0;
+            this.OuterNodeCount = 0;
+            this.InnerNodeIndexList = new List<int>();
+            this.OuterNodeIndexList = new List<int>();
+        }
+
+        /// <summary>
+        /// 用拷贝构造函数来实现深拷贝
+        /// </summary>
+        /// <param name="source"></param>
+        public Graph(Graph source)
+        {
+            List<Node> nodes = new List<Node>();
+            for (int i = 0; i < source.GraphNodes.Count; i++)
+            {
+                nodes.Add(new Node(source.GraphNodes[i]));
+            }
+            this.GraphNodes = nodes;
+
+            List<List<int>> tables = new List<List<int>>();
+            for (int i = 0; i < source.GraphTables.Count; i++)
+            {
+                tables.Add(new List<int>());
+                tables[i].AddRange(source.GraphTables[i]);
+            }
+            this.GraphTables = tables;
+
+            this.InnerNodeCount = 0;
+            this.OuterNodeCount = 0;
+            this.InnerNodeIndexList = new List<int>();
+            this.OuterNodeIndexList = new List<int>();
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                if (nodes[i].IsInner)
+                {
+                    this.InnerNodeCount++;
+                    this.InnerNodeIndexList.Add(i);
+                }
+                else
+                {
+                    this.OuterNodeCount++;
+                    this.OuterNodeIndexList.Add(i);
+                }
+            }
         }
 
         /// <summary>
@@ -138,45 +182,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
         }
 
-        /// <summary>
-        /// 用拷贝构造函数来实现深拷贝
-        /// </summary>
-        /// <param name="graph"></param>
-        public Graph(Graph graph)
-        {
-            List<Node> nodes = new List<Node>();
-            for (int i = 0; i < graph.GraphNodes.Count; i++)
-            {
-                nodes.Add(new Node(graph.GraphNodes[i]));
-            }
-            this.GraphNodes = nodes;
-
-            List<List<int>> tables = new List<List<int>>();
-            for (int i = 0; i < graph.GraphTables.Count; i++)
-            {
-                tables.Add(new List<int>());
-                tables[i].AddRange(graph.GraphTables[i]);
-            }
-            this.GraphTables = tables;
-
-            this.InnerNodeCount = 0;
-            this.OuterNodeCount = 0;
-            this.InnerNodeIndexList = new List<int>();
-            this.OuterNodeIndexList = new List<int>();
-            for (int i = 0; i < nodes.Count; i++)
-            {
-                if (nodes[i].IsInner)
-                {
-                    this.InnerNodeCount++;
-                    this.InnerNodeIndexList.Add(i);
-                }
-                else
-                {
-                    this.OuterNodeCount++;
-                    this.OuterNodeIndexList.Add(i);
-                }
-            }
-        }
+        
 
     }
 }

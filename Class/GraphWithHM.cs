@@ -15,7 +15,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// </summary>
         public PlanktonMesh PlanktonMesh { get; set; }
 
-
         public int DecomposeTheithVertex { get; set; }
 
         public int[,] DecomposeTheithPairHFVertexIndex { get; set; }
@@ -29,35 +28,96 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <summary>
         /// 构造空的GraphWithHFMesh对象
         /// </summary>
-        public GraphWithHM()
+        public GraphWithHM():base()
         {
-            this.GraphTables = new List<List<int>>();
-            this.GraphNodes = new List<Node>();
             this.PlanktonMesh = new PlanktonMesh();
+            this.DecomposeTheithVertex = -1;
+            this.DecomposeTheithPairHFVertexIndex = null;
+            this.DecomposeTheithPairHFResult = -1;
+            this.TreeNodeName = null;
+        }
+
+        /// <summary>
+        /// 利用拷贝构造函数实现深拷贝
+        /// </summary>
+        /// <param name="source"></param>
+        public GraphWithHM(GraphWithHM source)
+        {
+            // 深拷贝List<List<int>>
+            this.GraphTables = new List<List<int>>();
+            for (int i = 0; i < source.GraphTables.Count; i++)
+            {
+                this.GraphTables.Add(new List<int>());
+                this.GraphTables[i].AddRange(source.GraphTables[i]);
+            }
+            // 深拷贝List<Node>
+            this.GraphNodes = new List<Node>();
+            for (int i = 0; i < source.GraphNodes.Count; i++)
+            {
+                this.GraphNodes.Add(new Node(source.GraphNodes[i]));
+            }
+
+            this.InnerNodeCount = source.InnerNodeCount;
+            this.OuterNodeCount = source.OuterNodeCount;
+            this.InnerNodeIndexList = source.InnerNodeIndexList;
+            this.OuterNodeIndexList = source.OuterNodeIndexList;
+
+
+            // 深拷贝PlanktonMesh
+            this.PlanktonMesh = new PlanktonMesh(source.PlanktonMesh);
+
+            this.DecomposeTheithVertex = source.DecomposeTheithVertex;
+            this.DecomposeTheithPairHFVertexIndex = (int[,])source.DecomposeTheithPairHFVertexIndex.Clone();
+            this.DecomposeTheithPairHFResult = source.DecomposeTheithPairHFResult;
+            this.TreeNodeName = (string)source.TreeNodeName.Clone();
+            //this.VertexIndexHasBeenDecomposed = new List<int>();
+            //for (int i = 0; i < decomposedHM.VertexIndexHasBeenDecomposed.Count; i++)
+            //{
+            //    this.VertexIndexHasBeenDecomposed.Add(decomposedHM.VertexIndexHasBeenDecomposed[i]);
+            //}
         }
 
         /// <summary>
         /// 用于在还没有进行Decompose时，构造GraphWithHFMesh对象
         /// </summary>
         public GraphWithHM(PlanktonMesh planktonMesh,
-                           List<Node> graphNode,
-                           List<List<int>> graphLoL)
+                           List<Node> graphNodes,
+                           List<List<int>> graphTables)
         {
-            // 深拷贝PlanktonMesh
-            this.PlanktonMesh = new PlanktonMesh(planktonMesh);
             // 深拷贝List<List<int>>
             this.GraphTables = new List<List<int>>();
-            for (int i = 0; i < graphLoL.Count; i++)
+            for (int i = 0; i < graphTables.Count; i++)
             {
                 this.GraphTables.Add(new List<int>());
-                this.GraphTables[i].AddRange(graphLoL[i]);
+                this.GraphTables[i].AddRange(graphTables[i]);
             }
             // 深拷贝List<Node>
             this.GraphNodes = new List<Node>();
-            for (int i = 0; i < graphNode.Count; i++)
+            for (int i = 0; i < graphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(graphNode[i]));
+                this.GraphNodes.Add(new Node(graphNodes[i]));
             }
+
+            this.InnerNodeCount = 0;
+            this.OuterNodeCount = 0;
+            this.InnerNodeIndexList = new List<int>();
+            this.OuterNodeIndexList = new List<int>();
+            for (int i = 0; i < graphNodes.Count; i++)
+            {
+                if (graphNodes[i].IsInner)
+                {
+                    this.InnerNodeCount++;
+                    this.InnerNodeIndexList.Add(i);
+                }
+                else
+                {
+                    this.OuterNodeCount++;
+                    this.OuterNodeIndexList.Add(i);
+                }
+            }
+
+            // 深拷贝PlanktonMesh
+            this.PlanktonMesh = new PlanktonMesh(planktonMesh);
 
             this.DecomposeTheithVertex = -1;
             this.DecomposeTheithPairHFVertexIndex = new int[2, 2] { { -1, -1 }, { -1, -1 } };
@@ -70,14 +130,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// 用于在进行Decompose后，构造GraphWithHFMesh对象
         /// </summary>
         /// <param name="planktonMesh"></param>
-        /// <param name="graphLoL"></param>
-        /// <param name="graphNode"></param>
+        /// <param name="graphTables"></param>
+        /// <param name="graphNodes"></param>
         /// <param name="decomposeTheithVertex"></param>
         /// <param name="decomposeTheithPairHFVertexIndex"></param>
         /// <param name="decomposeTheithPairHFResult"></param>
         public GraphWithHM(PlanktonMesh planktonMesh,
-                           List<Node> graphNode,
-                           List<List<int>> graphLoL, 
+                           List<Node> graphNodes,
+                           List<List<int>> graphTables, 
                            int decomposeTheithVertex,
                            int[,] decomposeTheithPairHFVertexIndex,
                            int decomposeTheithPairHFResult)
@@ -86,16 +146,34 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
             // 深拷贝List<List<int>>
             this.GraphTables = new List<List<int>>();
-            for (int i = 0; i < graphLoL.Count; i++)
+            for (int i = 0; i < graphTables.Count; i++)
             {
                 this.GraphTables.Add(new List<int>());
-                this.GraphTables[i].AddRange(graphLoL[i]);
+                this.GraphTables[i].AddRange(graphTables[i]);
             }
             // 深拷贝List<Node>
             this.GraphNodes = new List<Node>();
-            for (int i = 0; i < graphNode.Count; i++)
+            for (int i = 0; i < graphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(graphNode[i]));
+                this.GraphNodes.Add(new Node(graphNodes[i]));
+            }
+
+            this.InnerNodeCount = 0;
+            this.OuterNodeCount = 0;
+            this.InnerNodeIndexList = new List<int>();
+            this.OuterNodeIndexList = new List<int>();
+            for (int i = 0; i < graphNodes.Count; i++)
+            {
+                if (graphNodes[i].IsInner)
+                {
+                    this.InnerNodeCount++;
+                    this.InnerNodeIndexList.Add(i);
+                }
+                else
+                {
+                    this.OuterNodeCount++;
+                    this.OuterNodeIndexList.Add(i);
+                }
             }
 
             this.DecomposeTheithVertex = decomposeTheithVertex;
@@ -114,38 +192,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             //this.VertexIndexHasBeenDecomposed.Add(decomposeTheithVertex);
         }
 
-        /// <summary>
-        /// 利用拷贝构造函数实现深拷贝
-        /// </summary>
-        /// <param name="decomposedHM"></param>
-        public GraphWithHM(GraphWithHM decomposedHM)
-        {
-            // 深拷贝PlanktonMesh
-            this.PlanktonMesh = new PlanktonMesh(decomposedHM.PlanktonMesh);
-            // 深拷贝List<List<int>>
-            this.GraphTables = new List<List<int>>();
-            for (int i = 0; i < decomposedHM.GraphTables.Count; i++)
-            {
-                this.GraphTables.Add(new List<int>());
-                this.GraphTables[i].AddRange(decomposedHM.GraphTables[i]);
-            }
-            // 深拷贝List<Node>
-            this.GraphNodes = new List<Node>();
-            for (int i = 0; i < decomposedHM.GraphNodes.Count; i++)
-            {
-                this.GraphNodes.Add(new Node(decomposedHM.GraphNodes[i]));
-            }
-
-            this.DecomposeTheithVertex = decomposedHM.DecomposeTheithVertex;
-            this.DecomposeTheithPairHFVertexIndex = (int[,])decomposedHM.DecomposeTheithPairHFVertexIndex.Clone();
-            this.DecomposeTheithPairHFResult = decomposedHM.DecomposeTheithPairHFResult;
-            this.TreeNodeName = (string)decomposedHM.TreeNodeName.Clone();
-            //this.VertexIndexHasBeenDecomposed = new List<int>();
-            //for (int i = 0; i < decomposedHM.VertexIndexHasBeenDecomposed.Count; i++)
-            //{
-            //    this.VertexIndexHasBeenDecomposed.Add(decomposedHM.VertexIndexHasBeenDecomposed[i]);
-            //}
-        }
+        
 
 
 
