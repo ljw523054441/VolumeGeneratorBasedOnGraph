@@ -88,12 +88,20 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public List<int> InnerNodeIndexList { get; }
         public List<int> OuterNodeIndexList { get; }
 
+        /// <summary>
+        /// 构造空的Graph对象
+        /// </summary>
         public Graph()
         {
             this.GraphNodes = new List<Node>();
             this.GraphTables = new List<List<int>>();
         }
 
+        /// <summary>
+        /// 用GraphNodes和GraphTables来组装新的Graph对象
+        /// </summary>
+        /// <param name="graphNodes"></param>
+        /// <param name="graphTables"></param>
         public Graph(List<Node> graphNodes, List<List<int>> graphTables)
         {
             List<Node> nodes = new List<Node>();
@@ -130,6 +138,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
         }
 
+        /// <summary>
+        /// 用拷贝构造函数来实现深拷贝
+        /// </summary>
+        /// <param name="graph"></param>
         public Graph(Graph graph)
         {
             List<Node> nodes = new List<Node>();
