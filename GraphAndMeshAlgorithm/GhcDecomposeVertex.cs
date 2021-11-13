@@ -74,14 +74,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
 
-            pManager.AddIntegerParameter("Graph", "G", "描述VolumeNode和BoundaryNode的所有连接关系的图结构", GH_ParamAccess.tree);
-            pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+            pManager.AddGenericParameter("GraphWithHM", "GHM", "描述VolumeNode和BoundaryNode的所有连接关系的图结构", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
 
-            pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
 
-            pManager.AddIntegerParameter("IndexOfSplittedHalfedgeMesh", "I", "某一种顶点分裂后的结果", GH_ParamAccess.item);
+            pManager.AddIntegerParameter("IndexOfGraphWithHM", "I", "某一种顶点分裂后的结果", GH_ParamAccess.item, 0);
         }
 
         /// <summary>
@@ -89,17 +89,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("NewTriangleHalfedgeMesh", "NTHMesh", "新生成的三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("NewTriangleHalfedgeMesh", "NTHMesh", "新生成的三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
 
             pManager.AddIntegerParameter("CountOfAllPossibleHFM", "C", "所有可能的结果的总数量", GH_ParamAccess.item);
 
-            pManager.AddGenericParameter("NewGraph", "NG", "描述VolumeNode和BoundaryNode的所有连接关系的图结构(包括新分裂产生的点)", GH_ParamAccess.tree);
-            pManager.AddGenericParameter("NewGraphNode", "NGN", "更新后的图结构中的节点", GH_ParamAccess.list);
+            pManager.AddGenericParameter("NewGraphWithHM", "NGHM", "描述VolumeNode和BoundaryNode的所有连接关系的图结构(包括新分裂产生的点)", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("NewGraphNode", "NGN", "更新后的图结构中的节点", GH_ParamAccess.list);
 
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
-
             pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
         }
 
@@ -109,24 +108,25 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            #region 全局参数传递
-            GlobalParameter globalParameter = new GlobalParameter();
-            DA.GetData("GlobalParameter", ref globalParameter);
-            int innerNodeCount = globalParameter.VolumeNodeCount;
-            int outerNodeCount = globalParameter.BoundaryNodeCount;
-            #endregion
+            //#region 全局参数传递
+            //GlobalParameter globalParameter = new GlobalParameter();
+            //DA.GetData("GlobalParameter", ref globalParameter);
+            //int innerNodeCount = globalParameter.VolumeNodeCount;
+            //int outerNodeCount = globalParameter.BoundaryNodeCount;
+            //#endregion
 
             #region 局部变量初始化
-            PlanktonMesh P = new PlanktonMesh();
 
-            List<Node> pNodes = new List<Node>();
+            GraphWithHM graphWithHM = new GraphWithHM();
 
-            PlanktonMesh edgeSplitedP = new PlanktonMesh();
-            List<PlanktonMesh> edgeResetStartP = new List<PlanktonMesh>();
 
-            GH_Structure<GH_Integer> gh_Structure_graph = null;
-            DataTree<int> graph = new DataTree<int>();
-            List<List<int>> pGraphLoL = new List<List<int>>();
+            // PlanktonMesh P = new PlanktonMesh();
+
+            // List<Node> pNodes = new List<Node>();
+
+            //GH_Structure<GH_Integer> gh_Structure_graph = null;
+            //DataTree<int> graph = new DataTree<int>();
+            // List<List<int>> graphTableDeepCopy = new List<List<int>>();
 
             int index = 0;
 
@@ -137,34 +137,38 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             Thickness = 2;
             #endregion
 
-            if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
-                && DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_graph)
-                && DA.GetDataList<Node>("GraphNode", pNodes)
-                && DA.GetData<int>("IndexOfSplittedHalfedgeMesh", ref index))
+            if (DA.GetData<GraphWithHM>("GraphWithHM", ref graphWithHM)
+                && DA.GetData<int>("IndexOfGraphWithHM", ref index))
             {
+                #region 深拷贝GraphWithHM的各个属性
                 // 利用PlanktonMesh为复制准备的构造函数，进行深拷贝
-                PlanktonMesh PDeepCopy = new PlanktonMesh(P);
+                PlanktonMesh graphHMDeepCopy = new PlanktonMesh(graphWithHM.PlanktonMesh);
 
                 // 利用Node为复制准备的构造函数，进行深拷贝
-                List<Node> pNodesDeepCopy = new List<Node>();
-                for (int i = 0; i < pNodes.Count; i++)
+                List<Node> graphNodesDeepCopy = new List<Node>();
+                for (int i = 0; i < graphWithHM.GraphNodes.Count; i++)
                 {
-                    pNodesDeepCopy.Add(new Node(pNodes[i]));
+                    graphNodesDeepCopy.Add(new Node(graphWithHM.GraphNodes[i]));
                 }
 
                 // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>，再转化为LoL
-                UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
-                pGraphLoL = UtilityFunctions.DataTreeToLoL<int>(graph);
+                //UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
+                //pGraphLoL = UtilityFunctions.DataTreeToLoL<int>(graph);
 
-
-
+                List<List<int>> graphTableDeepCopy = new List<List<int>>();
+                for (int i = 0; i < graphWithHM.GraphTables.Count; i++)
+                {
+                    graphTableDeepCopy.Add(new List<int>());
+                    graphTableDeepCopy[i].AddRange(graphWithHM.GraphTables[i]);
+                }
+                #endregion
 
 
                 /* 考虑用树形结构来处理和存储每一次分裂 */
                 // 创建一个树
                 // ITree<DecomposedHM> tree = NodeTree<DecomposedHM>.NewTree();
                 // 对输入的PlanktonMesh，GraphLoL，GraphNode构造DecomposedHM，形成树的根节点
-                INode<GraphWithHM> root = Tree.AddChild(new GraphWithHM(PDeepCopy, pNodesDeepCopy, pGraphLoL, -1, new int[2, 2] { { -1, -1 }, { -1, -1 } }, -1));
+                INode<GraphWithHM> root = Tree.AddChild(new GraphWithHM(graphHMDeepCopy, graphNodesDeepCopy, graphTableDeepCopy, -1, new int[2, 2] { { -1, -1 }, { -1, -1 } }, -1));
 
 
                 // 新分裂产生的Vertex的Index集合
@@ -172,6 +176,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 已经分裂过的Vertex的Index集合
                 List<int> viHasBeenDecomposed = new List<int>();
 
+                PlanktonMesh edgeSplitedP = new PlanktonMesh();
+                List<PlanktonMesh> edgeResetStartP = new List<PlanktonMesh>();
 
                 #region 原来能正确运行的代码
                 ///* 这里先只分割0点 */
@@ -282,10 +288,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
 
-                PlanktonMesh selectedPMesh = allPossibleDecomposedHMesh[index].PlanktonMesh;
-                List<List<int>> selectedGraphLoL = allPossibleDecomposedHMesh[index].GraphTables;
-                List<Node> selectedGraphNode = allPossibleDecomposedHMesh[index].GraphNodes;
-
                 #endregion
 
 
@@ -297,44 +299,33 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 DA.SetData("CountOfAllPossibleHFM", allPossibleDecomposedHMesh.Count);
 
-                #region 输出所选的HalfedgeMesh结果
-                /* 注意这里第二个[]中，暂时填0 */
-                // PlanktonMesh selectedHalfedgeMesh = allPossiblePMesh[index];
-                DA.SetData("NewTriangleHalfedgeMesh", selectedPMesh);
-                #endregion
-                #region 输出所选的HalfedgeMesh对应的NewGraphLoL
-                // List<List<int>> newGraphLoL = allPossiblePGraphLoL[index];
-                DA.SetDataTree(1, UtilityFunctions.LoLToDataTree<int>(selectedGraphLoL));
-                #endregion
-                #region 输出所选的HalfedgeMesh对应的NewGraphNode
-                // List<Node> newGraphNode = allPossiblePNodes[index];
-                DA.SetDataList("NewGraphNode", selectedGraphNode);
-                #endregion
+
+                DA.SetData("NewGraphWithHM", allPossibleDecomposedHMesh[index]);
                 #endregion
 
                 #region 用于输出Debug数据
 
                 #region HalfedgeMesh的顶点数据
                 List<string> printVertices = new List<string>();
-                printVertices = UtilityFunctions.PrintVertices(selectedPMesh);
+                printVertices = UtilityFunctions.PrintVertices(allPossibleDecomposedHMesh[index].PlanktonMesh);
                 DA.SetDataList("DebugVerticesOutput", printVertices);
                 #endregion
 
                 #region HalfedgeMesh的半边数据
                 List<string> printHalfedges = new List<string>();
-                printHalfedges = UtilityFunctions.PrintHalfedges(selectedPMesh);
+                printHalfedges = UtilityFunctions.PrintHalfedges(allPossibleDecomposedHMesh[index].PlanktonMesh);
                 DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
                 #endregion
 
                 #region HalfedgeMesh的每个面由哪些顶点构成
                 List<string> printFaces = new List<string>();
-                printFaces = UtilityFunctions.PrintFacesVertices(selectedPMesh);
+                printFaces = UtilityFunctions.PrintFacesVertices(allPossibleDecomposedHMesh[index].PlanktonMesh);
                 DA.SetDataList("DebugFacesOutput", printFaces);
                 #endregion
 
                 #region HalfedgeMesh的每个面由哪些半边构成
                 List<string> printFacesHalfedge = new List<string>();
-                printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(selectedPMesh);
+                printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(allPossibleDecomposedHMesh[index].PlanktonMesh);
                 DA.SetDataList("DebugFacesHalfedges", printFacesHalfedge);
                 #endregion
 
@@ -346,23 +337,23 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 InnerNodeTextDot.Clear();
                 OuterNodeTextDot.Clear();
 
-                for (int i = 0; i < selectedGraphNode.Count; i++)
+                for (int i = 0; i < allPossibleDecomposedHMesh[index].GraphNodes.Count; i++)
                 {
-                    if (selectedGraphNode[i].IsInner)
+                    if (allPossibleDecomposedHMesh[index].GraphNodes[i].IsInner)
                     {
-                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, selectedGraphNode[i].NodeAttribute.NodeLabel), selectedGraphNode[i].NodeVertex);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, allPossibleDecomposedHMesh[index].GraphNodes[i].NodeAttribute.NodeLabel), allPossibleDecomposedHMesh[index].GraphNodes[i].NodeVertex);
                         InnerNodeTextDot.Add(textDot);
                     }
                     else
                     {
-                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, selectedGraphNode[i].NodeAttribute.NodeLabel), selectedGraphNode[i].NodeVertex);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, allPossibleDecomposedHMesh[index].GraphNodes[i].NodeAttribute.NodeLabel), allPossibleDecomposedHMesh[index].GraphNodes[i].NodeVertex);
                         OuterNodeTextDot.Add(textDot);
                     }
                 }
                 #endregion
 
                 #region 转换为RhinoMesh，在DrawViewportMeshes绘制选中的mesh
-                PRhinoMesh = RhinoSupport.ToRhinoMesh(selectedPMesh);
+                PRhinoMesh = RhinoSupport.ToRhinoMesh(allPossibleDecomposedHMesh[index].PlanktonMesh);
                 #endregion
 
                 #region 在DrawViewportWires绘制mesh的edge（虚线）
@@ -387,7 +378,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 绘制表示图结构关系的实线
                 GraphEdges.Clear();
-                GraphEdges.AddRange(UtilityFunctions.GraphEdgeLine(selectedGraphLoL, selectedGraphNode));
+                GraphEdges.AddRange(UtilityFunctions.GraphEdgeLine(allPossibleDecomposedHMesh[index].GraphTables, allPossibleDecomposedHMesh[index].GraphNodes));
                 #endregion
 
                 #endregion
