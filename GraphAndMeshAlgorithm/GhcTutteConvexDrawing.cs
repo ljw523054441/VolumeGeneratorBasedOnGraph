@@ -79,7 +79,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             bool flagGetGraph = false;
             bool flagGetGraphWithHFMesh = false;
 
-            if (obj.Value is Graph)
+            if (obj.Value is Graph && !(obj.Value is GraphWithHM))
             {
                 flagGetGraph = DA.GetData<Graph>("Graph or GraphWithHM", ref graph);
                 CompWorkMode = Mode.Graph;
@@ -90,7 +90,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 graph = graphWithHM;
                 CompWorkMode = Mode.GraphWithHM;
             }
-
 
 
             if (flagGetGraph || flagGetGraphWithHFMesh)
