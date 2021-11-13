@@ -52,9 +52,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // 0
-            pManager.AddGenericParameter("Graph", "G", "图结构", GH_ParamAccess.item);
+            pManager.AddGenericParameter("GraphWithHM", "GHM", "图结构", GH_ParamAccess.item);
             // 1
-            pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果。", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果。", GH_ParamAccess.item);
         }
 
         /// <summary>
