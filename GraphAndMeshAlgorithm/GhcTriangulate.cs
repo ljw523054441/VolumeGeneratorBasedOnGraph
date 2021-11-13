@@ -214,7 +214,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 planktonMesh.Faces.AddFaces(faceVertexOrder);
                 #endregion
 
-                GraphWithHM theChosenOne = new GraphWithHM(planktonMesh, graph.GraphTables, graph.GraphNodes);
+                GraphWithHM theChosenOne = new GraphWithHM(planktonMesh, graph.GraphNodes, graph.GraphTables);
 
                 DA.SetData("TheChosenGraphWithHFMesh", theChosenOne);
 

@@ -164,7 +164,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 创建一个树
                 // ITree<DecomposedHM> tree = NodeTree<DecomposedHM>.NewTree();
                 // 对输入的PlanktonMesh，GraphLoL，GraphNode构造DecomposedHM，形成树的根节点
-                INode<GraphWithHM> root = Tree.AddChild(new GraphWithHM(PDeepCopy, pGraphLoL, pNodesDeepCopy, -1, new int[2, 2] { { -1, -1 }, { -1, -1 } }, -1));
+                INode<GraphWithHM> root = Tree.AddChild(new GraphWithHM(PDeepCopy, pNodesDeepCopy, pGraphLoL, -1, new int[2, 2] { { -1, -1 }, { -1, -1 } }, -1));
 
 
                 // 新分裂产生的Vertex的Index集合
@@ -534,7 +534,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                 for (int k = 0; k < edgeResetStartP.Count; k++)
                                 {
 
-                                    GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPGraphLoL, newPNodes, innerNodeToSplitIndexList[i], allPossibleHalfedgeVertexIndexs[j], k);
+                                    GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPNodes, newPGraphLoL, innerNodeToSplitIndexList[i], allPossibleHalfedgeVertexIndexs[j], k);
                                     //if (!dHMDeepCopy.VertexIndexHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
                                     //{
                                     //    currentDHM.VertexIndexHasBeenDecomposed.AddRange(dHMDeepCopy.VertexIndexHasBeenDecomposed);
