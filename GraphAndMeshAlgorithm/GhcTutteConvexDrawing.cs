@@ -111,18 +111,26 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #region 计算相关矩阵的前置条件
                 // 每个volume点，其连接的数量，即该节点的度
                 List<int> innerNodeDegreeList = new List<int>();
-                for (int i = 0; i < innerNodeCount; i++)
+                //for (int i = 0; i < innerNodeCount; i++)
+                //{
+                //    innerNodeDegreeList.Add(graphDT.Branch(i).Count);
+                //}
+
+                for (int i = 0; i < graphNodes.Count; i++)
                 {
-                    innerNodeDegreeList.Add(graphDT.Branch(i).Count);
+                    if (graphNodes[i].IsInner)
+                    {
+                        innerNodeDegreeList.Add(graphDT.Branch(i).Count);
+                    }
                 }
 
                 // 每个volume点与其他点的连接关系，包括其他volume点和boundary点
-                DataTree<int> volumeNodeGraph = new DataTree<int>();
-                for (int i = 0; i < innerNodeCount; i++)
-                {
-                    volumeNodeGraph.EnsurePath(i);
-                    volumeNodeGraph.Branch(i).AddRange(graphDT.Branch(i));
-                }
+                //DataTree<int> volumeNodeGraph = new DataTree<int>();
+                //for (int i = 0; i < innerNodeCount; i++)
+                //{
+                //    volumeNodeGraph.EnsurePath(i);
+                //    volumeNodeGraph.Branch(i).AddRange(graphDT.Branch(i));
+                //}
 
 
                 #endregion
@@ -139,6 +147,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 #endregion
 
+                List<string> debug0 = PrintMatrix(P_outer);
+
                 #region 计算inner，outer相关矩阵
                 Matrix inner_innerM;
                 // 矩阵Q：inner_OuterAdjacencyMatrix
@@ -153,6 +163,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                  out outer_innerM,
                                  out outer_outerM);
 
+                List<string> debugWhole = PrintMatrix(wholeM);
+                List<string> debugii = PrintMatrix(inner_innerM);
+                List<string> debugio = PrintMatrix(inner_outerM);
+                List<string> debugoo = PrintMatrix(outer_outerM);
+
                 Matrix inner_InnerLaplacianM = LaplacianMatrix(inner_innerM, innerNodeDegreeList);
 
                 bool flag = inner_InnerLaplacianM.Invert(0.0);
@@ -166,70 +181,69 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 求解矩阵 P(inner)
                 Matrix P_inner = new Matrix(innerNodeCount, 2);
                 P_inner = inverse_Inner_InnerLaplacianM * inner_outerM * P_outer;
-                // P_inner.Scale(-1.0);
+                P_inner.Scale(-1.0);
                 #endregion
 
+                List<string> debug1 = PrintMatrix(P_inner);
 
                 #region 从P_inner矩阵中生成新的inner点的坐标
-                List<Point3d> newInnerPoints = new List<Point3d>();
-                Point3d innerPoint;
-                for (int i = 0; i < innerNodeCount; i++)
-                {
-                    innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
-                    newInnerPoints.Add(innerPoint);
-                }
+                //List<Point3d> newInnerPoints = new List<Point3d>();
+                //Point3d innerPoint;
+                //for (int i = 0; i < innerNodeCount; i++)
+                //{
+                //    innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
+                //    newInnerPoints.Add(innerPoint);
+                //}
                 #endregion
 
                 #region Relocate重定位，形成Graph的Node
 
                 #region 新的NodePoint列表
-                // 将新的inner点与原来的outer点合并成一个新的列表
-                //List<Point3d> newNodePoints = new List<Point3d>();
-                //newNodePoints.AddRange(newInnerPoints);
-                //List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
-                //for (int i = 0; i < outerNodeCount; i++)
-                //{
-                //    sortedBoundaryNodePoints.Add(graphNodes[innerNodeCount + i].NodeVertex);
-                //}
-                //newNodePoints.AddRange(sortedBoundaryNodePoints);
 
                 List<Point3d> newNodePoints = new List<Point3d>();
                 for (int i = 0; i < graphNodes.Count; i++)
                 {
                     if (graphNodes[i].IsInner)
                     {
-                        newNodePoints.Add(newInnerPoints[innerNodeIndexList.IndexOf(i)]);
+                        newNodePoints.Add(new Point3d(P_inner[innerNodeIndexList.IndexOf(i), 0], P_inner[innerNodeIndexList.IndexOf(i), 1], 0.0));
                     }
                     else
                     {
-                        newNodePoints.Add(graphNodes[i].NodeVertex);
+                        newNodePoints.Add(new Point3d(P_outer[outerNodeIndexList.IndexOf(i), 0], P_outer[outerNodeIndexList.IndexOf(i), 1], 0.0));
                     }
                 }
 
 
                 #endregion
 
-                Point3d currentCenter = new Point3d();
-                for (int i = 0; i < newNodePoints.Count; i++)
-                {
-                    currentCenter += newNodePoints[i];
-                }
-                currentCenter /= newNodePoints.Count;
+                //Point3d currentCenter = new Point3d();
+                //for (int i = 0; i < newNodePoints.Count; i++)
+                //{
+                //    currentCenter += newNodePoints[i];
+                //}
+                //currentCenter /= newNodePoints.Count;
 
-                Plane currentPlane = Plane.WorldXY;
-                currentPlane.Origin = currentCenter;
+                //Plane currentPlane = Plane.WorldXY;
+                //currentPlane.Origin = currentCenter;
 
                 // 将新的inner+outer列表重新定位在基于worldXY变量的另一个地方
-                List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newNodePoints, currentPlane, targetPlane);
+                // List<Point3d> newNodePointsRelocated = UtilityFunctions.Relocate(newNodePoints, currentPlane, targetPlane);
                 for (int i = 0; i < graphNodes.Count; i++)
                 {
-                    graphNodes[i].NodeVertex = newNodePointsRelocated[i];
+                    graphNodes[i].NodeVertex = newNodePoints[i];
                 }
 
                 #endregion
 
                 Graph newGraph = new Graph(graphNodes, graphLoL);
                 DA.SetData("Graph", newGraph);
+
+                //PlanktonMesh planktonMesh = new PlanktonMesh();
+                //// 顶点部分
+                //for (int i = 0; i < graphNodes.Count; i++)
+                //{
+                //    planktonMesh.Vertices.Add(graphNodes[i].NodeVertex);
+                //}
 
 
                 //if (flagGetGraphWithHFMesh)
@@ -261,7 +275,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 绘制Graph的edge
                 // Graph的所有Edge，在新的位置上画Edge
-                List<Line> graphEdge = GraphEdgeList(graphDT, newNodePointsRelocated);
+                List<Line> graphEdge = GraphEdgeList(graphDT, newNodePoints);
                 DA.SetDataList("GraphEdge", graphEdge);
                 #endregion
 
@@ -276,7 +290,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     if (!graphDeepCopy.GraphNodes[i].IsInner)
                     {
-                        newOuterNodePointsRelocated.Add(newNodePointsRelocated[i]);
+                        newOuterNodePointsRelocated.Add(newNodePoints[i]);
                     }
                 }
 
@@ -348,13 +362,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             Matrix wholeMatrix = new Matrix(graphLoL.Count, graphLoL.Count);
 
             List<List<int>> sortedGraphLoL = new List<List<int>>();
-            for (int i = 0; i < innerNodeIndexList.Count; i++)
-            {
-                sortedGraphLoL.Add(new List<int>(graphLoL[innerNodeIndexList[i]]));
-            }
+
+            // 先outer再inner
+
             for (int i = 0; i < outerNodeIndexList.Count; i++)
             {
                 sortedGraphLoL.Add(new List<int>(graphLoL[outerNodeIndexList[i]]));
+            }
+            for (int i = 0; i < innerNodeIndexList.Count; i++)
+            {
+                sortedGraphLoL.Add(new List<int>(graphLoL[innerNodeIndexList[i]]));
             }
 
             for (int i = 0; i < sortedGraphLoL.Count; i++)
@@ -373,39 +390,39 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
             }
 
-            inner_innerM = new Matrix(innerNodeIndexList.Count, innerNodeIndexList.Count);
-            for (int i = 0; i < innerNodeIndexList.Count; i++)
+            outer_outerM = new Matrix(outerNodeIndexList.Count, outerNodeIndexList.Count);
+            for (int i = 0; i < outerNodeIndexList.Count; i++)
             {
-                for (int j = 0; j < innerNodeIndexList.Count; j++)
+                for (int j = 0; j < outerNodeIndexList.Count; j++)
                 {
-                    inner_innerM[i, j] = wholeMatrix[i, j];
-                }
-            }
-
-            inner_outerM = new Matrix(innerNodeIndexList.Count, outerNodeIndexList.Count);
-            for (int i = 0; i < innerNodeIndexList.Count; i++)
-            {
-                for (int j = innerNodeIndexList.Count; j < graphLoL.Count; j++)
-                {
-                    inner_outerM[i, j - innerNodeIndexList.Count] = wholeMatrix[i, j];
+                    outer_outerM[i, j] = wholeMatrix[i, j];
                 }
             }
 
             outer_innerM = new Matrix(outerNodeIndexList.Count, innerNodeIndexList.Count);
-            for (int i = innerNodeIndexList.Count; i < graphLoL.Count; i++)
+            for (int i = 0; i < outerNodeIndexList.Count; i++)
             {
-                for (int j = 0; j < innerNodeIndexList.Count; j++)
+                for (int j = outerNodeIndexList.Count; j < graphLoL.Count; j++)
                 {
-                    outer_innerM[i - innerNodeIndexList.Count, j] = wholeMatrix[i, j];
+                    outer_innerM[i, j - outerNodeIndexList.Count] = wholeMatrix[i, j];
                 }
             }
 
-            outer_outerM = new Matrix(outerNodeIndexList.Count, outerNodeIndexList.Count);
-            for (int i = innerNodeIndexList.Count; i < graphLoL.Count; i++)
+            inner_outerM = new Matrix(innerNodeIndexList.Count, outerNodeIndexList.Count);
+            for (int i = outerNodeIndexList.Count; i < graphLoL.Count; i++)
             {
-                for (int j = innerNodeIndexList.Count; j < graphLoL.Count; j++)
+                for (int j = 0; j < outerNodeIndexList.Count; j++)
                 {
-                    outer_outerM[i - innerNodeIndexList.Count, j - innerNodeIndexList.Count] = wholeMatrix[i, j];
+                    inner_outerM[i - outerNodeIndexList.Count, j] = wholeMatrix[i, j];
+                }
+            }
+
+            inner_innerM = new Matrix(innerNodeIndexList.Count, innerNodeIndexList.Count);
+            for (int i = outerNodeIndexList.Count; i < graphLoL.Count; i++)
+            {
+                for (int j = outerNodeIndexList.Count; j < graphLoL.Count; j++)
+                {
+                    inner_innerM[i - outerNodeIndexList.Count, j - outerNodeIndexList.Count] = wholeMatrix[i, j];
                 }
             }
 
@@ -445,7 +462,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices)
         {
             List<Line> list = new List<Line>();
-
             for (int i = 0; i < graph.BranchCount; i++)
             {
                 for (int j = 0; j < graph.Branch(i).Count; j++)
@@ -485,11 +501,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     if (i == j)
                     {
-                        LaplacianM[i, j] = degrees[j] - 0;
+                        LaplacianM[i, j] = degrees[i] - 0;
                     }
                     else
                     {
-                        LaplacianM[i, j] = 0 - M[i,j];
+                        LaplacianM[i, j] = 0 - M[i, j];
                     }
                 }
             }
