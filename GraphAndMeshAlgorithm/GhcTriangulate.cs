@@ -102,6 +102,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // List<int> innerNodeIndexList = graph.InnerNodeIndexList;
                 // List<int> outerNodeIndexList = graph.OuterNodeIndexList;
 
+                ConvexPolylinesPoints.Clear();
+
                 #region 对输入的Curve类型的ConvexFaceBorder进行类型转换，转换成Curve类的子类Polyline
                 List<Polyline> convexFaceBorderPolylines = new List<Polyline>();
                 for (int i = 0; i < convexFaceBorderCurves.Count; i++)
