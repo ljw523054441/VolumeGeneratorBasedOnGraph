@@ -169,9 +169,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<string> debugoo = PrintMatrix(outer_outerM);
 
                 Matrix inner_InnerLaplacianM = LaplacianMatrix(inner_innerM, innerNodeDegreeList);
+                List<string> debugL = PrintMatrix(inner_InnerLaplacianM);
 
                 bool flag = inner_InnerLaplacianM.Invert(0.0);
                 Matrix inverse_Inner_InnerLaplacianM = inner_InnerLaplacianM;
+                List<string> debugInverseL = PrintMatrix(inverse_Inner_InnerLaplacianM);
 
                 #endregion
 
@@ -181,7 +183,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 求解矩阵 P(inner)
                 Matrix P_inner = new Matrix(innerNodeCount, 2);
                 P_inner = inverse_Inner_InnerLaplacianM * inner_outerM * P_outer;
-                P_inner.Scale(-1.0);
+                //P_inner.Scale(-1.0);
                 #endregion
 
                 List<string> debug1 = PrintMatrix(P_inner);
@@ -363,22 +365,28 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             List<List<int>> sortedGraphLoL = new List<List<int>>();
 
+            List<int> sortedIndex = new List<int>();
+
             // 先outer再inner
 
             for (int i = 0; i < outerNodeIndexList.Count; i++)
             {
                 sortedGraphLoL.Add(new List<int>(graphLoL[outerNodeIndexList[i]]));
+                sortedIndex.Add(outerNodeIndexList[i]);
             }
             for (int i = 0; i < innerNodeIndexList.Count; i++)
             {
                 sortedGraphLoL.Add(new List<int>(graphLoL[innerNodeIndexList[i]]));
+                sortedIndex.Add(innerNodeIndexList[i]);
             }
+
+            // 如果前面先outer再inner打乱顺序的话，就不能再两层for循环，然后i，j了，列的序号会错
 
             for (int i = 0; i < sortedGraphLoL.Count; i++)
             {
                 for (int j = 0; j < sortedGraphLoL.Count; j++)
                 {
-                    if (sortedGraphLoL[i].Contains(j))
+                    if (sortedGraphLoL[i].Contains(sortedIndex[j]))
                     {
                         wholeMatrix[i, j] = 1;
                     }
@@ -386,9 +394,24 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     {
                         wholeMatrix[i, j] = 0;
                     }
-
                 }
             }
+
+            //for (int i = 0; i < sortedGraphLoL.Count; i++)
+            //{
+            //    for (int j = 0; j < sortedGraphLoL.Count; j++)
+            //    {
+            //        if (sortedGraphLoL[i].Contains(j))
+            //        {
+            //            wholeMatrix[i, j] = 1;
+            //        }
+            //        else
+            //        {
+            //            wholeMatrix[i, j] = 0;
+            //        }
+
+            //    }
+            //}
 
             outer_outerM = new Matrix(outerNodeIndexList.Count, outerNodeIndexList.Count);
             for (int i = 0; i < outerNodeIndexList.Count; i++)

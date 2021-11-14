@@ -93,10 +93,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             pManager.AddIntegerParameter("CountOfAllPossibleHFM", "C", "所有可能的结果的总数量", GH_ParamAccess.item);
 
+            pManager.AddGenericParameter("OriginGraphWithHM", "OGHM", "描述VolumeNode和BoundaryNode的所有连接关系的图结构(包括新分裂产生的点)", GH_ParamAccess.item);
+
             pManager.AddGenericParameter("NewGraphWithHM", "NGHM", "描述VolumeNode和BoundaryNode的所有连接关系的图结构(包括新分裂产生的点)", GH_ParamAccess.item);
             // pManager.AddGenericParameter("NewGraphNode", "NGN", "更新后的图结构中的节点", GH_ParamAccess.list);
 
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
+            pManager.AddGenericParameter("DebugVertexConnection", "DebugVC", "Debug结果顶点连接关系", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
@@ -293,6 +296,189 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
 
+                List<string> debug = UtilityFunctions.PrintVertexConnection(allPossibleDecomposedHMesh[index].PlanktonMesh);
+
+
+                DA.SetData("OriginGraphWithHM", allPossibleDecomposedHMesh[index]);
+
+
+                #region ReTutteEebeding
+
+                GraphWithHM newGraphWithHM = new GraphWithHM(allPossibleDecomposedHMesh[index]);
+
+                PlanktonMesh newPlanktonMesh = newGraphWithHM.PlanktonMesh;
+                List<List<int>> originGraphTables = newGraphWithHM.GraphTables;
+                List<Node> newGraphNodes = newGraphWithHM.GraphNodes;
+
+                int innerNodeCount = newGraphWithHM.InnerNodeCount;
+                int outerNodeCount = newGraphWithHM.OuterNodeCount;
+                List<int> outerNodeIndexList = newGraphWithHM.OuterNodeIndexList;
+                List<int> innerNodeIndexList = newGraphWithHM.InnerNodeIndexList;
+
+                List<List<int>> triangleGraphTables = new List<List<int>>();
+                List<int> innerNodeDegreeList = new List<int>();
+                for (int i = 0; i < newPlanktonMesh.Vertices.Count; i++)
+                {
+                    triangleGraphTables.Add(new List<int>());
+                    triangleGraphTables[i].AddRange(newPlanktonMesh.Vertices.GetVertexNeighbours(i));
+                    if (newGraphNodes[i].IsInner)
+                    {
+                        innerNodeDegreeList.Add(newPlanktonMesh.Vertices.GetVertexNeighbours(i).Length);
+                    }
+                }
+
+
+                // graphDT目前只是紫色线，需要是全部线
+                DataTree<int> triangleGraphDT = UtilityFunctions.LoLToDataTree<int>(triangleGraphTables);
+                #region 计算相关矩阵的前置条件
+
+                
+                //for (int i = 0; i < innerNodeCount; i++)
+                //{
+                //    innerNodeDegreeList.Add(graphDT.Branch(i).Count);
+                //}
+                //for (int i = 0; i < newGraphNodes.Count; i++)
+                //{
+                //    if (newGraphNodes[i].IsInner)
+                //    {
+                //        innerNodeDegreeList.Add(triangleGraphDT.Branch(i).Count);
+                //    }
+                //}
+
+                // 每个volume点与其他点的连接关系，包括其他volume点和boundary点
+                //DataTree<int> volumeNodeGraph = new DataTree<int>();
+                //for (int i = 0; i < innerNodeCount; i++)
+                //{
+                //    volumeNodeGraph.EnsurePath(i);
+                //    volumeNodeGraph.Branch(i).AddRange(graphDT.Branch(i));
+                //}
+
+                #endregion
+                #region 计算矩阵 P(outer)
+                Matrix P_outer = new Matrix(outerNodeCount, 2);
+                for (int i = 0; i < newGraphWithHM.GraphNodes.Count; i++)
+                {
+                    if (!newGraphWithHM.GraphNodes[i].IsInner)
+                    {
+                        P_outer[outerNodeIndexList.IndexOf(i), 0] = newGraphWithHM.GraphNodes[i].NodeVertex.X;
+                        P_outer[outerNodeIndexList.IndexOf(i), 1] = newGraphWithHM.GraphNodes[i].NodeVertex.Y;
+                    }
+                }
+                #endregion
+                #region 计算inner，outer相关矩阵
+                Matrix inner_innerM;
+                // 矩阵Q：inner_OuterAdjacencyMatrix
+                Matrix inner_outerM;
+                Matrix outer_innerM;
+                Matrix outer_outerM;
+                Matrix wholeM = GraphLoLToMatrix(triangleGraphTables,
+                                 innerNodeIndexList,
+                                 outerNodeIndexList,
+                                 out inner_innerM,
+                                 out inner_outerM,
+                                 out outer_innerM,
+                                 out outer_outerM);
+
+                /**/
+                List<string> debugWhole = PrintMatrix(wholeM);
+                List<string> debugii = PrintMatrix(inner_innerM);
+                List<string> debugio = PrintMatrix(inner_outerM);
+                List<string> debugoo = PrintMatrix(outer_outerM);
+
+                Matrix inner_InnerLaplacianM = LaplacianMatrix(inner_innerM, innerNodeDegreeList);
+
+                /**/
+                List<string> printLaplacianM = PrintMatrix(inner_InnerLaplacianM);
+
+
+                bool flag = inner_InnerLaplacianM.Invert(0.0);
+                Matrix inverse_Inner_InnerLaplacianM = inner_InnerLaplacianM;
+
+                #endregion
+
+                #region 求解矩阵 P(inner)
+                // 求解矩阵 P(inner)
+                Matrix P_inner = new Matrix(innerNodeCount, 2);
+                P_inner = inverse_Inner_InnerLaplacianM * inner_outerM * P_outer;
+                // P_inner.Scale(-1.0);
+                #endregion
+
+
+                //#region 从P_inner矩阵中生成新的inner点的坐标
+                //List<Point3d> newInnerPoints = new List<Point3d>();
+                //Point3d innerPoint;
+                //for (int i = 0; i < innerNodeCount; i++)
+                //{
+                //    innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
+                //    newInnerPoints.Add(innerPoint);
+                //}
+                //#endregion
+
+                #region 新的NodePoint列表
+                // 将新的inner点与原来的outer点合并成一个新的列表
+                //List<Point3d> newNodePoints = new List<Point3d>();
+                //newNodePoints.AddRange(newInnerPoints);
+                //List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
+                //for (int i = 0; i < outerNodeCount; i++)
+                //{
+                //    sortedBoundaryNodePoints.Add(graphNodes[innerNodeCount + i].NodeVertex);
+                //}
+                //newNodePoints.AddRange(sortedBoundaryNodePoints);
+
+                List<Point3d> newNodePoints = new List<Point3d>();
+                for (int i = 0; i < newGraphNodes.Count; i++)
+                {
+                    if (newGraphNodes[i].IsInner)
+                    {
+                        newNodePoints.Add(new Point3d(P_inner[innerNodeIndexList.IndexOf(i), 0], P_inner[innerNodeIndexList.IndexOf(i), 1], 0.0));
+                    }
+                    else
+                    {
+                        newNodePoints.Add(new Point3d(P_outer[outerNodeIndexList.IndexOf(i), 0], P_outer[outerNodeIndexList.IndexOf(i), 1], 0.0));
+                    }
+                }
+
+                for (int i = 0; i < newGraphNodes.Count; i++)
+                {
+                    newGraphNodes[i].NodeVertex = newNodePoints[i];
+                }
+
+
+                #endregion
+
+                #region 修改对应的PlanktonMesh
+
+                List<List<int>> faceVertexOrder = new List<List<int>>();
+                for (int i = 0; i < newPlanktonMesh.Faces.Count; i++)
+                {
+                    faceVertexOrder.Add(new List<int>());
+                    faceVertexOrder[i].AddRange(newPlanktonMesh.Faces.GetFaceVertices(i));
+                }
+
+                // 构造修改后的PlanktonMesh
+                PlanktonMesh embededPlanktonMesh = new PlanktonMesh();
+                // Vertex位置信息改变
+                for (int i = 0; i < newGraphNodes.Count; i++)
+                {
+                    embededPlanktonMesh.Vertices.Add(newGraphNodes[i].NodeVertex.X, newGraphNodes[i].NodeVertex.Y, newGraphNodes[i].NodeVertex.Z);
+                }
+                // face信息没变
+                embededPlanktonMesh.Faces.AddFaces(faceVertexOrder);
+
+                #endregion
+
+
+
+                // 输出新的GraphWithHM
+                GraphWithHM embededGraphWithHM = new GraphWithHM(embededPlanktonMesh, newGraphNodes, originGraphTables);
+                #endregion
+
+
+
+
+
+
+
 
 
 
@@ -302,32 +488,39 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DA.SetData("CountOfAllPossibleHFM", allPossibleDecomposedHMesh.Count);
 
 
-                DA.SetData("NewGraphWithHM", allPossibleDecomposedHMesh[index]);
+                DA.SetData("NewGraphWithHM", embededGraphWithHM);
                 #endregion
 
                 #region 用于输出Debug数据
 
                 #region HalfedgeMesh的顶点数据
                 List<string> printVertices = new List<string>();
-                printVertices = UtilityFunctions.PrintVertices(allPossibleDecomposedHMesh[index].PlanktonMesh);
+                printVertices = UtilityFunctions.PrintVertices(embededGraphWithHM.PlanktonMesh);
                 DA.SetDataList("DebugVerticesOutput", printVertices);
                 #endregion
 
+                #region HalfedgeMesh的顶点连接数据
+                List<string> printVertexConnection = new List<string>();
+                printVertexConnection = UtilityFunctions.PrintVertexConnection(embededGraphWithHM.PlanktonMesh);
+                DA.SetDataList("DebugVertexConnection", printVertexConnection);
+                #endregion
+
+
                 #region HalfedgeMesh的半边数据
                 List<string> printHalfedges = new List<string>();
-                printHalfedges = UtilityFunctions.PrintHalfedges(allPossibleDecomposedHMesh[index].PlanktonMesh);
+                printHalfedges = UtilityFunctions.PrintHalfedges(embededGraphWithHM.PlanktonMesh);
                 DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
                 #endregion
 
                 #region HalfedgeMesh的每个面由哪些顶点构成
                 List<string> printFaces = new List<string>();
-                printFaces = UtilityFunctions.PrintFacesVertices(allPossibleDecomposedHMesh[index].PlanktonMesh);
+                printFaces = UtilityFunctions.PrintFacesVertices(embededGraphWithHM.PlanktonMesh);
                 DA.SetDataList("DebugFacesOutput", printFaces);
                 #endregion
 
                 #region HalfedgeMesh的每个面由哪些半边构成
                 List<string> printFacesHalfedge = new List<string>();
-                printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(allPossibleDecomposedHMesh[index].PlanktonMesh);
+                printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(embededGraphWithHM.PlanktonMesh);
                 DA.SetDataList("DebugFacesHalfedges", printFacesHalfedge);
                 #endregion
 
@@ -339,38 +532,53 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 InnerNodeTextDot.Clear();
                 OuterNodeTextDot.Clear();
 
-                for (int i = 0; i < allPossibleDecomposedHMesh[index].GraphNodes.Count; i++)
+                for (int i = 0; i < embededGraphWithHM.GraphNodes.Count; i++)
                 {
-                    if (allPossibleDecomposedHMesh[index].GraphNodes[i].IsInner)
+                    if (embededGraphWithHM.GraphNodes[i].IsInner)
                     {
-                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, allPossibleDecomposedHMesh[index].GraphNodes[i].NodeAttribute.NodeLabel), allPossibleDecomposedHMesh[index].GraphNodes[i].NodeVertex);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, embededGraphWithHM.GraphNodes[i].NodeAttribute.NodeLabel), embededGraphWithHM.GraphNodes[i].NodeVertex);
                         InnerNodeTextDot.Add(textDot);
                     }
                     else
                     {
-                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, allPossibleDecomposedHMesh[index].GraphNodes[i].NodeAttribute.NodeLabel), allPossibleDecomposedHMesh[index].GraphNodes[i].NodeVertex);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, embededGraphWithHM.GraphNodes[i].NodeAttribute.NodeLabel), embededGraphWithHM.GraphNodes[i].NodeVertex);
                         OuterNodeTextDot.Add(textDot);
                     }
                 }
                 #endregion
 
                 #region 转换为RhinoMesh，在DrawViewportMeshes绘制选中的mesh
-                PRhinoMesh = RhinoSupport.ToRhinoMesh(allPossibleDecomposedHMesh[index].PlanktonMesh);
+                // PRhinoMesh = RhinoSupport.ToRhinoMesh(embededGraphWithHM.PlanktonMesh);
+
+                List<Line> edges = new List<Line>();
+                List<int> usedHFIndex = new List<int>();
+                for (int i = 0; i < embededPlanktonMesh.Halfedges.Count; i++)
+                {
+                    if (!usedHFIndex.Contains(i))
+                    {
+                        Point3d start = embededPlanktonMesh.Vertices[embededPlanktonMesh.Halfedges[i].StartVertex].ToPoint3d();
+                        Point3d end = embededPlanktonMesh.Vertices[embededPlanktonMesh.Halfedges.EndVertex(i)].ToPoint3d();
+                        edges.Add(new Line(start, end));
+                        int pairHFIndex = embededPlanktonMesh.Halfedges.GetPairHalfedge(i);
+                        usedHFIndex.Add(i);
+                        usedHFIndex.Add(pairHFIndex);
+                    }
+                }
                 #endregion
 
                 #region 在DrawViewportWires绘制mesh的edge（虚线）
-                List<Line> selectedHalfedgeMeshPEdges = new List<Line>();
-                for (int i = 0; i < PRhinoMesh.TopologyEdges.Count; i++)
-                {
-                    selectedHalfedgeMeshPEdges.Add(PRhinoMesh.TopologyEdges.EdgeLine(i));
-                }
+                //List<Line> selectedHalfedgeMeshPEdges = new List<Line>();
+                //for (int i = 0; i < PRhinoMesh.TopologyEdges.Count; i++)
+                //{
+                //    selectedHalfedgeMeshPEdges.Add(PRhinoMesh.TopologyEdges.EdgeLine(i));
+                //}
 
                 PHalfedgeDottedCurves.Clear();
 
                 double[] pattern = { 1.0 };
-                for (int i = 0; i < selectedHalfedgeMeshPEdges.Count; i++)
+                for (int i = 0; i < edges.Count; i++)
                 {
-                    IEnumerable<Curve> segments = UtilityFunctions.ApplyDashPattern(selectedHalfedgeMeshPEdges[i].ToNurbsCurve(), pattern);
+                    IEnumerable<Curve> segments = UtilityFunctions.ApplyDashPattern(edges[i].ToNurbsCurve(), pattern);
                     foreach (Curve segment in segments)
                     {
                         PHalfedgeDottedCurves.Add(segment);
@@ -380,7 +588,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 绘制表示图结构关系的实线
                 GraphEdges.Clear();
-                GraphEdges.AddRange(UtilityFunctions.GraphEdgeLine(allPossibleDecomposedHMesh[index].GraphTables, allPossibleDecomposedHMesh[index].GraphNodes));
+                // GraphEdges.AddRange(UtilityFunctions.GraphEdgeLine(embededGraphWithHM.GraphTables, embededGraphWithHM.GraphNodes));
                 #endregion
 
                 #endregion
@@ -1380,7 +1588,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
         }
 
-        
+
 
         /// <summary>
         /// 利用System.Runtime.Serialization序列化与反序列化完成引用对象的复制
@@ -1399,6 +1607,157 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         //        return (T)formatter.Deserialize(objectStream);
         //    }
         //}
+
+
+        public Matrix GraphLoLToMatrix(List<List<int>> graphLoL,
+                                     List<int> innerNodeIndexList,
+                                     List<int> outerNodeIndexList,
+                                     out Matrix inner_innerM,
+                                     out Matrix inner_outerM,
+                                     out Matrix outer_innerM,
+                                     out Matrix outer_outerM)
+        {
+            Matrix wholeMatrix = new Matrix(graphLoL.Count, graphLoL.Count);
+
+            List<List<int>> sortedGraphLoL = new List<List<int>>();
+
+            List<int> sortedIndex = new List<int>();
+
+            // 先outer再inner
+
+            for (int i = 0; i < outerNodeIndexList.Count; i++)
+            {
+                sortedGraphLoL.Add(new List<int>(graphLoL[outerNodeIndexList[i]]));
+                sortedIndex.Add(outerNodeIndexList[i]);
+            }
+            for (int i = 0; i < innerNodeIndexList.Count; i++)
+            {
+                sortedGraphLoL.Add(new List<int>(graphLoL[innerNodeIndexList[i]]));
+                sortedIndex.Add(innerNodeIndexList[i]);
+            }
+
+            // 如果前面先outer再inner打乱顺序的话，就不能再两层for循环，然后i，j了，列的序号会错
+
+            for (int i = 0; i < sortedGraphLoL.Count; i++)
+            {
+                for (int j = 0; j < sortedGraphLoL.Count; j++)
+                {
+                    if (sortedGraphLoL[i].Contains(sortedIndex[j]))
+                    {
+                        wholeMatrix[i, j] = 1;
+                    }
+                    else
+                    {
+                        wholeMatrix[i, j] = 0;
+                    }
+                }
+            }
+
+            //for (int i = 0; i < sortedGraphLoL.Count; i++)
+            //{
+            //    if (boolList[i])
+            //    {
+
+            //    }
+            //}
+
+
+
+            outer_outerM = new Matrix(outerNodeIndexList.Count, outerNodeIndexList.Count);
+            for (int i = 0; i < outerNodeIndexList.Count; i++)
+            {
+                for (int j = 0; j < outerNodeIndexList.Count; j++)
+                {
+                    outer_outerM[i, j] = wholeMatrix[i, j];
+                }
+            }
+
+            outer_innerM = new Matrix(outerNodeIndexList.Count, innerNodeIndexList.Count);
+            for (int i = 0; i < outerNodeIndexList.Count; i++)
+            {
+                for (int j = outerNodeIndexList.Count; j < graphLoL.Count; j++)
+                {
+                    outer_innerM[i, j - outerNodeIndexList.Count] = wholeMatrix[i, j];
+                }
+            }
+
+            inner_outerM = new Matrix(innerNodeIndexList.Count, outerNodeIndexList.Count);
+            for (int i = outerNodeIndexList.Count; i < graphLoL.Count; i++)
+            {
+                for (int j = 0; j < outerNodeIndexList.Count; j++)
+                {
+                    inner_outerM[i - outerNodeIndexList.Count, j] = wholeMatrix[i, j];
+                }
+            }
+
+            inner_innerM = new Matrix(innerNodeIndexList.Count, innerNodeIndexList.Count);
+            for (int i = outerNodeIndexList.Count; i < graphLoL.Count; i++)
+            {
+                for (int j = outerNodeIndexList.Count; j < graphLoL.Count; j++)
+                {
+                    inner_innerM[i - outerNodeIndexList.Count, j - outerNodeIndexList.Count] = wholeMatrix[i, j];
+                }
+            }
+
+            return wholeMatrix;
+        }
+
+        /// <summary>
+        /// 调和矩阵L Harmonic Matrix，又称拉普拉斯矩阵 Laplacian Matrix。是图的矩阵表示
+        /// 在图论和计算机科学中，邻接矩阵A（英语：adjacency matrix）是一种方阵，用来表示有限图。它的每个元素代表各点之间是否有边相连。
+        /// 在数学领域图论中，度数矩阵D是一个对角矩阵 ，其中包含的信息为的每一个顶点的度数，也就是说，每个顶点相邻的边数[1] 它可以和邻接矩阵一起使用以构造图的拉普拉斯算子矩阵。
+        /// L = D - A
+        /// </summary>
+        /// <param name="M">邻接矩阵 Adjacency Matrix，对角线都是0，其他部分有数据0或1</param>
+        /// <param name="degrees">度数矩阵 Degrees Matrix，因为是只有对角线有数据，其他部分都是零，所以可以用list存储</param>
+        /// <returns></returns>
+        public Matrix LaplacianMatrix(Matrix M, List<int> degrees)
+        {
+            if (!M.IsSquare)
+            {
+                return null;
+            }
+            if (M.RowCount != degrees.Count)
+            {
+                return null;
+            }
+
+            Matrix LaplacianM = new Matrix(M.RowCount, M.ColumnCount);
+            for (int i = 0; i < M.RowCount; i++)
+            {
+                for (int j = 0; j < M.ColumnCount; j++)
+                {
+                    if (i == j)
+                    {
+                        LaplacianM[i, j] = degrees[i] - 0;
+                    }
+                    else
+                    {
+                        LaplacianM[i, j] = 0 - M[i, j];
+                    }
+                }
+            }
+
+            return LaplacianM;
+        }
+
+
+        public List<string> PrintMatrix(Matrix M)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < M.RowCount; i++)
+            {
+                string str = string.Format("{0}行:", i);
+                for (int j = 0; j < M.ColumnCount; j++)
+                {
+                    str += string.Format("{0},", M[i, j]);
+                }
+                output.Add(str);
+            }
+
+            return output;
+        }
+
 
         /// <summary>
         /// 预览模式为WireFrame模式时，调用此函数
