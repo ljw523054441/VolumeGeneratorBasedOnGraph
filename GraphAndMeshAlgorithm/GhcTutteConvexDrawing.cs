@@ -39,7 +39,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // 0
-            pManager.AddPlaneParameter("BasePlane", "BP", "生成Tutte嵌入的平面", GH_ParamAccess.item, Plane.WorldXY);
+            // pManager.AddPlaneParameter("BasePlane", "BP", "生成Tutte嵌入的平面", GH_ParamAccess.item, Plane.WorldXY);
             // 1
             pManager.AddGenericParameter("Graph", "G or GHM", "图结构", GH_ParamAccess.item);
         }
@@ -69,32 +69,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             Graph graph = new Graph();
             // GraphWithHM graphWithHM = new GraphWithHM();
 
-            Plane targetPlane = Plane.WorldXY;
+            // Plane targetPlane = Plane.WorldXY;
             #endregion
-
-            //GH_ObjectWrapper obj = new GH_ObjectWrapper();
-
-            // DA.GetData<GH_ObjectWrapper>("Graph or GraphWithHM", ref obj);
-
-            //bool flagGetGraph = false;
-            //bool flagGetGraphWithHFMesh = false;
-
-            //if (obj.Value is Graph && !(obj.Value is GraphWithHM))
-            //{
-            //    flagGetGraph = ;
-            //    CompWorkMode = Mode.Graph;
-            //}
-            //if (obj.Value is GraphWithHM)
-            //{
-            //    flagGetGraphWithHFMesh = DA.GetData<GraphWithHM>("Graph or GraphWithHM", ref graphWithHM);
-            //    graph = graphWithHM;
-            //    CompWorkMode = Mode.GraphWithHM;
-            //}
-
 
             if (DA.GetData<Graph>("Graph", ref graph))
             {
-                DA.GetData<Plane>("BasePlane", ref targetPlane);
+                // DA.GetData<Plane>("BasePlane", ref targetPlane);
 
                 Graph graphDeepCopy = new Graph(graph);
 
@@ -111,10 +91,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #region 计算相关矩阵的前置条件
                 // 每个volume点，其连接的数量，即该节点的度
                 List<int> innerNodeDegreeList = new List<int>();
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    innerNodeDegreeList.Add(graphDT.Branch(i).Count);
-                //}
 
                 for (int i = 0; i < graphNodes.Count; i++)
                 {
@@ -123,15 +99,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         innerNodeDegreeList.Add(graphDT.Branch(i).Count);
                     }
                 }
-
-                // 每个volume点与其他点的连接关系，包括其他volume点和boundary点
-                //DataTree<int> volumeNodeGraph = new DataTree<int>();
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    volumeNodeGraph.EnsurePath(i);
-                //    volumeNodeGraph.Branch(i).AddRange(graphDT.Branch(i));
-                //}
-
 
                 #endregion
 
@@ -147,7 +114,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 #endregion
 
-                List<string> debug0 = PrintMatrix(P_outer);
+                // List<string> debug0 = PrintMatrix(P_outer);
 
                 #region 计算inner，outer相关矩阵
                 Matrix inner_innerM;
@@ -163,17 +130,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                  out outer_innerM,
                                  out outer_outerM);
 
-                List<string> debugWhole = PrintMatrix(wholeM);
-                List<string> debugii = PrintMatrix(inner_innerM);
-                List<string> debugio = PrintMatrix(inner_outerM);
-                List<string> debugoo = PrintMatrix(outer_outerM);
+                // List<string> debugWhole = PrintMatrix(wholeM);
+                // List<string> debugii = PrintMatrix(inner_innerM);
+                // List<string> debugio = PrintMatrix(inner_outerM);
+                // List<string> debugoo = PrintMatrix(outer_outerM);
 
                 Matrix inner_InnerLaplacianM = LaplacianMatrix(inner_innerM, innerNodeDegreeList);
-                List<string> debugL = PrintMatrix(inner_InnerLaplacianM);
+                // List<string> debugL = PrintMatrix(inner_InnerLaplacianM);
 
                 bool flag = inner_InnerLaplacianM.Invert(0.0);
                 Matrix inverse_Inner_InnerLaplacianM = inner_InnerLaplacianM;
-                List<string> debugInverseL = PrintMatrix(inverse_Inner_InnerLaplacianM);
+                // List<string> debugInverseL = PrintMatrix(inverse_Inner_InnerLaplacianM);
 
                 #endregion
 
@@ -187,16 +154,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 List<string> debug1 = PrintMatrix(P_inner);
-
-                #region 从P_inner矩阵中生成新的inner点的坐标
-                //List<Point3d> newInnerPoints = new List<Point3d>();
-                //Point3d innerPoint;
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
-                //    newInnerPoints.Add(innerPoint);
-                //}
-                #endregion
 
                 #region Relocate重定位，形成Graph的Node
 
@@ -240,41 +197,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 Graph newGraph = new Graph(graphNodes, graphLoL);
                 DA.SetData("Graph", newGraph);
 
-                //PlanktonMesh planktonMesh = new PlanktonMesh();
-                //// 顶点部分
-                //for (int i = 0; i < graphNodes.Count; i++)
-                //{
-                //    planktonMesh.Vertices.Add(graphNodes[i].NodeVertex);
-                //}
-
-
-                //if (flagGetGraphWithHFMesh)
-                //{
-                //    PlanktonMesh planktonMesh = graphWithHM.PlanktonMesh;
-
-                //    List<List<int>> faceVertexOrder = new List<List<int>>();
-                //    for (int i = 0; i < planktonMesh.Faces.Count; i++)
-                //    {
-                //        faceVertexOrder.Add(new List<int>());
-                //        int[] vertexs = planktonMesh.Faces.GetFaceVertices(i);
-                //        faceVertexOrder[i].AddRange(vertexs);
-                //    }
-
-                //    PlanktonMesh newPlanktonMesh = new PlanktonMesh();
-                //    // vertices部分
-                //    for (int i = 0; i < graphWithHM.GraphNodes.Count; i++)
-                //    {
-                //        newPlanktonMesh.Vertices.Add(graphNodes[i].NodeVertex.X, graphNodes[i].NodeVertex.Y, graphNodes[i].NodeVertex.Z);
-                //    }
-                //    // faces部分
-                //    newPlanktonMesh.Faces.AddFaces(faceVertexOrder);
-
-                //    GraphWithHM newGraphWithHM = new GraphWithHM(newPlanktonMesh, graphNodes, graphLoL);
-                //    DA.SetData("Graph or GraphWithHM", newGraphWithHM);
-                //}
-
-
-
                 #region 绘制Graph的edge
                 // Graph的所有Edge，在新的位置上画Edge
                 List<Line> graphEdge = GraphEdgeList(graphDT, newNodePoints);
@@ -283,28 +205,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 绘制Graph形成的Convex
                 // Graph形成的每个convex，在新的位置上画Convex
-                List<Point3d> newOuterNodePointsRelocated = new List<Point3d>();
-                //for (int i = innerNodeCount; i < newNodePointsRelocated.Count; i++)
-                //{
-                //    sortedBoundaryNodePointsRelocated.Add(newNodePointsRelocated[i]);
-                //}
+                List<Point3d> newOuterNodePoints = new List<Point3d>();
                 for (int i = 0; i < graphDeepCopy.GraphNodes.Count; i++)
                 {
                     if (!graphDeepCopy.GraphNodes[i].IsInner)
                     {
-                        newOuterNodePointsRelocated.Add(newNodePoints[i]);
+                        newOuterNodePoints.Add(newNodePoints[i]);
                     }
                 }
 
-                List<Polyline> allSplitFaceBoundarys = GMeshFaceBoundaries(newOuterNodePointsRelocated, graphEdge, targetPlane);
+                List<Polyline> allSplitFaceBoundarys = GMeshFaceBoundaries(newOuterNodePoints, graphEdge, Plane.WorldXY);
                 #endregion
                 DA.SetDataList("ConvexFaceBorders", allSplitFaceBoundarys);
-
-
-
-                /* 这里要把inner_InnerAdjacencyDataTree找回来*/
-
-
 
                 #region 输出subGraph
                 // subGraph的每一支表示一个volumeNode与哪些其他的volumeNode相连
@@ -396,22 +308,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
             }
-
-            //for (int i = 0; i < sortedGraphLoL.Count; i++)
-            //{
-            //    for (int j = 0; j < sortedGraphLoL.Count; j++)
-            //    {
-            //        if (sortedGraphLoL[i].Contains(j))
-            //        {
-            //            wholeMatrix[i, j] = 1;
-            //        }
-            //        else
-            //        {
-            //            wholeMatrix[i, j] = 0;
-            //        }
-
-            //    }
-            //}
 
             outer_outerM = new Matrix(outerNodeIndexList.Count, outerNodeIndexList.Count);
             for (int i = 0; i < outerNodeIndexList.Count; i++)
