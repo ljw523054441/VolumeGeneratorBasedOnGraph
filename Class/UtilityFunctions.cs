@@ -398,6 +398,21 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return output;
         }
 
+        internal static List<string> PrintVertexConnection(PlanktonMesh mesh)
+        {
+            List<string> output = new List<string>();
+            for (int i = 0; i < mesh.Vertices.Count; i++)
+            {
+                string str = "Vertices[" + i.ToString() + "]=";
+                for (int j = 0; j < mesh.Vertices.GetVertexNeighbours(i).Length; j++)
+                {
+                    str += mesh.Vertices.GetVertexNeighbours(i)[j].ToString() + ",";
+                }
+                output.Add(str);
+            }
+            return output;
+        } 
+
         /// <summary>
         /// HalfedgeMesh中每条半边的属性
         /// </summary>
