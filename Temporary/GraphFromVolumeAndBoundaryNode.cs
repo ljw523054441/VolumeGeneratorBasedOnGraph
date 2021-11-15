@@ -110,7 +110,7 @@ namespace VolumeGeneratorBasedOnGraph
 
             List<string> volumeLabelList = new List<string>();                              // list3 -> volumeLabelList
             // List<double> volumeAreaAttributeList = new List<double>();                      // list4 -> volumeAreaAttributeList
-            List<NodeAttribute> volumeNodeAttributeList = new List<NodeAttribute>();
+            List<GraphNodeAttribute> volumeNodeAttributeList = new List<GraphNodeAttribute>();
 
             List<string> boundaryLabelList = new List<string>();
             boundaryLabelList.AddRange(new string[]
@@ -121,11 +121,11 @@ namespace VolumeGeneratorBasedOnGraph
                     "S"
                 });
             // List<double> boundaryAreaAttributeList = new List<double>();
-            List<NodeAttribute> boundaryNodeAttributeList = new List<NodeAttribute>();
+            List<GraphNodeAttribute> boundaryNodeAttributeList = new List<GraphNodeAttribute>();
 
             List<string> boundaryLabelListExceptNEWS = new List<string>();
             // List<double> boundaryAreaAttributeListExceptNEWS = new List<double>();
-            List<NodeAttribute> boundaryNodeAttributeListExceptNEWS = new List<NodeAttribute>();
+            List<GraphNodeAttribute> boundaryNodeAttributeListExceptNEWS = new List<GraphNodeAttribute>();
 
             // double totalArea = 0.0;                                                               // num -> totalArea
             // Plane worldXY = Plane.WorldXY;
@@ -135,7 +135,7 @@ namespace VolumeGeneratorBasedOnGraph
 
             DataTree<int> graph = new DataTree<int>();
             List<Point3d> nodePoints = new List<Point3d>();
-            List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
+            List<GraphNodeAttribute> nodeAttributes = new List<GraphNodeAttribute>();
 
 
 
@@ -153,7 +153,7 @@ namespace VolumeGeneratorBasedOnGraph
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "number of nodes and labels must be the same!");
                     return;
                 }
-                if (DA.GetDataList<NodeAttribute>("VolumeAttributeList", volumeNodeAttributeList) && volumeNodeAttributeList.Count != volumeNodeList.Count)
+                if (DA.GetDataList<GraphNodeAttribute>("VolumeAttributeList", volumeNodeAttributeList) && volumeNodeAttributeList.Count != volumeNodeList.Count)
                 {
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "number of nodes and areas must be the same!");
                     return;
@@ -214,19 +214,19 @@ namespace VolumeGeneratorBasedOnGraph
                     // NEWS节点的属性列表
                     for (int i = 0; i < NEWS_Vertices.Count; i++)
                     {
-                        NodeAttribute NEWSNodeAttribute = new NodeAttribute(boundaryLabelList[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * volumeAndNEWSNodes.Count));
+                        GraphNodeAttribute NEWSNodeAttribute = new GraphNodeAttribute(boundaryLabelList[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * volumeAndNEWSNodes.Count));
                         boundaryNodeAttributeList.Add(NEWSNodeAttribute);
                     }
 
                     // 除NEWS节点以外的其他BoundaryNode的属性列表
                     for (int i = 0; i < boundaryNodeListExceptNEWS.Count; i++)
                     {
-                        NodeAttribute boundaryNodeExceptNEWSAttribute = new NodeAttribute(boundaryLabelListExceptNEWS[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * volumeAndNEWSNodes.Count));
+                        GraphNodeAttribute boundaryNodeExceptNEWSAttribute = new GraphNodeAttribute(boundaryLabelListExceptNEWS[i], Math.PI * Math.Pow(sphere.Radius, 2) / (double)(4 * volumeAndNEWSNodes.Count));
                         boundaryNodeAttributeList.Add(boundaryNodeExceptNEWSAttribute);
                     }
 
                     // 用前面生成的对于Boundary点的排序列表来对BoundaryAttribute列表进行对应的排序
-                    List<NodeAttribute> SortedBoundaryNodeAttributes = new List<NodeAttribute>();
+                    List<GraphNodeAttribute> SortedBoundaryNodeAttributes = new List<GraphNodeAttribute>();
                     foreach (int index in sortedBoundaryNodeIndexList)
                     {
                         SortedBoundaryNodeAttributes.Add(boundaryNodeAttributeList[index]);

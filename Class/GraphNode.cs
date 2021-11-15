@@ -9,7 +9,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
     {
         // public Point3d NodeVertex { get; set; }
 
-        public NodeAttribute NodeAttribute { get; set; }
+        public GraphNodeAttribute NodeAttribute { get; set; }
 
         public bool IsInner { get; }
 
@@ -28,13 +28,13 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public GraphNode(GraphNode node)
         {
             this.NodeVertex = new Point3d(node.NodeVertex);
-            this.NodeAttribute = new NodeAttribute(node.NodeAttribute);
+            this.NodeAttribute = new GraphNodeAttribute(node.NodeAttribute);
 
             this.IsInner = node.IsInner;
             // this.IsDecomposed = node.IsDecomposed;
         }
 
-        public GraphNode(Point3d nodeVertex, NodeAttribute nodeAttribute, bool isInner)
+        public GraphNode(Point3d nodeVertex, GraphNodeAttribute nodeAttribute, bool isInner)
         {
             this.NodeVertex = nodeVertex;
             this.NodeAttribute = nodeAttribute;
@@ -49,7 +49,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public object Clone()
         {
             GraphNode node = (GraphNode)MemberwiseClone();
-            node.NodeAttribute = (NodeAttribute)NodeAttribute.Clone();
+            node.NodeAttribute = (GraphNodeAttribute)NodeAttribute.Clone();
             return node;
         }
     }

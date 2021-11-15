@@ -364,7 +364,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// 计算体量占地面积的比例
         /// </summary>
         /// <param name="nodeAttributes"></param>
-        internal static void CalculateAreaProportion(List<NodeAttribute> nodeAttributes)
+        internal static void CalculateAreaProportion(List<GraphNodeAttribute> nodeAttributes)
         {
             List<double> nodeAreaProportions = new List<double>();
             for (int i = 0; i < nodeAttributes.Count; i++)

@@ -92,7 +92,7 @@
     <Compile Include="Temporary\GraphFromVolumeAndBoundaryNode.cs" />
     <Compile Include="Temporary\GraphToDiskDrawing.cs" />
     <Compile Include="Class\GraphNode.cs" />
-    <Compile Include="Class\NodeAttributeClass.cs" />
+    <Compile Include="Class\GraphNodeAttribute.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcTriangulate.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcTutteConvexDrawing.cs" />
     <Compile Include="Class\UtilityFunctions.cs" />

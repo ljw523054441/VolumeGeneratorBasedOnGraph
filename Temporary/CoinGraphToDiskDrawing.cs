@@ -119,8 +119,8 @@ namespace VolumeGeneratorBasedOnGraph
 
             List<Point3d> volumeNodeList = new List<Point3d>();                               // list -> volumeNodeList
             List<Point3d> boundaryNodeList = new List<Point3d>();
-            List<NodeAttribute> volunmeNodeAttributes = new List<NodeAttribute>();            // list2 -> volunmeNodeAttributes
-            List<NodeAttribute> boundaryNodeAttributes = new List<NodeAttribute>();
+            List<GraphNodeAttribute> volunmeNodeAttributes = new List<GraphNodeAttribute>();            // list2 -> volunmeNodeAttributes
+            List<GraphNodeAttribute> boundaryNodeAttributes = new List<GraphNodeAttribute>();
 
             List<string> volumeLabelList = new List<string>();                              // list3 -> volumeLabelList
             List<string> boundaryLabelList = new List<string>();

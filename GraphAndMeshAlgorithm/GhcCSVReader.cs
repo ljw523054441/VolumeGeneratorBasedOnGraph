@@ -63,7 +63,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region Initialize variables 初始化变量
                 List<string> nodeLabelList = new List<string>();
-                List<NodeAttribute> nodeAttributesList = new List<NodeAttribute>();
+                List<GraphNodeAttribute> nodeAttributesList = new List<GraphNodeAttribute>();
                 DataTree<int> volumeConnectivityArributeDataTree = new DataTree<int>();
                 DataTree<int> volumeBoundaryAdjacencyDataTree = new DataTree<int>();
                 #endregion
@@ -94,7 +94,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                     #region Add first and second colume data into corresponding list 将得到的第一列和第二列数据分别添加到对应的列表中
                     nodeLabelList.Add(rowData[0]);
-                    nodeAttributesList.Add(new NodeAttribute(rowData[0],
+                    nodeAttributesList.Add(new GraphNodeAttribute(rowData[0],
                                                              Convert.ToDouble(rowData[1]),
                                                              Convert.ToInt32(rowData[4]),
                                                              Convert.ToInt32(rowData[5]),

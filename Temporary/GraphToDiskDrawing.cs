@@ -100,31 +100,31 @@ namespace VolumeGeneratorBasedOnGraph
             GH_Structure<GH_Integer> gh_Structue_Graph = new GH_Structure<GH_Integer>();
 
             List<Point3d> nodePoints = new List<Point3d>();                       // list -> 
-            List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();          // list2 ->
+            List<GraphNodeAttribute> nodeAttributes = new List<GraphNodeAttribute>();          // list2 ->
             List<string> nodeLabels = new List<string>();                    // list3 -> nodeLabels
             List<double> nodeAreas = new List<double>();                    // list4 -> nodeAreas
             // List<Color> nodeMatColor = new List<Color>();                      // list5 -> nodeMatColor
 
             List<Point3d> innerNodePoints = new List<Point3d>();                       // list -> 
-            List<NodeAttribute> innerNodeAttributes = new List<NodeAttribute>();          // list2 ->
+            List<GraphNodeAttribute> innerNodeAttributes = new List<GraphNodeAttribute>();          // list2 ->
             List<string> innerNodeLabels = new List<string>();                    // list3 -> nodeLabels
             List<double> innerNodeAreas = new List<double>();                    // list4 -> nodeAreas
             // List<Color> innernodeMatColor = new List<Color>();                      // list5 -> nodeMatColor
 
             List<Point3d> outerNodePoints = new List<Point3d>();                       // list -> 
-            List<NodeAttribute> outerNodeAttributes = new List<NodeAttribute>();          // list2 ->
+            List<GraphNodeAttribute> outerNodeAttributes = new List<GraphNodeAttribute>();          // list2 ->
             List<string> outerNodeLabels = new List<string>();                    // list3 -> nodeLabels
             List<double> outerNodeAreas = new List<double>();                    // list4 -> nodeAreas
             // List<Color> outerNodeMatColor = new List<Color>();                      // list5 -> nodeMatColor
 
             if (DA.GetDataTree<GH_Integer>("Graph", out gh_Structue_Graph) 
                 & DA.GetDataList<Point3d>("Vertices", nodePoints) 
-                & DA.GetDataList<NodeAttribute>("Attributes", nodeAttributes))
+                & DA.GetDataList<GraphNodeAttribute>("Attributes", nodeAttributes))
             {
                 DA.GetData<Plane>("Plane", ref location);
                 DA.GetData<int>("Thickness", ref thickness);
 
-                foreach (NodeAttribute attribute in nodeAttributes)
+                foreach (GraphNodeAttribute attribute in nodeAttributes)
                 {
                     nodeLabels.Add(attribute.NodeLabel);
                     nodeAreas.Add(attribute.NodeArea);

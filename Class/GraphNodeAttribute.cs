@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph.Class
 {
-    public  class NodeAttribute : ICloneable
+    public  class GraphNodeAttribute : ICloneable
     {
         /// <summary>
         /// 体量的名称标签
@@ -58,11 +58,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// </summary>
         public double FloorHeightZ { get; set; }
 
+        public GraphNodeAttribute()
+        {
+
+        }
+
         /// <summary>
         /// 利用拷贝构造函数实现深拷贝
         /// </summary>
         /// <param name="nodeAttribute"></param>
-        public NodeAttribute(NodeAttribute nodeAttribute)
+        public GraphNodeAttribute(GraphNodeAttribute nodeAttribute)
         {
             this.NodeLabel = nodeAttribute.NodeLabel;
             this.NodeArea = nodeAttribute.NodeArea;
@@ -83,7 +88,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// 构造边界node
         /// </summary>
         /// <param name="nodeLabel"></param>
-        public NodeAttribute(string nodeLabel)
+        public GraphNodeAttribute(string nodeLabel)
         {
             this.NodeLabel = nodeLabel;
 
@@ -93,7 +98,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             //this.AdjacencyTable = new List<int>();
         }
         
-        public NodeAttribute(string nodeLabel, double nodeArea)
+        public GraphNodeAttribute(string nodeLabel, double nodeArea)
         {
             this.NodeLabel = nodeLabel;
             this.NodeArea = nodeArea;
@@ -112,7 +117,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="spanSizeX"></param>
         /// <param name="spanSizeY"></param>
         /// <param name="floorHeightZ"></param>
-        public NodeAttribute(string nodeLabel, 
+        public GraphNodeAttribute(string nodeLabel, 
                              double nodeArea, 
                              int spanNumX, 
                              int spanNumY, 
@@ -143,7 +148,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <returns></returns>
         public object Clone()
         {
-            NodeAttribute nodeAttribute = (NodeAttribute)MemberwiseClone();
+            GraphNodeAttribute nodeAttribute = (GraphNodeAttribute)MemberwiseClone();
             nodeAttribute.ConnectivityTable = (int[])ConnectivityTable.Clone();
             nodeAttribute.AdjacencyTable = (int[])AdjacencyTable.Clone();
             return nodeAttribute;

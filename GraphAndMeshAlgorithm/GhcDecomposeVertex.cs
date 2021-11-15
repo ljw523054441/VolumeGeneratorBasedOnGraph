@@ -851,7 +851,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // nodes[startVertexIndex].NodeAttribute.NodeAreaProportion = nodes[startVertexIndex].NodeAttribute.NodeAreaProportion / splitParts;
 
             // 对新生成的顶点，构造新的node
-            NodeAttribute nodeAttribute = new NodeAttribute((startNodeLabel + (midVertexIndex - (graphNodes.Count - 1)).ToString()),
+            GraphNodeAttribute nodeAttribute = new GraphNodeAttribute((startNodeLabel + (midVertexIndex - (graphNodes.Count - 1)).ToString()),
                                                              startNodeArea / splitParts);
             nodeAttribute.ConnectivityTable = new int[] { startVertexIndex, endVertexIndex };
             nodeAttribute.AdjacencyTable = new int[] { };

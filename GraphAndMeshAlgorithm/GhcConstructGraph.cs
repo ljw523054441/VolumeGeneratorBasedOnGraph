@@ -93,7 +93,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #region 读取CSV数据
                 #region Initialize variables 初始化变量
                 List<string> innerNodeLabelList = new List<string>();
-                List<NodeAttribute> innerNodeAttributesList = new List<NodeAttribute>();
+                List<GraphNodeAttribute> innerNodeAttributesList = new List<GraphNodeAttribute>();
                 DataTree<int> volumeConnectivityTree = new DataTree<int>();
                 DataTree<int> boundaryAdjacencyTree = new DataTree<int>();
                 #endregion
@@ -135,7 +135,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                     #region Add first and second colume data into corresponding list 将得到的第一列和第二列数据分别添加到对应的列表中
                     innerNodeLabelList.Add(rowData[0]);
-                    innerNodeAttributesList.Add(new NodeAttribute(rowData[0],
+                    innerNodeAttributesList.Add(new GraphNodeAttribute(rowData[0],
                                                              Convert.ToDouble(rowData[1]),
                                                              Convert.ToInt32(rowData[4]),
                                                              Convert.ToInt32(rowData[5]),
@@ -324,10 +324,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #region 构建GraphNode
 
                 #region 局部变量初始化
-                List<NodeAttribute> outerNodeAttributeList = new List<NodeAttribute>();
+                List<GraphNodeAttribute> outerNodeAttributeList = new List<GraphNodeAttribute>();
 
                 List<Point3d> nodePoints = new List<Point3d>();
-                List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
+                List<GraphNodeAttribute> nodeAttributes = new List<GraphNodeAttribute>();
 
                 List<GraphNode> graphNodes = new List<GraphNode>();
                 #endregion
@@ -344,7 +344,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 构造BoundaryNodeAttribute列表
                 for (int i = 0; i < boundaryNodeCount; i++)
                 {
-                    NodeAttribute boundaryNodeAttribute = new NodeAttribute(boundaryLabelList[i]);
+                    GraphNodeAttribute boundaryNodeAttribute = new GraphNodeAttribute(boundaryLabelList[i]);
                     boundaryNodeAttribute.ConnectivityTable = boundaryNodeConnectivityTable[i].ToArray();
                     boundaryNodeAttribute.AdjacencyTable = boundaryNodeAdjacencyTable[i].ToArray();
                     outerNodeAttributeList.Add(boundaryNodeAttribute);

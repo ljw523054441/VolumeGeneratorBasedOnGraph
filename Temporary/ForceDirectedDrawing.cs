@@ -112,7 +112,7 @@ namespace VolumeGeneratorBasedOnGraph
             DataTree<int> graphTree = new DataTree<int>();
 
             List<Point3d> nodeList = new List<Point3d>();
-            List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
+            List<GraphNodeAttribute> nodeAttributes = new List<GraphNodeAttribute>();
 
             double st_Att = 0.0;
             double st_Rep = 0.0;
@@ -142,7 +142,7 @@ namespace VolumeGeneratorBasedOnGraph
 
             if (DA.GetDataTree<GH_Integer>("Graph", out gh_Structure_Graph)
                 & DA.GetDataList<Point3d>("Vertices", nodeList)
-                & DA.GetDataList<NodeAttribute>("Attributes", nodeAttributes))
+                & DA.GetDataList<GraphNodeAttribute>("Attributes", nodeAttributes))
             {
                 // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_Graph, ref graphTree);
@@ -244,7 +244,7 @@ namespace VolumeGeneratorBasedOnGraph
 
         }
 
-        private void CalDrawParameters(DataTree<int> graphTree, List<Point3d> nodeList, List<NodeAttribute> nodeAttributes, double groundArea)
+        private void CalDrawParameters(DataTree<int> graphTree, List<Point3d> nodeList, List<GraphNodeAttribute> nodeAttributes, double groundArea)
         {
             // 当运行产生结果时，绘制图像
             if (ResultPoints.Count != 0)

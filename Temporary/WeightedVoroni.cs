@@ -77,7 +77,7 @@ namespace VolumeGeneratorBasedOnGraph
 
 
             List<Point3d> pointList = new List<Point3d>();
-            List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
+            List<GraphNodeAttribute> nodeAttributes = new List<GraphNodeAttribute>();
             Plane basePlace = Plane.WorldXY;
             Curve boundingCurve = null;
             DataTree<int> adjacencyGraph = null;
@@ -87,7 +87,7 @@ namespace VolumeGeneratorBasedOnGraph
             double scale = 0.0;
 
             if (DA.GetDataList<Point3d>("Points", pointList) 
-                & DA.GetDataList<NodeAttribute>("Attributes", nodeAttributes))
+                & DA.GetDataList<GraphNodeAttribute>("Attributes", nodeAttributes))
             {
                 DA.GetData<Plane>("BasePlane", ref basePlace);
                 DA.GetData<Curve>("BoundingCurve", ref boundingCurve);

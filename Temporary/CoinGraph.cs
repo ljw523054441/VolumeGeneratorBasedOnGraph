@@ -74,8 +74,8 @@ namespace VolumeGeneratorBasedOnGraph
 
             List<Point3d> volumeNodeList = new List<Point3d>();                                           // list -> nodeList
             List<Point3d> boundaryNodeList = new List<Point3d>();
-            List<NodeAttribute> volumeNodeAttributes = new List<NodeAttribute>();        // list2 -> nodeAttributeList
-            List<NodeAttribute> boundaryNodeAttributes = new List<NodeAttribute>();
+            List<GraphNodeAttribute> volumeNodeAttributes = new List<GraphNodeAttribute>();        // list2 -> nodeAttributeList
+            List<GraphNodeAttribute> boundaryNodeAttributes = new List<GraphNodeAttribute>();
 
             double st_Att = 0.0;
             double st_Rep = 0.0;
@@ -89,9 +89,9 @@ namespace VolumeGeneratorBasedOnGraph
             if (DA.GetDataTree<GH_Integer>("ConnectivityGraph", out gh_Structure_ConnectivityGraph) 
                 & DA.GetDataTree<GH_Integer>("BoundaryAdjacencyGraph", out gh_Structure_AdjacencyGraph) 
                 & DA.GetDataList<Point3d>("VolumeNode", volumeNodeList) 
-                & DA.GetDataList<NodeAttribute>("VolumeNodeAttributes", volumeNodeAttributes) 
+                & DA.GetDataList<GraphNodeAttribute>("VolumeNodeAttributes", volumeNodeAttributes) 
                 & DA.GetDataList<Point3d>("BoundaryNode", boundaryNodeList) 
-                & DA.GetDataList<NodeAttribute>("BoundaryNodeAttributes", boundaryNodeAttributes))
+                & DA.GetDataList<GraphNodeAttribute>("BoundaryNodeAttributes", boundaryNodeAttributes))
             {
                 // 将ConnectivityTree从GH_Structure<GH_Integer>转化为DataTree<int>
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_ConnectivityGraph, ref connectivityTree);
@@ -208,7 +208,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="boundaryNodeAttributes">代表边界NEWS的点的属性</param>
         /// <param name="st_Att">吸引力强度</param>
         /// <returns>返回每个点（树形数据的一支branch）的volume点对它的吸引力，以及NEWS点对它的吸引力，两者加起来（共有mergeGraph.Branch[i].Count个）</returns>
-        public DataTree<Vector3d> AttractionForce(DataTree<int> mergedGraph, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, List<NodeAttribute> volumeNodeAttributes, List<NodeAttribute> boundaryNodeAttributes, double st_Att, GlobalParameter globalParameter)
+        public DataTree<Vector3d> AttractionForce(DataTree<int> mergedGraph, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, List<GraphNodeAttribute> volumeNodeAttributes, List<GraphNodeAttribute> boundaryNodeAttributes, double st_Att, GlobalParameter globalParameter)
         {
             if (mergedGraph.DataCount != 0 & volumeNodeList.Count != 0 & volumeNodeAttributes.Count != 0 & st_Att != 0.0)
             {
@@ -300,7 +300,7 @@ namespace VolumeGeneratorBasedOnGraph
         /// <param name="boundaryNodeAttributes">代表边界NEWS的点的属性</param>
         /// <param name="st_Rep"></param>
         /// <returns>返回每个点（树形数据的一支branch）的volume点对它的斥力（共有volumeNodeList.Count个），以及NEWS点对它的斥力（共有boundaryNodeList.Count个）</returns>
-        public DataTree<Vector3d> RepulsionForce(DataTree<int> mergedGraph, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, List<NodeAttribute> volumeNodeAttributes, List<NodeAttribute> boundaryNodeAttributes, double st_Rep)
+        public DataTree<Vector3d> RepulsionForce(DataTree<int> mergedGraph, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, List<GraphNodeAttribute> volumeNodeAttributes, List<GraphNodeAttribute> boundaryNodeAttributes, double st_Rep)
         {
             if (mergedGraph.DataCount != 0 & volumeNodeList.Count != 0 & volumeNodeAttributes.Count != 0  & st_Rep != 0.0)
             {
