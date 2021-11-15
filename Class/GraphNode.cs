@@ -5,15 +5,21 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph.Class
 {
-    public class GraphNode : ICloneable
+    public class GraphNode : Node, ICloneable
     {
-        public Point3d NodeVertex { get; set; }
+        // public Point3d NodeVertex { get; set; }
 
         public NodeAttribute NodeAttribute { get; set; }
 
         public bool IsInner { get; }
 
         // public bool IsDecomposed { get; }
+
+
+        public GraphNode()
+        {
+
+        }
 
         /// <summary>
         /// 利用拷贝构造函数实现深拷贝
