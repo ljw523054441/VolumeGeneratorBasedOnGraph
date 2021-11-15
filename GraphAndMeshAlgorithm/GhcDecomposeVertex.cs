@@ -167,7 +167,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 创建一个树
                 // ITree<DecomposedHM> tree = NodeTree<DecomposedHM>.NewTree();
                 // 对输入的PlanktonMesh，GraphLoL，GraphNode构造DecomposedHM，形成树的根节点
-                INode<GraphWithHM> root = Tree.AddChild(new GraphWithHM(graphHMDeepCopy, graphNodesDeepCopy, graphTableDeepCopy, -1, new int[2, 2] { { -1, -1 }, { -1, -1 } }, -1));
+                INode<GraphWithHM> root = Tree.AddChild(new GraphWithHM(graphHMDeepCopy, graphNodesDeepCopy, graphTableDeepCopy, "Root"));
 
 
                 // 新分裂产生的Vertex的Index集合
@@ -608,7 +608,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                 #region 当SplitEdgeIntoTwo函数无法正确分裂时，抛出异常
                                 if (newVertexIndex == -1)
                                 {
-                                    string exceptionReport = dHMToSplit.Data.TreeNodeName + "->" + "VertexIndex:" +
+                                    string exceptionReport = dHMToSplit.Data.TreeNodeLabel + "->" + "VertexIndex:" +
                                                              innerNodeToSplitIndexList[i].ToString() +
                                                              "-" + j.ToString() + " " +
                                                              "cant split edge into two. Halfedge StartVertex is " +
@@ -645,8 +645,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                 {
                                     List<List<int>> newGraphTables = RenewGraphTable(dHMDeepCopy.GraphTables, allPossibleHalfedgeVertexIndexs[j], newVertexIndex, newEndVertexAfterResetHalfedgeList[k]);
 
+                                    string label = "分裂了第" + innerNodeToSplitIndexList[i].ToString() + "个Vertex" +
+                                                   "，所选的两个半边的起点终点是" +
+                                                   allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() + ";" +
+                                                   allPossibleHalfedgeVertexIndexs[j][0, 1].ToString() + ";" +
+                                                   allPossibleHalfedgeVertexIndexs[j][1, 0].ToString() + ";" +
+                                                   allPossibleHalfedgeVertexIndexs[j][1, 1].ToString() +
+                                                   "，并且是第" + k.ToString() + "分裂可能性";
 
-                                    GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPNodes, newGraphTables, innerNodeToSplitIndexList[i], allPossibleHalfedgeVertexIndexs[j], k);
+                                    GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPNodes, newGraphTables, label);
                                     //if (!dHMDeepCopy.VertexIndexHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
                                     //{
                                     //    currentDHM.VertexIndexHasBeenDecomposed.AddRange(dHMDeepCopy.VertexIndexHasBeenDecomposed);
@@ -675,7 +682,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             break;
                         case 4:
                             // 记录度为4的正确的情况
-                            string correctReport = dHMDeepCopy.TreeNodeName + " -> " + "VertexIndex: " +
+                            string correctReport = dHMDeepCopy.TreeNodeLabel + " -> " + "VertexIndex: " +
                                                    innerNodeToSplitIndexList[i].ToString() + " " +
                                                    "degree is " + degree.ToString();
                             CorrectReports.Add(correctReport);
@@ -683,7 +690,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                         default:
                             // 暂时先记录一下度为其他值的情况
-                            string defaultReport = dHMDeepCopy.TreeNodeName + " -> " + "VertexIndex: " +
+                            string defaultReport = dHMDeepCopy.TreeNodeLabel + " -> " + "VertexIndex: " +
                                                    innerNodeToSplitIndexList[i].ToString() + " " +
                                                    "degree is " + degree.ToString();
                             DefaultReports.Add(defaultReport);

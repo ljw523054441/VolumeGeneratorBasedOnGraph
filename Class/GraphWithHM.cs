@@ -15,15 +15,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// </summary>
         public PlanktonMesh PlanktonMesh { get; set; }
 
-        public int DecomposeTheithVertex { get; set; }
-
-        public int[,] DecomposeTheithPairHFVertexIndex { get; set; }
-
-        public int DecomposeTheithPairHFResult { get; set; }
-
-        public string TreeNodeName { get; set; }
-
-        // public List<int> VertexIndexHasBeenDecomposed { get; set; }
+        public string TreeNodeLabel { get; set; }
 
         /// <summary>
         /// 构造空的GraphWithHFMesh对象
@@ -31,10 +23,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public GraphWithHM():base()
         {
             this.PlanktonMesh = new PlanktonMesh();
-            this.DecomposeTheithVertex = -1;
-            this.DecomposeTheithPairHFVertexIndex = null;
-            this.DecomposeTheithPairHFResult = -1;
-            this.TreeNodeName = null;
+            this.TreeNodeLabel = null;
         }
 
         /// <summary>
@@ -66,15 +55,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(source.PlanktonMesh);
 
-            this.DecomposeTheithVertex = source.DecomposeTheithVertex;
-            this.DecomposeTheithPairHFVertexIndex = (int[,])source.DecomposeTheithPairHFVertexIndex.Clone();
-            this.DecomposeTheithPairHFResult = source.DecomposeTheithPairHFResult;
-            this.TreeNodeName = (string)source.TreeNodeName.Clone();
-            //this.VertexIndexHasBeenDecomposed = new List<int>();
-            //for (int i = 0; i < decomposedHM.VertexIndexHasBeenDecomposed.Count; i++)
-            //{
-            //    this.VertexIndexHasBeenDecomposed.Add(decomposedHM.VertexIndexHasBeenDecomposed[i]);
-            //}
+            this.TreeNodeLabel = (string)source.TreeNodeLabel.Clone();
         }
 
         /// <summary>
@@ -119,11 +100,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
 
-            this.DecomposeTheithVertex = -1;
-            this.DecomposeTheithPairHFVertexIndex = new int[2, 2] { { -1, -1 }, { -1, -1 } };
-            this.DecomposeTheithPairHFResult = -1;
-
-            this.TreeNodeName = "尚未进行过Decompose的GraphWithHFMesh对象";
+            this.TreeNodeLabel = "尚未进行过Decompose的GraphWithHFMesh对象";
         }
 
         /// <summary>
@@ -138,9 +115,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public GraphWithHM(PlanktonMesh planktonMesh,
                            List<Node> graphNodes,
                            List<List<int>> graphTables, 
-                           int decomposeTheithVertex,
-                           int[,] decomposeTheithPairHFVertexIndex,
-                           int decomposeTheithPairHFResult)
+                           string treeNodeLabel)
         {
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
@@ -176,20 +151,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 }
             }
 
-            this.DecomposeTheithVertex = decomposeTheithVertex;
-            this.DecomposeTheithPairHFVertexIndex = decomposeTheithPairHFVertexIndex;
-            this.DecomposeTheithPairHFResult = decomposeTheithPairHFResult;
-
-            this.TreeNodeName = "分裂了第" + decomposeTheithVertex.ToString() + "个Vertex" +
-                                "，所选的两个半边的起点终点是" + 
-                                decomposeTheithPairHFVertexIndex[0, 0].ToString() + ";" +
-                                decomposeTheithPairHFVertexIndex[0, 1].ToString() + ";" +
-                                decomposeTheithPairHFVertexIndex[1, 0].ToString() + ";" +
-                                decomposeTheithPairHFVertexIndex[1, 1].ToString() +
-                                "，并且是第" + decomposeTheithPairHFResult.ToString() + "分裂可能性";
-
-            //this.VertexIndexHasBeenDecomposed = new List<int>();
-            //this.VertexIndexHasBeenDecomposed.Add(decomposeTheithVertex);
+            this.TreeNodeLabel = treeNodeLabel;
         }
 
         
