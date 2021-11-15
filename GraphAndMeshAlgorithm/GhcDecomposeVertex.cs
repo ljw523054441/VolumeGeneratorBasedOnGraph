@@ -39,7 +39,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             CorrectReports = new List<string>();
             DefaultReports = new List<string>();
 
-            CurrentDHM = new GraphWithHM();
+            ParentHM = new GraphWithHM();
+            CurrentHM = new GraphWithHM();
         }
 
         private int Thickness;
@@ -67,7 +68,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<string> CorrectReports;
         private List<string> DefaultReports;
 
-        private GraphWithHM CurrentDHM;
+        private GraphWithHM ParentHM;
+        private GraphWithHM CurrentHM;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -103,6 +105,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
+
+            pManager.AddGenericParameter("SelectedTreeNodeString", "S", "", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -111,15 +115,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            //#region 全局参数传递
-            //GlobalParameter globalParameter = new GlobalParameter();
-            //DA.GetData("GlobalParameter", ref globalParameter);
-            //int innerNodeCount = globalParameter.VolumeNodeCount;
-            //int outerNodeCount = globalParameter.BoundaryNodeCount;
-            //#endregion
-
             Tree.Clear();
-
             #region 局部变量初始化
 
             GraphWithHM graphWithHM = new GraphWithHM();
@@ -300,10 +296,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
                 DA.SetData("OriginGraphWithHM", allPossibleDecomposedHMesh[index]);
+                DA.SetData("SelectedTreeNodeString", allPossibleDecomposedHMesh[index].TreeNodeName);
 
 
                 #region ReTutteEebeding
-
+                #region 计算相关矩阵的前置条件
                 GraphWithHM newGraphWithHM = new GraphWithHM(allPossibleDecomposedHMesh[index]);
 
                 PlanktonMesh newPlanktonMesh = newGraphWithHM.PlanktonMesh;
@@ -327,33 +324,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
 
-
-                // graphDT目前只是紫色线，需要是全部线
-                DataTree<int> triangleGraphDT = UtilityFunctions.LoLToDataTree<int>(triangleGraphTables);
-                #region 计算相关矩阵的前置条件
-
-                
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    innerNodeDegreeList.Add(graphDT.Branch(i).Count);
-                //}
-                //for (int i = 0; i < newGraphNodes.Count; i++)
-                //{
-                //    if (newGraphNodes[i].IsInner)
-                //    {
-                //        innerNodeDegreeList.Add(triangleGraphDT.Branch(i).Count);
-                //    }
-                //}
-
-                // 每个volume点与其他点的连接关系，包括其他volume点和boundary点
-                //DataTree<int> volumeNodeGraph = new DataTree<int>();
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    volumeNodeGraph.EnsurePath(i);
-                //    volumeNodeGraph.Branch(i).AddRange(graphDT.Branch(i));
-                //}
-
+                // DataTree<int> triangleGraphDT = UtilityFunctions.LoLToDataTree<int>(triangleGraphTables);
                 #endregion
+
                 #region 计算矩阵 P(outer)
                 Matrix P_outer = new Matrix(outerNodeCount, 2);
                 for (int i = 0; i < newGraphWithHM.GraphNodes.Count; i++)
@@ -380,15 +353,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                  out outer_outerM);
 
                 /**/
-                List<string> debugWhole = PrintMatrix(wholeM);
-                List<string> debugii = PrintMatrix(inner_innerM);
-                List<string> debugio = PrintMatrix(inner_outerM);
-                List<string> debugoo = PrintMatrix(outer_outerM);
+                //List<string> debugWhole = PrintMatrix(wholeM);
+                //List<string> debugii = PrintMatrix(inner_innerM);
+                //List<string> debugio = PrintMatrix(inner_outerM);
+                //List<string> debugoo = PrintMatrix(outer_outerM);
 
                 Matrix inner_InnerLaplacianM = LaplacianMatrix(inner_innerM, innerNodeDegreeList);
 
                 /**/
-                List<string> printLaplacianM = PrintMatrix(inner_InnerLaplacianM);
+                //List<string> printLaplacianM = PrintMatrix(inner_InnerLaplacianM);
 
 
                 bool flag = inner_InnerLaplacianM.Invert(0.0);
@@ -403,28 +376,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // P_inner.Scale(-1.0);
                 #endregion
 
-
-                //#region 从P_inner矩阵中生成新的inner点的坐标
-                //List<Point3d> newInnerPoints = new List<Point3d>();
-                //Point3d innerPoint;
-                //for (int i = 0; i < innerNodeCount; i++)
-                //{
-                //    innerPoint = new Point3d(P_inner[i, 0], P_inner[i, 1], 0.0);
-                //    newInnerPoints.Add(innerPoint);
-                //}
-                //#endregion
-
                 #region 新的NodePoint列表
-                // 将新的inner点与原来的outer点合并成一个新的列表
-                //List<Point3d> newNodePoints = new List<Point3d>();
-                //newNodePoints.AddRange(newInnerPoints);
-                //List<Point3d> sortedBoundaryNodePoints = new List<Point3d>();
-                //for (int i = 0; i < outerNodeCount; i++)
-                //{
-                //    sortedBoundaryNodePoints.Add(graphNodes[innerNodeCount + i].NodeVertex);
-                //}
-                //newNodePoints.AddRange(sortedBoundaryNodePoints);
-
                 List<Point3d> newNodePoints = new List<Point3d>();
                 for (int i = 0; i < newGraphNodes.Count; i++)
                 {
@@ -442,8 +394,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     newGraphNodes[i].NodeVertex = newNodePoints[i];
                 }
-
-
                 #endregion
 
                 #region 修改对应的PlanktonMesh
@@ -472,15 +422,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 输出新的GraphWithHM
                 GraphWithHM embededGraphWithHM = new GraphWithHM(embededPlanktonMesh, newGraphNodes, originGraphTables);
                 #endregion
-
-
-
-
-
-
-
-
-
 
 
                 #region 电池结果输出
@@ -588,7 +529,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 绘制表示图结构关系的实线
                 GraphEdges.Clear();
-                // GraphEdges.AddRange(UtilityFunctions.GraphEdgeLine(embededGraphWithHM.GraphTables, embededGraphWithHM.GraphNodes));
+                GraphEdges.AddRange(UtilityFunctions.GraphEdgeLine(embededGraphWithHM.GraphTables, embededGraphWithHM.GraphNodes));
                 #endregion
 
                 #endregion
@@ -607,7 +548,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             GraphWithHM dHMDeepCopy = new GraphWithHM(dHMToSplit.Data);
 
 
-            CurrentDHM = dHMDeepCopy;
+            ParentHM = dHMDeepCopy;
 
             // List<int> vertexIndexHasBeenDecomposed = dHMDeepCopy.VertexIndexHasBeenDecomposed;
 
@@ -640,6 +581,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             if (innerNodeToSplitIndexList.Count == 0)
             {
+                
                 return;
             }
             else
@@ -665,16 +607,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             {
 
                                 // 向存储当前顶点所有可能的分裂结果的列表中添加分裂的可能性
-                                List<List<int>> newPGraphLoL;
+                                // List<List<int>> newPGraphLoL;
                                 List<Node> newPNodes;
                                 int newVertexIndex;
                                 PlanktonMesh edgeSplitedP = SplitEdgeIntoTwo(dHMDeepCopy.PlanktonMesh,
-                                                                allPossibleHalfedgeVertexIndexs[j][0, 0],
-                                                                allPossibleHalfedgeVertexIndexs[j][0, 1],
+                                                                allPossibleHalfedgeVertexIndexs[j],
                                                                 2,
-                                                                dHMDeepCopy.GraphTables,
                                                                 dHMDeepCopy.GraphNodes,
-                                                                out newPGraphLoL,
                                                                 out newPNodes,
                                                                 out newVertexIndex);
 
@@ -689,61 +628,53 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                              "Halfedge EndVertex is " +
                                                              allPossibleHalfedgeVertexIndexs[j][0, 1].ToString();
                                     ExceptionReports.Add(exceptionReport);
+
+                                    // continue继续下一次对allPossibleHalfedgeVertexIndexs的循环，本次的循环没有产生新的GraphWithHM（新的叶子节点）
                                     continue;
                                 }
                                 #endregion
 
-                                //#region debug printFacesEdgeSplitedP
-                                //List<string> printFacesEdgeSplitedP = new List<string>();
-                                //List<string> printFacesHalfedgeSplitedP = new List<string>();
-                                //printFacesEdgeSplitedP = UtilityFunctions.PrintFacesVertices(edgeSplitedP);
-                                //printFacesHalfedgeSplitedP = UtilityFunctions.PrintFacesHalfedges(edgeSplitedP);
-                                //#endregion
-
                                 // 得到这种相邻2条半边情况下的所有可能的分裂情况
+                                List<int> newEndVertexAfterResetHalfedgeList;
                                 List<PlanktonMesh> edgeResetStartP = ResetHalfedgeStart(edgeSplitedP,
-                                                                     allPossibleHalfedgeVertexIndexs[j][1, 0],
-                                                                     allPossibleHalfedgeVertexIndexs[j][1, 1],
+                                                                     allPossibleHalfedgeVertexIndexs[j],
                                                                      innerNodeToSplitIndexList[i],
                                                                      newVertexIndex,
-                                                                     newPGraphLoL,
-                                                                     innerNodeToSplitIndexList);
+                                                                     innerNodeToSplitIndexList,
+                                                                     out newEndVertexAfterResetHalfedgeList);
 
-                                //#region debug printFacesEdgeResetP
-                                // List<List<string>> printFacesEdgeResetP = new List<List<string>>();
-                                // 每循环一次，都需要把List<string> printFacesEdgeResetP清理一次
-                                // printFacesEdgeResetP.Clear();
-                                //for (int k = 0; k < edgeResetStartP.Count; k++)
-                                //{
-                                //    printFacesEdgeResetP.Add(new List<string>());
-                                //    printFacesEdgeResetP[k] = UtilityFunctions.PrintFacesVertices(edgeResetStartP[k]);
-                                //}
-                                //#endregion
-
-
-
+                                #region 当ResetHalfedgeStart函数无法正确产生结果时，直接执行下一次的循环
                                 // 如果新生成的半边的端点，是innerNode（包括初始的和新分裂产生的），那么返回null，然后结束这次循环（即不产生新的叶子节点）
                                 if (edgeResetStartP == null)
                                 {
+                                    // continue继续下一次对allPossibleHalfedgeVertexIndexs的循环，本次的循环没有产生新的GraphWithHM（新的叶子节点）
                                     continue;
                                 }
-
-
-
+                                #endregion
 
                                 #region 构造对于每一种半边选择可能性所产生的DecomposedHM，并且将它作为INode<DecomposedHM> dHMToSplit的叶子节点，并且递归分裂叶子节点
                                 for (int k = 0; k < edgeResetStartP.Count; k++)
                                 {
+                                    List<List<int>> newGraphTables = RenewGraphTable(dHMDeepCopy.GraphTables, allPossibleHalfedgeVertexIndexs[j], newVertexIndex, newEndVertexAfterResetHalfedgeList[k]);
 
-                                    GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPNodes, newPGraphLoL, innerNodeToSplitIndexList[i], allPossibleHalfedgeVertexIndexs[j], k);
+
+                                    GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPNodes, newGraphTables, innerNodeToSplitIndexList[i], allPossibleHalfedgeVertexIndexs[j], k);
                                     //if (!dHMDeepCopy.VertexIndexHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
                                     //{
                                     //    currentDHM.VertexIndexHasBeenDecomposed.AddRange(dHMDeepCopy.VertexIndexHasBeenDecomposed);
                                     //}
+                                    CurrentHM = currentDHM;
+
                                     INode<GraphWithHM> childDHMToSplit = dHMToSplit.AddChild(currentDHM);
 
-                                    viOfNewDecomposed.Add(newVertexIndex);
-                                    viHasBeenDecomposed.Add(innerNodeToSplitIndexList[i]);
+                                    if (!viOfNewDecomposed.Contains(newVertexIndex))
+                                    {
+                                        viOfNewDecomposed.Add(newVertexIndex);
+                                    }
+                                    if (!viHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
+                                    {
+                                        viHasBeenDecomposed.Add(innerNodeToSplitIndexList[i]);
+                                    }
 
                                     // 递归分裂叶子节点
                                     GenerateDecomposedHMs(childDHMToSplit, viOfNewDecomposed, viHasBeenDecomposed);
@@ -815,68 +746,36 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <summary>
         /// 将选中的halfedgeIndex的半边进行分割（即这条半边的起点，分裂成了两个点）
         /// </summary>
-        /// <param name="P"></param>
-        /// <param name="halfedgeIndex"></param>
-        /// <param name="pGraphLoL"></param>
-        /// <param name="pNodes"></param>
-        /// <param name="splitParts"></param>
+        /// <param name="P">要进行操作的PlanktonMesh</param>
+        /// <param name="possibleHStartAndEndIndexs">对应的那种可能的两个相邻的半边</param>
+        /// <param name="splitParts">将半边分成几份</param>
+        /// <param name="graphNodes">原来的graphNodes</param>
+        /// <param name="newPNodes">更新后的graphNodes</param>
+        /// <param name="newVertexIndex">新生成的点的Index</param>
         /// <returns></returns>
         public PlanktonMesh SplitEdgeIntoTwo(PlanktonMesh P, 
-                                             int halfedgeStartVertexIndex, 
-                                             int halfedgeEndVertexIndex, 
-                                             int splitParts, 
-                                             List<List<int>> pGraphLoL, 
-                                             List<Node> pNodes, 
-                                             out List<List<int>> newPGraphLoL, 
+                                             int[,] possibleHStartAndEndIndexs,
+                                             int splitParts,  
+                                             List<Node> graphNodes, 
                                              out List<Node> newPNodes, 
                                              out int newVertexIndex)
         {
             #region 深拷贝
             PlanktonMesh pDeepCopy = new PlanktonMesh(P);
 
-            #region debug print
-            List<string> printFaceVertices = new List<string>();
-            List<string> printFacesHalfedges = new List<string>();
-            printFaceVertices = UtilityFunctions.PrintFacesVertices(pDeepCopy);
-            printFacesHalfedges = UtilityFunctions.PrintFacesHalfedges(pDeepCopy);
-            #endregion
-
-
-
-
-            //List<List<int>> newPDeepCopyGraphLoL = new List<List<int>>();
-            //pGraphLoL.ForEach(i => newPDeepCopyGraphLoL.Add(i));
-            //List<Node> newPDeepCopyNodes = new List<Node>();
-            //pNodes.ForEach(i => newPDeepCopyNodes.Add(i));
-
-            //List<List<int>> newPDeepCopyGraphLoL = new List<List<int>>();
-            //for (int i = 0; i < pGraphLoL.Count; i++)
-            //{
-            //    newPDeepCopyGraphLoL.Add(Clone<List<int>>(pGraphLoL[i]));
-            //}
-
-            //List<Node> newPDeepCopyNodes = new List<Node>();
-            //for (int i = 0; i < pNodes.Count; i++)
-            //{
-            //    newPDeepCopyNodes.Add(Clone<Node>(pNodes[i]));
-            //}
-
-            List<List<int>> pDeepCopyGraphLoL = new List<List<int>>();
-            List<Node> pDeepCopyNodes = new List<Node>();
-
-            for (int i = 0; i < pGraphLoL.Count; i++)
+            // 深拷贝graphNodes
+            List<Node> graphNodesDeepCopy = new List<Node>();
+            for (int i = 0; i < graphNodes.Count; i++)
             {
-                pDeepCopyGraphLoL.Add(new List<int>());
-                pDeepCopyGraphLoL[i].AddRange(pGraphLoL[i].Select(num => num));
-            }
-
-            for (int i = 0; i < pNodes.Count; i++)
-            {
-                pDeepCopyNodes.Add(new Node(pNodes[i]));
+                graphNodesDeepCopy.Add(new Node(graphNodes[i]));
             }
 
             #endregion
 
+            int halfedgeStartVertexIndex = possibleHStartAndEndIndexs[0, 0];
+            int halfedgeEndVertexIndex = possibleHStartAndEndIndexs[0, 1];
+            int anotherHalfedgeStartVertexIndex = possibleHStartAndEndIndexs[1, 0];
+            int anotherHalfedgeEndVertexIndex = possibleHStartAndEndIndexs[1, 1];
 
             #region 计算要分裂的边两侧的Face，准备好两个Face的顶点列表，新增midVertex作为分裂产生的新顶点
 
@@ -893,7 +792,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             if (halfedgeIndex == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "ResetHalfedgeStart函数出错，找不到输入起点和终点所对应的半边。");
-                newPGraphLoL = null;
                 newPNodes = null;
                 newVertexIndex = -1;
                 return null;
@@ -915,8 +813,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             catch (ArgumentOutOfRangeException)
             {
-                newPGraphLoL = pDeepCopyGraphLoL;
-                newPNodes = pDeepCopyNodes;
+                newPNodes = graphNodesDeepCopy;
                 newVertexIndex = -1;
                 return pDeepCopy;
             }
@@ -929,18 +826,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             catch (ArgumentOutOfRangeException)
             {
-                newPGraphLoL = pDeepCopyGraphLoL;
-                newPNodes = pDeepCopyNodes;
+                newPNodes = graphNodesDeepCopy;
                 newVertexIndex = -1;
                 return pDeepCopy;
             }
 
-
-
-            
-
-            //int startVertexIndex = PDeepCopy.Halfedges[halfedgeIndex].StartVertex;
-            //int endVertexIndex = PDeepCopy.Halfedges.EndVertex(halfedgeIndex);
             int startVertexIndex = halfedgeStartVertexIndex;
             int endVertexIndex = halfedgeEndVertexIndex;
 
@@ -955,39 +845,25 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #endregion
 
             #region 为splitEdge的操作更新图结构和Node对象
-            // 更新图结构
-            for (int i = 0; i < pDeepCopyGraphLoL.Count; i++)
-            {
-                if (i == startVertexIndex)
-                {
-                    pDeepCopyGraphLoL[i].Add(midVertexIndex);
-                }
-                if (i == endVertexIndex)
-                {
-                    pDeepCopyGraphLoL[i].Add(midVertexIndex);
-                }
-            }
-            pDeepCopyGraphLoL.Add((new int[2] { startVertexIndex, endVertexIndex }).ToList<int>());
 
-            // 对startVertex的Node的相关属性进行修正，后续需要根据规则修改补充
-            string startNodeLabel = pDeepCopyNodes[startVertexIndex].NodeAttribute.NodeLabel;
-            double startNodeArea = pDeepCopyNodes[startVertexIndex].NodeAttribute.NodeArea;
+            /* 对startVertex的Node的相关属性进行修正，后续需要根据规则修改补充 */
+            string startNodeLabel = graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeLabel;
+            double startNodeArea = graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeArea;
             // double startNodeAreaProportion = nodes[startVertexIndex].NodeAttribute.NodeAreaProportion;
 
-            pDeepCopyNodes[startVertexIndex].NodeAttribute.NodeLabel = pDeepCopyNodes[startVertexIndex].NodeAttribute.NodeLabel + "0";
-            pDeepCopyNodes[startVertexIndex].NodeAttribute.NodeArea = pDeepCopyNodes[startVertexIndex].NodeAttribute.NodeArea / splitParts;
+            graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeLabel = graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeLabel + "0";
+            graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeArea = graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeArea / splitParts;
             // nodes[startVertexIndex].NodeAttribute.NodeAreaProportion = nodes[startVertexIndex].NodeAttribute.NodeAreaProportion / splitParts;
 
             // 对新生成的顶点，构造新的node
-            NodeAttribute nodeAttribute = new NodeAttribute((startNodeLabel + (midVertexIndex - (pNodes.Count - 1)).ToString()),
+            NodeAttribute nodeAttribute = new NodeAttribute((startNodeLabel + (midVertexIndex - (graphNodes.Count - 1)).ToString()),
                                                              startNodeArea / splitParts);
             nodeAttribute.ConnectivityTable = new int[] { startVertexIndex, endVertexIndex };
             nodeAttribute.AdjacencyTable = new int[] { };
-            pDeepCopyNodes.Add(new Node(midVertex, nodeAttribute, true));
+            graphNodesDeepCopy.Add(new Node(midVertex, nodeAttribute, true));
 
             // 输出out参数
-            newPGraphLoL = pDeepCopyGraphLoL;
-            newPNodes = pDeepCopyNodes;
+            newPNodes = graphNodesDeepCopy;
             #endregion
 
             #region 构造添加顶点后的新Face
@@ -1057,17 +933,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// 将一对半边（其中一条起点是vertexToSplitIndex）移动到一个新的顶点（targetVertexIndex）上，并且将这个顶点的度，补满到4
         /// </summary>
         /// <param name="P"></param>
-        /// <param name="halfedgeIndex">要移动的一对半边中的一个，它的起点是要改变的</param>
+        /// <param name="possibleHStartAndEndIndexs"></param>
         /// <param name="vertexToSplitIndex">要移动的一对半边中的一个，该半边的起点</param>
         /// <param name="targetVertexIndex">移动到哪一个顶点上，起点改为这个顶点</param>
+        /// <param name="innerNodeToSplitIndexList">剩余的还未被分割的innerNodes</param>
+        /// <param name="newEndVertexAfterResetHalfedgeList"></param>
         /// <returns></returns>
         public List<PlanktonMesh> ResetHalfedgeStart(PlanktonMesh P, 
-                                                     int halfedgeStartVertexIndex, 
-                                                     int halfedgeEndVertexIndex, 
+                                                     int[,] possibleHStartAndEndIndexs,
                                                      int vertexToSplitIndex, 
                                                      int targetVertexIndex, 
-                                                     List<List<int>> newGraphLoL,
-                                                     List<int> innerNodeToSplitIndexList)
+                                                     List<int> innerNodeToSplitIndexList,
+                                                     out List<int> newEndVertexAfterResetHalfedgeList)
         {
             #region 深拷贝
             PlanktonMesh PDeepCopy = new PlanktonMesh(P);
@@ -1077,13 +954,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             //List<string> printHalfedgeStartAndEnd = new List<string>();
             //printHalfedgeStartAndEnd = UtilityFunctions.PrintHalfedgeStartAndEnd(PDeepCopy);
 
+            int halfedgeStartVertexIndex = possibleHStartAndEndIndexs[0, 0];
+            int halfedgeEndVertexIndex = possibleHStartAndEndIndexs[0, 1];
+            int anotherHalfedgeStartVertexIndex = possibleHStartAndEndIndexs[1, 0];
+            int anotherHalfedgeEndVertexIndex = possibleHStartAndEndIndexs[1, 1];
+
+
             #region 将一对半边移动到一个新的顶点上 
 
-            // 找到halfedgeStartVertexIndex和halfedgeEndVertexIndex所对应的那条半边
+            // 找到anotherHalfedgeStartVertexIndex和anotherHalfedgeEndVertexIndex所对应的那条半边
             int halfedgeIndex = -1;
-            foreach (int hfIndex in PDeepCopy.Vertices.GetHalfedges(halfedgeStartVertexIndex))
+            foreach (int hfIndex in PDeepCopy.Vertices.GetHalfedges(anotherHalfedgeStartVertexIndex))
             {
-                if (PDeepCopy.Halfedges.EndVertex(hfIndex) == halfedgeEndVertexIndex)
+                if (PDeepCopy.Halfedges.EndVertex(hfIndex) == anotherHalfedgeEndVertexIndex)
                 {
                     halfedgeIndex = hfIndex;
                     break;
@@ -1092,6 +975,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             if (halfedgeIndex == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "ResetHalfedgeStart函数出错，找不到输入起点和终点所对应的半边。");
+                newEndVertexAfterResetHalfedgeList = null;
                 return null;
             }
 
@@ -1134,6 +1018,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             if (indexInFace == -1 && indexInPairFace == -1)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "输入的targetVertex " + vertexToSplitIndex.ToString() + " 不属于要改变的面");
+                newEndVertexAfterResetHalfedgeList = null;
                 return null;
             }
             // 当目标顶点targetVertex属于PairFace时
@@ -1287,14 +1172,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
             // 如果新生成的半边的端点，是innerNode（包括初始的和新分裂产生的），那么返回null
+            // 同时输出anotherEndVertexAfterResetHalfedgeList的列表，对应每种splitedFace的情况
+            newEndVertexAfterResetHalfedgeList = new List<int>();
             for (int i = 0; i < splitedFaceWithOriginIndexLoL.Count; i++)
             {
                 List<int> intersect = splitedFaceWithOriginIndexLoL[i].Intersect<int>(splitedFaceWithNewIndexLoL[i]).ToList<int>();
                 intersect.Remove(targetVertexIndex);
                 if (innerNodeToSplitIndexList.Intersect<int>(intersect).Count() != 0)
                 {
+                    newEndVertexAfterResetHalfedgeList = null;
                     return null;
                 }
+                newEndVertexAfterResetHalfedgeList.Add(intersect[0]);
             }
 
 
@@ -1397,6 +1286,77 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #endregion
             return rebulidNewHalfedgeP;
         }
+
+
+        public List<List<int>> RenewGraphTable(List<List<int>> graphTables,int[,] possibleHStartAndEndIndexs,int newVertexIndex, int newEndVertexAfterResetHalfedge)
+        {
+            List<List<int>> graphTablesDeepCopy = new List<List<int>>();
+            for (int i = 0; i < graphTables.Count; i++)
+            {
+                graphTablesDeepCopy.Add(new List<int>());
+                graphTablesDeepCopy[i].AddRange(graphTables[i].Select(num => num));
+            }
+
+            int halfedgeStartVertexIndex = possibleHStartAndEndIndexs[0, 0];
+            int halfedgeEndVertexIndex = possibleHStartAndEndIndexs[0, 1];
+            int anotherHalfedgeStartVertexIndex = possibleHStartAndEndIndexs[1, 0];
+            int anotherHalfedgeEndVertexIndex = possibleHStartAndEndIndexs[1, 1];
+
+            // 更新图结构
+            // 如果要分裂的这条边，是在原来的GraphLoL里的（注意不是PlanktonMeshGraphLoL）
+            // 那么首尾点的邻接表上都要加上这个新增点的序号
+            if (graphTablesDeepCopy[halfedgeStartVertexIndex].Contains(halfedgeEndVertexIndex))
+            {
+                // 所有的添加
+                graphTablesDeepCopy[halfedgeStartVertexIndex].Add(newVertexIndex);
+                graphTablesDeepCopy[halfedgeEndVertexIndex].Add(newVertexIndex);
+                graphTablesDeepCopy.Add((new int[2] { halfedgeStartVertexIndex, halfedgeEndVertexIndex }).ToList<int>());
+
+                // 如果另一条半边在原来的GraphLoL里，那么把anotherHalfedgeEndVertexIndex添加到新增点的邻接表中
+                bool flag = false;
+                if (graphTablesDeepCopy[halfedgeStartVertexIndex].Contains(anotherHalfedgeEndVertexIndex))
+                {
+                    graphTablesDeepCopy[newVertexIndex].Add(anotherHalfedgeEndVertexIndex);
+                    graphTablesDeepCopy[anotherHalfedgeEndVertexIndex].Add(newVertexIndex);
+                    flag = true;
+                }
+
+                // 所有的减去
+                graphTablesDeepCopy[halfedgeStartVertexIndex].Remove(halfedgeEndVertexIndex);
+                graphTablesDeepCopy[halfedgeEndVertexIndex].Remove(halfedgeStartVertexIndex);
+
+                // 如果另一条半边在原来的GraphLoL里，那么把anotherHalfedgeEndVertexIndex的邻接表中应该移除halfedgeStartVertexIndex
+                if (flag)
+                {
+                    graphTablesDeepCopy[halfedgeStartVertexIndex].Remove(anotherHalfedgeEndVertexIndex);
+                    graphTablesDeepCopy[anotherHalfedgeEndVertexIndex].Remove(halfedgeStartVertexIndex);
+                }
+
+            }
+            // 如果要分裂的这条边，不在原来的GraphLoL里的（注意不是PlanktonMeshGraphLoL）
+            // 那么还需要判断另一条半边anotherHalfedge是不是在原来的GraphLoL里
+            // 如果不在，那么什么都不用做
+            // 如果在，就先在首点的邻接表上要加上这个新增点的序号，并且移除末点的序号；然后在末点的邻接表，移除首点
+            // 然后在GraphLoL末尾，这个新增点的邻接表上，先加上首点的序号，再加上这个新增点连接的另一半（由ResetHalfedgeStart函数输出的anotherEndVertexAfterResetHalfedge）
+            else
+            {
+                if (graphTablesDeepCopy[halfedgeStartVertexIndex].Contains(anotherHalfedgeEndVertexIndex))
+                {
+                    // 所有的添加
+                    graphTablesDeepCopy[halfedgeStartVertexIndex].Add(newVertexIndex);
+                    graphTablesDeepCopy[newEndVertexAfterResetHalfedge].Add(newVertexIndex);
+                    graphTablesDeepCopy.Add((new int[2] { halfedgeStartVertexIndex, newEndVertexAfterResetHalfedge }).ToList<int>());
+
+                    // 所有的减去
+                    // graphTablesDeepCopy[halfedgeStartVertexIndex].Remove(halfedgeEndVertexIndex);
+                    // graphTablesDeepCopy[halfedgeEndVertexIndex].Remove(halfedgeStartVertexIndex);
+                    graphTablesDeepCopy[halfedgeStartVertexIndex].Remove(anotherHalfedgeEndVertexIndex);
+                    graphTablesDeepCopy[anotherHalfedgeEndVertexIndex].Remove(halfedgeStartVertexIndex);
+                }
+            }
+            return graphTablesDeepCopy;
+        }
+
 
         public bool RelationOfTwoVerticesInFaceVertexList(int vertexToSplitIndex, int targetVertexIndex, List<int> viAroundFaceList)
         {
@@ -1652,16 +1612,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
             }
-
-            //for (int i = 0; i < sortedGraphLoL.Count; i++)
-            //{
-            //    if (boolList[i])
-            //    {
-
-            //    }
-            //}
-
-
 
             outer_outerM = new Matrix(outerNodeIndexList.Count, outerNodeIndexList.Count);
             for (int i = 0; i < outerNodeIndexList.Count; i++)
