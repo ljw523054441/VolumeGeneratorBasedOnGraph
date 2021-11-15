@@ -231,7 +231,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 DualGraphWithHM dualGraphWithHM = new DualGraphWithHM(D, graphNodes, graphTables, "Dual", dVertexBelongsToWhichInnerNode);
 
-                // DA.SetData("DualGraphWithHM", D);
+                DA.SetData("DualGraphWithHM", dualGraphWithHM);
 
 
                 #region 可视化部分
