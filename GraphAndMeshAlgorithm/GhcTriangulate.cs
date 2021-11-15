@@ -1,4 +1,7 @@
-﻿using Grasshopper.Kernel;
+﻿using Grasshopper;
+using Grasshopper.Kernel;
+using Grasshopper.Kernel.Attributes;
+using Grasshopper.GUI.Canvas;
 using Rhino.Collections;
 using Rhino.Geometry;
 using Rhino.Geometry.Collections;
@@ -45,6 +48,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
         private List<Curve> DottedCurve;
 
+        private int CountOfAllGraphWithHM = 0;
+        private int CurrentIndex = 0;
+
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -69,7 +75,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // 0
-            pManager.AddMeshParameter("AllTriangularMeshes", "AllTMesh", "所有可能的三角形剖分结果。All Computed triangulations; these triangulations describe all possible planar topologies for your plan diagram, the added links are those of adjacencies not connectivities", GH_ParamAccess.list);
+            // pManager.AddMeshParameter("AllTriangularMeshes", "AllTMesh", "所有可能的三角形剖分结果。All Computed triangulations; these triangulations describe all possible planar topologies for your plan diagram, the added links are those of adjacencies not connectivities", GH_ParamAccess.list);
             // 1
             // pManager.AddMeshParameter("TheChosenTriangularMesh", "TMesh", "所选择的那个三角形剖分结果。The one you have chosen with index I", GH_ParamAccess.item);
             // 2
@@ -184,7 +190,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     result = regeneratedIsomorphismMeshes;
                 }
                 #endregion
-                DA.SetDataList("AllTriangularMeshes", result);
+
+                CountOfAllGraphWithHM = result.Count;
+                CurrentIndex = index;
+                // DA.SetDataList("AllTriangularMeshes", result);
 
                 #region 选择生成的三角剖分
                 if (index >= result.Count)
@@ -663,6 +672,56 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         public override Guid ComponentGuid
         {
             get { return new Guid("88a4820f-ef86-4c32-ba34-74e80870373f"); }
+        }
+
+
+        public override void CreateAttributes()/* 重写CreateAttribute方法以启用自定义电池外观 */
+        {
+            Attributes = new CompLabelAttribute(this);
+        }
+
+        public class CompLabelAttribute : GH_ComponentAttributes
+        {
+            public CompLabelAttribute(GhcTriangulate component) : base(component) { }
+
+            protected override void Layout()
+            {
+                base.Layout();
+                /* 先执行base.Layout()，可以按GH电池默认方式计算电池的出/入口需要的高度，我们在下面基于这个高度进行更改 */
+                Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 20.0f);
+            }
+
+            protected override void Render(GH_Canvas canvas, Graphics graphics, GH_CanvasChannel channel)
+            {
+                base.Render(canvas, graphics, channel);/* 执行基本的电池渲染 */
+
+                /* 额外的电池渲染，仅在“Objects”这个渲染轨道绘制 */
+                if (channel == GH_CanvasChannel.Objects)
+                {
+                    RectangleF buttonRect = /* 按钮的位置 */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+
+                    /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
+                    buttonRect.Inflate(-2.0f, -2.0f);
+
+                    using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect, GH_Palette.Black))
+                    {
+                        /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
+                        /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
+                        /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
+                        capsule.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
+                    }
+
+                    graphics.DrawString(string.Format("{0} / {1}", ((GhcTriangulate)Owner).CurrentIndex.ToString(), ((GhcTriangulate)Owner).CountOfAllGraphWithHM.ToString()),
+                                        new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
+                                        Brushes.White,
+                                        buttonRect,
+                                        new StringFormat()
+                                        {
+                                            Alignment = StringAlignment.Center,
+                                            LineAlignment = StringAlignment.Center
+                                        });
+                }
+            }
         }
     }
 }
