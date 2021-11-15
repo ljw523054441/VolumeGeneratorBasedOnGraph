@@ -63,7 +63,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // 0
-            pManager.AddGenericParameter("DualHalfedgeMesh", "DHM", "生成的对偶图（半边数据结构）", GH_ParamAccess.item);
+            pManager.AddGenericParameter("DualGraphWithHM", "DGHM", "生成的对偶图", GH_ParamAccess.item);
             // 1
             pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
@@ -82,21 +82,20 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #region 局部变量初始化
             Thickness = 2;
 
-            Graph graph = new Graph();
-            PlanktonMesh P = new PlanktonMesh();
+            GraphWithHM graphWithHM = new GraphWithHM();
+            
             #endregion
 
-            if (DA.GetData<PlanktonMesh>("TheChosenTriangleHalfedgeMesh", ref P)
-                && DA.GetData<Graph>("Graph",ref graph))
+            if (DA.GetData<GraphWithHM>("GraphWithHM", ref graphWithHM))
             {
                 // 获取节点
-                List<Node> graphNodes = new List<Node>();
-                graphNodes = graph.GraphNodes;
+                List<Node> graphNodes = graphWithHM.GraphNodes;
+                List<List<int>> graphTables = graphWithHM.GraphTables;
+                PlanktonMesh pGraphWithHM = graphWithHM.PlanktonMesh;
 
                 #region 获得对偶图
                 // 利用半边数据结构求出对偶
-                PlanktonMesh D = P.Dual();
-                DA.SetData("DualHalfedgeMesh", D);
+                PlanktonMesh D = pGraphWithHM.Dual();
                 #endregion
 
                 #region DebugPrint
@@ -129,10 +128,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 得到所有的innerNode的序号和outerNode的序号
 
-                List<int> innerNodeIndexs = graph.InnerNodeIndexList;
-                List<int> outerNodeIndexs = graph.OuterNodeIndexList;
-                int innerNodeCount = graph.InnerNodeCount;
-                int outerNodeCount = graph.OuterNodeCount;
+                List<int> innerNodeIndexs = graphWithHM.InnerNodeIndexList;
+                List<int> outerNodeIndexs = graphWithHM.OuterNodeIndexList;
+                int innerNodeCount = graphWithHM.InnerNodeCount;
+                int outerNodeCount = graphWithHM.OuterNodeCount;
                 #endregion
 
                 #region 找到每个outerNode相关的面和发出的半边
@@ -144,11 +143,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 for (int i = 0; i < outerNodeIndexs.Count; i++)
                 {
                     // 找到每个outerNode所发出的halfedge的index
-                    int[] halfedgeIndexsStartFromOuterNode = P.Vertices.GetHalfedges(outerNodeIndexs[i]);
+                    int[] halfedgeIndexsStartFromOuterNode = pGraphWithHM.Vertices.GetHalfedges(outerNodeIndexs[i]);
                     halfedgeIndexsStartFromOuterNodes.Add(new List<int>());
                     halfedgeIndexsStartFromOuterNodes[i].AddRange(halfedgeIndexsStartFromOuterNode);
                     // 找到每个outerNode所邻接的Face的index，-1表示邻接外界
-                    int[] faceIndexsAroundOuterNode = P.Vertices.GetVertexFaces(outerNodeIndexs[i]);
+                    int[] faceIndexsAroundOuterNode = pGraphWithHM.Vertices.GetVertexFaces(outerNodeIndexs[i]);
                     faceIndexsAroundOuterNodes.Add(new List<int>());
                     faceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNode);
                 }
@@ -183,7 +182,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         //pFaceIndexAroundInnerNode.Add(new List<int>());
                         //pFaceIndexAroundInnerNode[i].AddRange(P.Vertices.GetVertexFaces(i));
 
-                        pFaceIndexAroundInnerNode.Add(P.Vertices.GetVertexFaces(i).ToList<int>());
+                        pFaceIndexAroundInnerNode.Add(pGraphWithHM.Vertices.GetVertexFaces(i).ToList<int>());
                         correspondingInnerNodeIndex.Add(i);
                     }
 
@@ -229,6 +228,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
                 #endregion
+
+                DualGraphWithHM dualGraphWithHM = new DualGraphWithHM(D, graphNodes, graphTables, "Dual", dVertexBelongsToWhichInnerNode);
+
+                // DA.SetData("DualGraphWithHM", D);
+
 
                 #region 可视化部分
 
