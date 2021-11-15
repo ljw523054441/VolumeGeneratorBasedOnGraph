@@ -29,10 +29,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
         }
 
-        public enum Mode { Graph, GraphWithHM }
-
-        public Mode CompWorkMode { get; set; } = Mode.Graph;
-
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
@@ -489,53 +485,5 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             get { return new Guid("97181a6b-fd35-4eb5-9938-4e7a7e7b91ab"); }
         }
 
-        public override void CreateAttributes()/* 重写CreateAttribute方法以启用自定义电池外观 */
-        {
-            Attributes = new CompAttribute(this);
-        }
-    }
-
-    public class CompAttribute : GH_ComponentAttributes
-    {
-        public CompAttribute(GhcTutteConvexDrawing component) : base(component) { }
-        protected override void Layout()
-        {
-            base.Layout();
-            /* 先执行base.Layout()，可以按GH电池默认方式计算电池的出/入口需要的高度，我们在下面基于这个高度进行更改 */
-            Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 20.0f);
-        }
-
-        protected override void Render(GH_Canvas canvas, Graphics graphics, GH_CanvasChannel channel)
-        {
-            base.Render(canvas, graphics, channel); /* 执行基本的电池渲染 */
-
-            /* 额外的电池渲染，仅在“Objects”这个渲染轨道绘制 */
-            if (channel == GH_CanvasChannel.Objects) 
-            {
-                /* 按钮的位置 */
-                RectangleF buttonRect = new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
-                /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
-                buttonRect.Inflate(-2.0f, -2.0f);
-
-                using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect, GH_Palette.Black))
-                {
-                    /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
-                    /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
-                    /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
-                    capsule.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
-                }
-
-                graphics.DrawString(((GhcTutteConvexDrawing)Owner).CompWorkMode.ToString(),
-                                    new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
-                                    Brushes.White,
-                                    buttonRect,
-                                    new StringFormat()
-                                    {
-                                    Alignment = StringAlignment.Center,
-                                    LineAlignment = StringAlignment.Center
-                                    });
-
-            }
-        }
     }
 }
