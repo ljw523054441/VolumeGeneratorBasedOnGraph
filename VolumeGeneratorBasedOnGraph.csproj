@@ -70,6 +70,7 @@
     <Compile Include="Class\DualGraphWithHM.cs" />
     <Compile Include="Class\GraphWithHM.cs" />
     <Compile Include="Class\Graph.cs" />
+    <Compile Include="Class\Node.cs" />
     <Compile Include="Class\Tree.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDebugGraph.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcLaplaceSmooth.cs" />
