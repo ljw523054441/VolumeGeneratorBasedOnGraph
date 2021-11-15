@@ -329,7 +329,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<Point3d> nodePoints = new List<Point3d>();
                 List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
 
-                List<Node> graphNodes = new List<Node>();
+                List<GraphNode> graphNodes = new List<GraphNode>();
                 #endregion
 
                 #region 构造包含所有nodePoint的列表，顺序是 inner node + outer node
@@ -360,11 +360,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     if (i < volumeNodeCount)
                     {
-                        graphNodes.Add(new Node(nodePoints[i], nodeAttributes[i], true));
+                        graphNodes.Add(new GraphNode(nodePoints[i], nodeAttributes[i], true));
                     }
                     if (i >= volumeNodeCount && i < nodePoints.Count)
                     {
-                        graphNodes.Add(new Node(nodePoints[i], nodeAttributes[i], false));
+                        graphNodes.Add(new GraphNode(nodePoints[i], nodeAttributes[i], false));
                     }
                 }
 

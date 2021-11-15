@@ -141,7 +141,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 获取Node的坐标和构造Point3d
 
-                List<Node> nodes = graph.GraphNodes;
+                List<GraphNode> nodes = graph.GraphNodes;
 
                 List<Point3d> nodePoints = new List<Point3d>();
                 List<Point3d> outerPoints = new List<Point3d>();

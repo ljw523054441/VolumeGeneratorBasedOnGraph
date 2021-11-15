@@ -40,10 +40,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.GraphTables[i].AddRange(source.GraphTables[i]);
             }
             // 深拷贝List<Node>
-            this.GraphNodes = new List<Node>();
+            this.GraphNodes = new List<GraphNode>();
             for (int i = 0; i < source.GraphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(source.GraphNodes[i]));
+                this.GraphNodes.Add(new GraphNode(source.GraphNodes[i]));
             }
 
             this.InnerNodeCount = source.InnerNodeCount;
@@ -72,7 +72,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="graphTables"></param>
         /// <param name="dVertexBelongsToWhichInnerNode"></param>
         public DualGraphWithHM(PlanktonMesh planktonMesh,
-                               List<Node> graphNodes,
+                               List<GraphNode> graphNodes,
                                List<List<int>> graphTables,
                                string label,
                                List<List<int>> dVertexBelongsToWhichInnerNode) 
@@ -85,10 +85,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.GraphTables[i].AddRange(graphTables[i]);
             }
             // 深拷贝List<Node>
-            this.GraphNodes = new List<Node>();
+            this.GraphNodes = new List<GraphNode>();
             for (int i = 0; i < graphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(graphNodes[i]));
+                this.GraphNodes.Add(new GraphNode(graphNodes[i]));
             }
 
             this.InnerNodeCount = 0;

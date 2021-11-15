@@ -135,7 +135,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="graph"></param>
         /// <param name="graphVertices"></param>
         /// <returns></returns>
-        public static List<Line> GraphEdgeLine(List<List<int>> graph, List<Node> graphNodes)
+        public static List<Line> GraphEdgeLine(List<List<int>> graph, List<GraphNode> graphNodes)
         {
             List<Point3d> graphVertices = new List<Point3d>();
             for (int i = 0; i < graphNodes.Count; i++)

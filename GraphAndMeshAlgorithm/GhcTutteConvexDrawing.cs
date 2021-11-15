@@ -75,7 +75,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 Graph graphDeepCopy = new Graph(graph);
 
                 List<List<int>> graphLoL = graphDeepCopy.GraphTables;
-                List<Node> graphNodes = graphDeepCopy.GraphNodes;
+                List<GraphNode> graphNodes = graphDeepCopy.GraphNodes;
 
                 int innerNodeCount = graphDeepCopy.InnerNodeCount;
                 int outerNodeCount = graphDeepCopy.OuterNodeCount;
@@ -231,7 +231,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 输出subGraphNode
-                List<Node> subGraphNodes = new List<Node>();
+                List<GraphNode> subGraphNodes = new List<GraphNode>();
                 for (int i = 0; i < graphDeepCopy.GraphNodes.Count; i++)
                 {
                     if (graphDeepCopy.GraphNodes[i].IsInner)

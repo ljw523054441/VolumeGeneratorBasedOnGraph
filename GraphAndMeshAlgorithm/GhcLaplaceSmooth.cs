@@ -113,7 +113,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             bool Minim = false;
             int Iters = 1;
 
-            List<Node> nodes = new List<Node>();
+            List<GraphNode> nodes = new List<GraphNode>();
 
             PlanktonMesh p = new PlanktonMesh();
 
@@ -144,11 +144,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 M = PDeepCopy.ToRhinoMesh();
             }
 
-            DA.GetDataList<Node>("GraphNode", nodes);
-            List<Node> nodesDeepCopy = new List<Node>();
+            DA.GetDataList<GraphNode>("GraphNode", nodes);
+            List<GraphNode> nodesDeepCopy = new List<GraphNode>();
             for (int i = 0; i < nodes.Count; i++)
             {
-                nodesDeepCopy.Add(new Node(nodes[i]));
+                nodesDeepCopy.Add(new GraphNode(nodes[i]));
             }
 
             GH_Structure<GH_Integer> gh_Structure_graph = null;
@@ -579,7 +579,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="graph"></param>
         /// <param name="graphVertices"></param>
         /// <returns></returns>
-        public List<Line> GraphEdgeLine(List<List<int>> graph, List<Node> graphNodes)
+        public List<Line> GraphEdgeLine(List<List<int>> graph, List<GraphNode> graphNodes)
         {
             List<Point3d> graphVertices = new List<Point3d>();
             for (int i = 0; i < graphNodes.Count; i++)

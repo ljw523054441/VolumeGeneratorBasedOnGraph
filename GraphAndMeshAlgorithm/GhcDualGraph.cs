@@ -85,12 +85,12 @@ namespace VolumeGeneratorBasedOnGraph
             Mesh mesh = new Mesh();
             // List<NodeAttribute> nodeAttributes = new List<NodeAttribute>();
 
-            List<Node> nodes = new List<Node>();
+            List<GraphNode> nodes = new List<GraphNode>();
 
             if (DA.GetData<Mesh>("TriangleMesh", ref mesh))
             {
                 // 获取节点
-                DA.GetDataList<Node>("GraphNode", nodes);
+                DA.GetDataList<GraphNode>("GraphNode", nodes);
 
 
 

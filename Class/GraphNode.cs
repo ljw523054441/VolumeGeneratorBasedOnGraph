@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph.Class
 {
-    public class Node : ICloneable
+    public class GraphNode : ICloneable
     {
         public Point3d NodeVertex { get; set; }
 
@@ -19,7 +19,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// 利用拷贝构造函数实现深拷贝
         /// </summary>
         /// <param name="node"></param>
-        public Node(Node node)
+        public GraphNode(GraphNode node)
         {
             this.NodeVertex = new Point3d(node.NodeVertex);
             this.NodeAttribute = new NodeAttribute(node.NodeAttribute);
@@ -28,7 +28,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // this.IsDecomposed = node.IsDecomposed;
         }
 
-        public Node(Point3d nodeVertex, NodeAttribute nodeAttribute, bool isInner)
+        public GraphNode(Point3d nodeVertex, NodeAttribute nodeAttribute, bool isInner)
         {
             this.NodeVertex = nodeVertex;
             this.NodeAttribute = nodeAttribute;
@@ -42,7 +42,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <returns></returns>
         public object Clone()
         {
-            Node node = (Node)MemberwiseClone();
+            GraphNode node = (GraphNode)MemberwiseClone();
             node.NodeAttribute = (NodeAttribute)NodeAttribute.Clone();
             return node;
         }

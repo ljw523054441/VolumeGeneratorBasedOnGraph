@@ -7,14 +7,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class Graph
     {
-        private List<Node> _graphNodes;
+        private List<GraphNode> _graphNodes;
         private List<List<int>> _graphTables;
         private int _innerNodeCount;
         private int _outerNodeCount;
         private List<int> _innerNodeIndexList;
         private List<int> _outerNodeIndexList;
         
-        public List<Node> GraphNodes
+        public List<GraphNode> GraphNodes
         {
             get
             {
@@ -22,10 +22,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             set
             {
-                _graphNodes = new List<Node>();
+                _graphNodes = new List<GraphNode>();
                 for (int i = 0; i < value.Count; i++)
                 {
-                    _graphNodes.Add(new Node(value[i]));
+                    _graphNodes.Add(new GraphNode(value[i]));
                 }
 
                 _innerNodeCount = 0;
@@ -93,7 +93,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// </summary>
         public Graph()
         {
-            this.GraphNodes = new List<Node>();
+            this.GraphNodes = new List<GraphNode>();
             this.GraphTables = new List<List<int>>();
             this.InnerNodeCount = 0;
             this.OuterNodeCount = 0;
@@ -107,10 +107,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="source"></param>
         public Graph(Graph source)
         {
-            List<Node> nodes = new List<Node>();
+            List<GraphNode> nodes = new List<GraphNode>();
             for (int i = 0; i < source.GraphNodes.Count; i++)
             {
-                nodes.Add(new Node(source.GraphNodes[i]));
+                nodes.Add(new GraphNode(source.GraphNodes[i]));
             }
             this.GraphNodes = nodes;
 
@@ -146,12 +146,12 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// </summary>
         /// <param name="graphNodes"></param>
         /// <param name="graphTables"></param>
-        public Graph(List<Node> graphNodes, List<List<int>> graphTables)
+        public Graph(List<GraphNode> graphNodes, List<List<int>> graphTables)
         {
-            List<Node> nodes = new List<Node>();
+            List<GraphNode> nodes = new List<GraphNode>();
             for (int i = 0; i < graphNodes.Count; i++)
             {
-                nodes.Add(new Node(graphNodes[i]));
+                nodes.Add(new GraphNode(graphNodes[i]));
             }
             this.GraphNodes = nodes;
 

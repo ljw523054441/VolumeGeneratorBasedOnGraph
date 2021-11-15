@@ -40,10 +40,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.GraphTables[i].AddRange(source.GraphTables[i]);
             }
             // 深拷贝List<Node>
-            this.GraphNodes = new List<Node>();
+            this.GraphNodes = new List<GraphNode>();
             for (int i = 0; i < source.GraphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(source.GraphNodes[i]));
+                this.GraphNodes.Add(new GraphNode(source.GraphNodes[i]));
             }
 
             this.InnerNodeCount = source.InnerNodeCount;
@@ -62,7 +62,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// 用于在还没有进行Decompose时，构造GraphWithHFMesh对象
         /// </summary>
         public GraphWithHM(PlanktonMesh planktonMesh,
-                           List<Node> graphNodes,
+                           List<GraphNode> graphNodes,
                            List<List<int>> graphTables)
         {
             // 深拷贝List<List<int>>
@@ -73,10 +73,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.GraphTables[i].AddRange(graphTables[i]);
             }
             // 深拷贝List<Node>
-            this.GraphNodes = new List<Node>();
+            this.GraphNodes = new List<GraphNode>();
             for (int i = 0; i < graphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(graphNodes[i]));
+                this.GraphNodes.Add(new GraphNode(graphNodes[i]));
             }
 
             this.InnerNodeCount = 0;
@@ -113,7 +113,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="decomposeTheithPairHFVertexIndex"></param>
         /// <param name="decomposeTheithPairHFResult"></param>
         public GraphWithHM(PlanktonMesh planktonMesh,
-                           List<Node> graphNodes,
+                           List<GraphNode> graphNodes,
                            List<List<int>> graphTables, 
                            string treeNodeLabel)
         {
@@ -127,10 +127,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.GraphTables[i].AddRange(graphTables[i]);
             }
             // 深拷贝List<Node>
-            this.GraphNodes = new List<Node>();
+            this.GraphNodes = new List<GraphNode>();
             for (int i = 0; i < graphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new Node(graphNodes[i]));
+                this.GraphNodes.Add(new GraphNode(graphNodes[i]));
             }
 
             this.InnerNodeCount = 0;

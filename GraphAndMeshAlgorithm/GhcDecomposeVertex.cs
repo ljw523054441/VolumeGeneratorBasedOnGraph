@@ -144,10 +144,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 PlanktonMesh graphHMDeepCopy = new PlanktonMesh(graphWithHM.PlanktonMesh);
 
                 // 利用Node为复制准备的构造函数，进行深拷贝
-                List<Node> graphNodesDeepCopy = new List<Node>();
+                List<GraphNode> graphNodesDeepCopy = new List<GraphNode>();
                 for (int i = 0; i < graphWithHM.GraphNodes.Count; i++)
                 {
-                    graphNodesDeepCopy.Add(new Node(graphWithHM.GraphNodes[i]));
+                    graphNodesDeepCopy.Add(new GraphNode(graphWithHM.GraphNodes[i]));
                 }
 
                 // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>，再转化为LoL
@@ -297,7 +297,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 PlanktonMesh newPlanktonMesh = newGraphWithHM.PlanktonMesh;
                 List<List<int>> originGraphTables = newGraphWithHM.GraphTables;
-                List<Node> newGraphNodes = newGraphWithHM.GraphNodes;
+                List<GraphNode> newGraphNodes = newGraphWithHM.GraphNodes;
 
                 int innerNodeCount = newGraphWithHM.InnerNodeCount;
                 int outerNodeCount = newGraphWithHM.OuterNodeCount;
@@ -596,7 +596,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                                 // 向存储当前顶点所有可能的分裂结果的列表中添加分裂的可能性
                                 // List<List<int>> newPGraphLoL;
-                                List<Node> newPNodes;
+                                List<GraphNode> newPNodes;
                                 int newVertexIndex;
                                 PlanktonMesh edgeSplitedP = SplitEdgeIntoTwo(dHMDeepCopy.PlanktonMesh,
                                                                 allPossibleHalfedgeVertexIndexs[j],
@@ -751,18 +751,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         public PlanktonMesh SplitEdgeIntoTwo(PlanktonMesh P, 
                                              int[,] possibleHStartAndEndIndexs,
                                              int splitParts,  
-                                             List<Node> graphNodes, 
-                                             out List<Node> newPNodes, 
+                                             List<GraphNode> graphNodes, 
+                                             out List<GraphNode> newPNodes, 
                                              out int newVertexIndex)
         {
             #region 深拷贝
             PlanktonMesh pDeepCopy = new PlanktonMesh(P);
 
             // 深拷贝graphNodes
-            List<Node> graphNodesDeepCopy = new List<Node>();
+            List<GraphNode> graphNodesDeepCopy = new List<GraphNode>();
             for (int i = 0; i < graphNodes.Count; i++)
             {
-                graphNodesDeepCopy.Add(new Node(graphNodes[i]));
+                graphNodesDeepCopy.Add(new GraphNode(graphNodes[i]));
             }
 
             #endregion
@@ -855,7 +855,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                              startNodeArea / splitParts);
             nodeAttribute.ConnectivityTable = new int[] { startVertexIndex, endVertexIndex };
             nodeAttribute.AdjacencyTable = new int[] { };
-            graphNodesDeepCopy.Add(new Node(midVertex, nodeAttribute, true));
+            graphNodesDeepCopy.Add(new GraphNode(midVertex, nodeAttribute, true));
 
             // 输出out参数
             newPNodes = graphNodesDeepCopy;

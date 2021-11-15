@@ -89,7 +89,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             if (DA.GetData<GraphWithHM>("GraphWithHM", ref graphWithHM))
             {
                 // 获取节点
-                List<Node> graphNodes = graphWithHM.GraphNodes;
+                List<GraphNode> graphNodes = graphWithHM.GraphNodes;
                 List<List<int>> graphTables = graphWithHM.GraphTables;
                 PlanktonMesh pGraphWithHM = graphWithHM.PlanktonMesh;
 

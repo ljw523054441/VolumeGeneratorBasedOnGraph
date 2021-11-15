@@ -87,13 +87,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             GH_Structure<GH_Integer> gh_structure_FaceIndexs = new GH_Structure<GH_Integer>();
             DataTree<int> faceIndexsAroundOuterNodes = new DataTree<int>();
 
-            List<Node> nodes = new List<Node>();
+            List<GraphNode> nodes = new List<GraphNode>();
             #endregion
 
             if (DA.GetDataList<BoundarySegment>("BoundarySegments", boundarySegments)
                 && DA.GetData<PlanktonMesh>("DualHalfedgeMesh", ref D)
                 && DA.GetDataTree<GH_Integer>("faceIndexsFromOuterNodes", out gh_structure_FaceIndexs)
-                && DA.GetDataList<Node>("GraphNode", nodes))
+                && DA.GetDataList<GraphNode>("GraphNode", nodes))
             {
                 //if (!boundaryPolylineCurve.IsPlanar())
                 //{
