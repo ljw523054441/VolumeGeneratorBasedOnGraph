@@ -67,6 +67,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class\ConvexPolygon.cs" />
+    <Compile Include="Class\DualGraphNode.cs" />
+    <Compile Include="Class\DualGraphNodeAttribute.cs" />
     <Compile Include="Class\DualGraphWithHM.cs" />
     <Compile Include="Class\GraphWithHM.cs" />
     <Compile Include="Class\Graph.cs" />
