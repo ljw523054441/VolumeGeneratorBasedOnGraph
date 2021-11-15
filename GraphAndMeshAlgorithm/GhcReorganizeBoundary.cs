@@ -42,14 +42,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("GlobalParameter", "GlobalParameter", "全局参数传递", GH_ParamAccess.item);
+            pManager.AddGenericParameter("DualGraphWithHM", "DGHM", "生成的对偶图", GH_ParamAccess.item);
 
             // pManager.AddCurveParameter("BoundaryPolyline", "BPolyline", "场地边界的多段线", GH_ParamAccess.item);
             pManager.AddGenericParameter("BoundarySegments", "S", "构造生成的BoundarySegment对象列表", GH_ParamAccess.list);
-            pManager.AddGenericParameter("DualHalfedgeMesh", "DHM", "生成的对偶图（半边数据结构）", GH_ParamAccess.item);
+            // pManager.AddGenericParameter("DualHalfedgeMesh", "DHM", "生成的对偶图（半边数据结构）", GH_ParamAccess.item);
             pManager.AddIntegerParameter("faceIndexsFromOuterNodes", "", "", GH_ParamAccess.tree);
 
-            pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
+            // pManager.AddGenericParameter("GraphNode", "GNode", "图结构中的节点", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -69,12 +70,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            #region 全局参数传递
-            GlobalParameter globalParameter = new GlobalParameter();
-            DA.GetData("GlobalParameter", ref globalParameter);
-            int innerNodeCount = globalParameter.VolumeNodeCount;
-            int outerNodeCount = globalParameter.BoundaryNodeCount;
-            #endregion
+            //#region 全局参数传递
+            //GlobalParameter globalParameter = new GlobalParameter();
+            //DA.GetData("GlobalParameter", ref globalParameter);
+            //int innerNodeCount = globalParameter.VolumeNodeCount;
+            //int outerNodeCount = globalParameter.BoundaryNodeCount;
+            //#endregion
 
             #region 局部变量初始化
             Thickness = 2;
@@ -82,18 +83,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // Curve boundaryPolylineCurve = null;
             List<BoundarySegment> boundarySegments = new List<BoundarySegment>();
 
-            PlanktonMesh D = new PlanktonMesh();
+            DualGraphWithHM dualGraphWithHM = new DualGraphWithHM();
 
             GH_Structure<GH_Integer> gh_structure_FaceIndexs = new GH_Structure<GH_Integer>();
             DataTree<int> faceIndexsAroundOuterNodes = new DataTree<int>();
 
-            List<GraphNode> nodes = new List<GraphNode>();
             #endregion
 
-            if (DA.GetDataList<BoundarySegment>("BoundarySegments", boundarySegments)
-                && DA.GetData<PlanktonMesh>("DualHalfedgeMesh", ref D)
-                && DA.GetDataTree<GH_Integer>("faceIndexsFromOuterNodes", out gh_structure_FaceIndexs)
-                && DA.GetDataList<GraphNode>("GraphNode", nodes))
+            if (DA.GetData<DualGraphWithHM>("DualGraphWithHM", ref dualGraphWithHM)
+                && DA.GetDataList<BoundarySegment>("BoundarySegments", boundarySegments)
+                && DA.GetDataTree<GH_Integer>("faceIndexsFromOuterNodes", out gh_structure_FaceIndexs))
             {
                 //if (!boundaryPolylineCurve.IsPlanar())
                 //{
@@ -103,7 +102,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //// 对输入的Curve类型的boundaryPolyline进行类型转换，转换成Curve类的子类Polyline
                 //boundaryPolylineCurve.TryGetPolyline(out boundaryPolyline);
 
+                PlanktonMesh D = dualGraphWithHM.PlanktonMesh;
+                List<GraphNode> graphNodes = dualGraphWithHM.GraphNodes;
 
+                int innerNodeCount = dualGraphWithHM.InnerNodeCount;
+                int outerNodeCount = dualGraphWithHM.OuterNodeCount;
 
                 /* 先对无序的boundarySegment进行排序
                  * 按照Label进行
@@ -115,11 +118,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //{
                 //    outerLabels.Add(nodes[i + innerNodeCount].NodeAttribute.NodeLabel);
                 //}
-                for (int i = 0; i < nodes.Count; i++)
+                for (int i = 0; i < graphNodes.Count; i++)
                 {
-                    if (!nodes[i].IsInner)
+                    if (!graphNodes[i].IsInner)
                     {
-                        outerNodeLabels.Add(nodes[i].NodeAttribute.NodeLabel);
+                        outerNodeLabels.Add(graphNodes[i].NodeAttribute.NodeLabel);
                     }
                 }
                 #endregion
