@@ -15,7 +15,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         // public bool IsDecomposed { get; }
 
-
+        public bool IsNewDecomposed { get; set; } = false;
         public GraphNode()
         {
 
@@ -32,6 +32,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.IsInner = node.IsInner;
             // this.IsDecomposed = node.IsDecomposed;
+
+            this.IsNewDecomposed = node.IsNewDecomposed;
         }
 
         public GraphNode(Point3d nodeVertex, GraphNodeAttribute nodeAttribute, bool isInner)

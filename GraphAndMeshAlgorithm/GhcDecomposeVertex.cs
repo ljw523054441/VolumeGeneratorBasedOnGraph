@@ -41,8 +41,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             CorrectReports = new List<string>();
             DefaultReports = new List<string>();
 
-            ParentHM = new GraphWithHM();
-            CurrentHM = new GraphWithHM();
+            ParentINode = null;
+            CurrentINode = null;
 
 
         }
@@ -72,11 +72,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<string> CorrectReports;
         private List<string> DefaultReports;
 
-        private GraphWithHM ParentHM;
-        private GraphWithHM CurrentHM;
+        private INode<GraphWithHM> ParentINode;
+        private INode<GraphWithHM> CurrentINode;
 
-        private int CountOfAllPossibleGraphWithHM = 0;
-        private int CurrentIndex = 0;
+        private int CountOfAllLeafNodes = 0;
+        private int CurrentLeafNodeIndex = 0;
+
+        private int SelectedBranchDepth = 0;
+        private int CurrentDepth = 0;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -91,6 +94,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // pManager.AddGenericParameter("TheChosenTriangleHalfedgeMesh", "THMesh", "所选择的那个三角形剖分结果(半边数据结构)", GH_ParamAccess.item);
 
             pManager.AddIntegerParameter("IndexOfGraphWithHM", "I", "某一种顶点分裂后的结果", GH_ParamAccess.item, 0);
+
+            pManager.AddIntegerParameter("IndexInItsGenealogy", "IG", "", GH_ParamAccess.item, 0);
+
         }
 
         /// <summary>
@@ -106,6 +112,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             pManager.AddGenericParameter("SelectedGraphWithHM", "SGHM", "描述VolumeNode和BoundaryNode的所有连接关系的图结构(包括新分裂产生的点)", GH_ParamAccess.item);
             // pManager.AddGenericParameter("NewGraphNode", "NGN", "更新后的图结构中的节点", GH_ParamAccess.list);
+
+            pManager.AddGenericParameter("SelectedAllPath", "SP", "", GH_ParamAccess.list);
 
             // pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
             // pManager.AddGenericParameter("DebugVertexConnection", "DebugVC", "Debug结果顶点连接关系", GH_ParamAccess.list);
@@ -128,7 +136,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             GraphWithHM graphWithHM = new GraphWithHM();
 
-            int index = 0;
+            int indexOfLeafNodes = 0;
+            int indexInItsGenealogy = 0;
 
             ExceptionReports.Clear();
             CorrectReports.Clear();
@@ -138,38 +147,22 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #endregion
 
             if (DA.GetData<GraphWithHM>("GraphWithHM", ref graphWithHM)
-                && DA.GetData<int>("IndexOfGraphWithHM", ref index))
+                && DA.GetData<int>("IndexOfGraphWithHM", ref indexOfLeafNodes))
             {
-                #region 深拷贝GraphWithHM的各个属性
-                // 利用PlanktonMesh为复制准备的构造函数，进行深拷贝
-                PlanktonMesh graphHMDeepCopy = new PlanktonMesh(graphWithHM.PlanktonMesh);
+                DA.GetData<int>("IndexInItsGenealogy", ref indexInItsGenealogy);
+                
+                #region 深拷贝GraphWithHM
 
-                // 利用Node为复制准备的构造函数，进行深拷贝
-                List<GraphNode> graphNodesDeepCopy = new List<GraphNode>();
-                for (int i = 0; i < graphWithHM.GraphNodes.Count; i++)
-                {
-                    graphNodesDeepCopy.Add(new GraphNode(graphWithHM.GraphNodes[i]));
-                }
+                GraphWithHM graphWithHMDeepCopy = new GraphWithHM(graphWithHM);
+                graphWithHMDeepCopy.TreeNodeLabel = "TreeTop";
 
-                // 将Graph从GH_Structure<GH_Integer>转化为DataTree<int>，再转化为LoL
-                //UtilityFunctions.GH_StructureToDataTree_Int(gh_Structure_graph, ref graph);
-                //pGraphLoL = UtilityFunctions.DataTreeToLoL<int>(graph);
-
-                List<List<int>> graphTableDeepCopy = new List<List<int>>();
-                for (int i = 0; i < graphWithHM.GraphTables.Count; i++)
-                {
-                    graphTableDeepCopy.Add(new List<int>());
-                    graphTableDeepCopy[i].AddRange(graphWithHM.GraphTables[i]);
-                }
                 #endregion
 
 
                 /* 考虑用树形结构来处理和存储每一次分裂 */
                 // 创建一个树
-                // ITree<DecomposedHM> tree = NodeTree<DecomposedHM>.NewTree();
-                // 对输入的PlanktonMesh，GraphLoL，GraphNode构造DecomposedHM，形成树的根节点
-                INode<GraphWithHM> root = Tree.AddChild(new GraphWithHM(graphHMDeepCopy, graphNodesDeepCopy, graphTableDeepCopy));
-
+                // 对输入的GraphWithHM，形成树的根节点
+                INode<GraphWithHM> top = Tree.AddChild(graphWithHMDeepCopy);
 
                 // 新分裂产生的Vertex的Index集合
                 List<int> viOfNewDecomposed = new List<int>();
@@ -273,30 +266,83 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 测试递归
 
-                GenerateDecomposedHMs(root, viOfNewDecomposed, viHasBeenDecomposed);
+                // GenerateDecomposedHMs(top, viOfNewDecomposed, viHasBeenDecomposed);
+                Decompose(top);
 
-                List<GraphWithHM> allPossibleGraphWithHM = new List<GraphWithHM>();
+                List<INode<GraphWithHM>> allLeafNodes = new List<INode<GraphWithHM>>();
                 foreach (INode<GraphWithHM> treeNodeGraphWithHM in Tree.AllChildren.Nodes)
                 {
                     if (treeNodeGraphWithHM.HasChild == false)
                     {
-                        allPossibleGraphWithHM.Add(treeNodeGraphWithHM.Data);
+                        //if (treeNodeGraphWithHM.Data.InnerNodeCount != 0)
+                        //{
+                        //    allLeafNodes.Add(treeNodeGraphWithHM.Data);
+                        //}
+                        allLeafNodes.Add(treeNodeGraphWithHM);
                     }
                 }
 
+
+                // TreeDebug
+                INode<GraphWithHM> treeTop = Tree.Root.Child;
+
+                List<INode<GraphWithHM>> allChildren = new List<INode<GraphWithHM>>();
+                foreach (var item in Tree.AllChildren.Nodes)
+                {
+                    allChildren.Add(item);
+                }
+
+
+                INode<GraphWithHM> selectedINode = allLeafNodes[indexOfLeafNodes];
+
+                // -1 是为了减去Root的影响
+                SelectedBranchDepth = selectedINode.Depth - 1;
+
+                List<INode<GraphWithHM>> selectedGenealogy = new List<INode<GraphWithHM>>();
+                INode<GraphWithHM> current = selectedINode;
+                while (current.HasParent)
+                {
+                    selectedGenealogy.Add(current);
+                    current = current.Parent;
+                }
+
+                selectedGenealogy.Reverse();
+
+                GraphWithHM seletedGHM = selectedGenealogy[indexInItsGenealogy].Data;
+                DA.SetData("SelectedTreeNodeString", seletedGHM.TreeNodeLabel);
+
+                GraphWithHM embededGraphWithHM = new GraphWithHM();
+                if (seletedGHM.VolumeContainsWhichInnerNode != null)
+                {
+                    embededGraphWithHM = GraphWithHM.ReTutteEmbeding(seletedGHM);
+                }
+                else
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "当前节点为空叶子节点，现在显示的是其父节点");
+                    embededGraphWithHM = GraphWithHM.ReTutteEmbeding(selectedGenealogy[indexInItsGenealogy].Parent.Data);
+                }
+
+
                 #endregion
 
-                DA.SetData("SelectedTreeNodeString", allPossibleGraphWithHM[index].TreeNodeLabel);
+                
 
-                GraphWithHM embededGraphWithHM = GraphWithHM.ReTutteEmbeding(allPossibleGraphWithHM[index]);
 
+                List<string> selectedTreeNodeHistory = new List<string>();
+                foreach (var keyValuePair in embededGraphWithHM.VolumeContainsWhichInnerNode)
+                {
+                    selectedTreeNodeHistory.Add(string.Format("{0}:{1}", keyValuePair.Key, string.Join(",", keyValuePair.Value)));
+                }
+                // string str = string.Join(";", selectedTreeNodeHistory);
+                DA.SetDataList("SelectedTreeNodeHistory", selectedTreeNodeHistory);
 
                 #region 电池结果输出
 
-                CountOfAllPossibleGraphWithHM = allPossibleGraphWithHM.Count;
-                CurrentIndex = index;
+                // -1 是消除Root节点的影响
+                CountOfAllLeafNodes = allLeafNodes.Count - 1;
+                CurrentLeafNodeIndex = indexOfLeafNodes;
 
-                DA.SetData("CountOfAllPossibleGraphWithHM", allPossibleGraphWithHM.Count);
+                DA.SetData("CountOfAllPossibleGraphWithHM", allLeafNodes.Count - 1);
                 DA.SetData("SelectedGraphWithHM", embededGraphWithHM);
                 #endregion
 
@@ -401,190 +447,389 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
         }
 
-        /// <summary>
-        /// 对顶点进行递归分裂
-        /// </summary>
-        /// <param name="dHMToSplit"></param>
-        /// <param name="viOfNewDecomposed"></param>
-        /// <param name="viHasBeenDecomposed"></param>
-        public void GenerateDecomposedHMs(INode<GraphWithHM> dHMToSplit, List<int> viOfNewDecomposed, List<int> viHasBeenDecomposed)
+        public void Decompose(INode<GraphWithHM> INodeToSplit)
         {
-            // 深拷贝DecomposedHM
-            GraphWithHM dHMDeepCopy = new GraphWithHM(dHMToSplit.Data);
-            ParentHM = dHMDeepCopy;
-
-            List<int> innerNodeToSplitIndexList = new List<int>();
-            for (int i = 0; i < dHMDeepCopy.PlanktonMesh.Vertices.Count; i++)
+            List<int> allInnerNodeNeedToSplit = new List<int>();
+            List<int> allInnerNodeNeedToSplitDegrees = new List<int>();
+            for (int i = 0; i < INodeToSplit.Data.GraphNodes.Count; i++)
             {
-                if (dHMDeepCopy.GraphNodes[i].IsInner)
+                if (INodeToSplit.Data.GraphNodes[i].IsInner)
                 {
-                    innerNodeToSplitIndexList.Add(i);
-                }
-            }
-
-            innerNodeToSplitIndexList = innerNodeToSplitIndexList.Except<int>(viOfNewDecomposed).ToList();
-            innerNodeToSplitIndexList = innerNodeToSplitIndexList.Except<int>(viHasBeenDecomposed).ToList();
-
-            if (innerNodeToSplitIndexList.Count == 0)
-            {
-                
-                return;
-            }
-            else
-            {
-                for (int i = 0; i < innerNodeToSplitIndexList.Count; i++)
-                {
-                    int degree = dHMDeepCopy.PlanktonMesh.Vertices.GetValence(innerNodeToSplitIndexList[i]);
-
-                    
-
-                    switch (degree)
+                    if (!INodeToSplit.Data.GraphNodes[i].IsNewDecomposed)
                     {
-                        case 5:
-                            #region 对于度为5的顶点
-
-
-
-                            #region 获取5条半边中的相邻2条半边，以及它们的起点和终点
-                            List<int[,]> allPossibleHalfedgeVertexIndexs = GetAllPossibleHStartAndEndIndexs(dHMDeepCopy.PlanktonMesh, innerNodeToSplitIndexList[i]);
-                            #endregion
-
-                            #region 循环计算所有半边情况的所有分割可能性
-                            // 对于每一种相邻2条半边的情况
-                            for (int j = 0; j < allPossibleHalfedgeVertexIndexs.Count; j++)
-                            {
-
-                                // 向存储当前顶点所有可能的分裂结果的列表中添加分裂的可能性
-                                // List<List<int>> newPGraphLoL;
-                                List<GraphNode> newPNodes;
-                                int newVertexIndex;
-                                PlanktonMesh edgeSplitedP = SplitEdgeIntoTwo(dHMDeepCopy.PlanktonMesh,
-                                                                allPossibleHalfedgeVertexIndexs[j],
-                                                                2,
-                                                                dHMDeepCopy.GraphNodes,
-                                                                out newPNodes,
-                                                                out newVertexIndex);
-
-                                #region 当SplitEdgeIntoTwo函数无法正确分裂时，抛出异常
-                                if (newVertexIndex == -1)
-                                {
-                                    string exceptionReport = dHMToSplit.Data.TreeNodeLabel + "->" + "VertexIndex:" +
-                                                             innerNodeToSplitIndexList[i].ToString() +
-                                                             "-" + j.ToString() + " " +
-                                                             "cant split edge into two. Halfedge StartVertex is " +
-                                                             allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() +
-                                                             "Halfedge EndVertex is " +
-                                                             allPossibleHalfedgeVertexIndexs[j][0, 1].ToString();
-                                    ExceptionReports.Add(exceptionReport);
-
-                                    // continue继续下一次对allPossibleHalfedgeVertexIndexs的循环，本次的循环没有产生新的GraphWithHM（新的叶子节点）
-                                    continue;
-                                }
-                                #endregion
-
-                                //List<int> CurrentVolumeContainsWhichInnerNode = new List<int>();
-                                //CurrentVolumeContainsWhichInnerNode.Add(innerNodeToSplitIndexList[i]);
-                                //CurrentVolumeContainsWhichInnerNode.Add(newVertexIndex);
-
-                                //Dictionary<int, List<>> currentVolumeContainsWhichInnerNode = new Dictionary<int, int[]>
-                                //{
-                                //    {innerNodeToSplitIndexList[i],new int[2]{ innerNodeToSplitIndexList[i] ,newVertexIndex} }
-                                //};
-
-                                // 得到这种相邻2条半边情况下的所有可能的分裂情况
-                                List<int> newEndVertexAfterResetHalfedgeList;
-                                List<PlanktonMesh> edgeResetStartP = ResetHalfedgeStart(edgeSplitedP,
-                                                                     allPossibleHalfedgeVertexIndexs[j],
-                                                                     innerNodeToSplitIndexList[i],
-                                                                     newVertexIndex,
-                                                                     innerNodeToSplitIndexList,
-                                                                     out newEndVertexAfterResetHalfedgeList);
-
-                                #region 当ResetHalfedgeStart函数无法正确产生结果时，直接执行下一次的循环
-                                // 如果新生成的半边的端点，是innerNode（包括初始的和新分裂产生的），那么返回null，然后结束这次循环（即不产生新的叶子节点）
-                                if (edgeResetStartP == null)
-                                {
-                                    // continue继续下一次对allPossibleHalfedgeVertexIndexs的循环，本次的循环没有产生新的GraphWithHM（新的叶子节点）
-                                    continue;
-                                }
-                                #endregion
-
-                                List<int> newValue = new int[] { innerNodeToSplitIndexList[i], newVertexIndex }.ToList();
-                                Dictionary<int, List<int>> volumeContainsWhichInnerNode = ParentHM.VolumeContainsWhichInnerNode;
-                                if (volumeContainsWhichInnerNode.ContainsKey(innerNodeToSplitIndexList[i]))
-                                {
-                                    List<int> subtraction = volumeContainsWhichInnerNode[innerNodeToSplitIndexList[i]].Except(newValue).ToList();
-                                    if (subtraction .Count != 0 )
-                                    {
-                                        volumeContainsWhichInnerNode[innerNodeToSplitIndexList[i]].Add(newVertexIndex);
-                                    }
-                                }
-                                else
-                                {
-                                    volumeContainsWhichInnerNode.Add(innerNodeToSplitIndexList[i], new int[] { innerNodeToSplitIndexList[i], newVertexIndex }.ToList());
-                                }
-
-                                #region 构造对于每一种半边选择可能性所产生的DecomposedHM，并且将它作为INode<DecomposedHM> dHMToSplit的叶子节点，并且递归分裂叶子节点
-                                for (int k = 0; k < edgeResetStartP.Count; k++)
-                                {
-                                    List<List<int>> newGraphTables = RenewGraphTable(dHMDeepCopy.GraphTables, allPossibleHalfedgeVertexIndexs[j], newVertexIndex, newEndVertexAfterResetHalfedgeList[k]);
-
-                                    string label = "分裂了第" + innerNodeToSplitIndexList[i].ToString() + "个Vertex" +
-                                                   "，所选的两个半边的起点终点是" +
-                                                   allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() + ";" +
-                                                   allPossibleHalfedgeVertexIndexs[j][0, 1].ToString() + ";" +
-                                                   allPossibleHalfedgeVertexIndexs[j][1, 0].ToString() + ";" +
-                                                   allPossibleHalfedgeVertexIndexs[j][1, 1].ToString() +
-                                                   "，并且是第" + k.ToString() + "分裂可能性";
-
-                                    
-
-                                    GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPNodes, newGraphTables, label, volumeContainsWhichInnerNode);
-
-                                    CurrentHM = currentDHM;
-
-                                    INode<GraphWithHM> childDHMToSplit = dHMToSplit.AddChild(currentDHM);
-
-                                    if (!viOfNewDecomposed.Contains(newVertexIndex))
-                                    {
-                                        viOfNewDecomposed.Add(newVertexIndex);
-                                    }
-                                    if (!viHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
-                                    {
-                                        viHasBeenDecomposed.Add(innerNodeToSplitIndexList[i]);
-                                    }
-
-                                    // 递归分裂叶子节点
-                                    GenerateDecomposedHMs(childDHMToSplit, viOfNewDecomposed, viHasBeenDecomposed);
-                                }
-                                #endregion
-                            }
-                            #endregion
-
-                            #endregion
-                            break;
-                        case 4:
-                            // 记录度为4的正确的情况
-                            string correctReport = dHMDeepCopy.TreeNodeLabel + " -> " + "VertexIndex: " +
-                                                   innerNodeToSplitIndexList[i].ToString() + " " +
-                                                   "degree is " + degree.ToString();
-                            CorrectReports.Add(correctReport);
-                            break;
-
-                        default:
-                            // 暂时先记录一下度为其他值的情况
-                            string defaultReport = dHMDeepCopy.TreeNodeLabel + " -> " + "VertexIndex: " +
-                                                   innerNodeToSplitIndexList[i].ToString() + " " +
-                                                   "degree is " + degree.ToString();
-                            DefaultReports.Add(defaultReport);
-                            break;
+                        int degree = INodeToSplit.Data.PlanktonMesh.Vertices.GetValence(i);
+                        if (degree != 4)
+                        {
+                            allInnerNodeNeedToSplit.Add(i);
+                            allInnerNodeNeedToSplitDegrees.Add(degree);
+                        }
                     }
                 }
             }
 
-            
-            return;
+            GraphWithHM gHMDeepCopy = new GraphWithHM(INodeToSplit.Data);
+
+            ParentINode = INodeToSplit;
+
+            int cycleCount = 0;
+            for (int i = 0; i < allInnerNodeNeedToSplit.Count; i++)
+            {
+                cycleCount++;
+                switch (allInnerNodeNeedToSplitDegrees[i])
+                {
+                    case 5:
+                        #region 获取5条半边中的相邻2条半边，以及它们的起点和终点
+                        List<int[,]> allPossibleHalfedgeVertexIndexs = GetAllPossibleHStartAndEndIndexs(gHMDeepCopy.PlanktonMesh, allInnerNodeNeedToSplit[i]);
+                        #endregion
+
+                        #region 循环计算所有半边情况的所有分割可能性
+                        // 对于每一种相邻2条半边的情况
+                        
+                        for (int j = 0; j < allPossibleHalfedgeVertexIndexs.Count; j++)
+                        {
+                            
+                            // 向存储当前顶点所有可能的分裂结果的列表中添加分裂的可能性
+                            // List<List<int>> newPGraphLoL;
+                            List<GraphNode> newPNodes;
+                            int newVertexIndex;
+                            PlanktonMesh edgeSplitedP = SplitEdgeIntoTwo(gHMDeepCopy.PlanktonMesh,
+                                                            allPossibleHalfedgeVertexIndexs[j],
+                                                            2,
+                                                            gHMDeepCopy.GraphNodes,
+                                                            out newPNodes,
+                                                            out newVertexIndex);
+
+                            #region 当SplitEdgeIntoTwo函数无法正确分裂时，抛出异常
+                            if (newVertexIndex == -1)
+                            {
+                                //string exceptionReport = INodeToSplit.Data.TreeNodeLabel + "->" + "VertexIndex:" +
+                                //                         allInnerNodeNeedToSplit[i].ToString() +
+                                //                         "-" + j.ToString() + " " +
+                                //                         "cant split edge into two. Halfedge StartVertex is " +
+                                //                         allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() +
+                                //                         "Halfedge EndVertex is " +
+                                //                         allPossibleHalfedgeVertexIndexs[j][0, 1].ToString();
+                                //ExceptionReports.Add(exceptionReport);
+
+                                // continue继续下一次对allPossibleHalfedgeVertexIndexs的循环，本次的循环没有产生新的GraphWithHM（新的叶子节点）
+                                // 为了debug，这里添加一个空的叶子节点
+                                GraphWithHM newChildGraphWithHM = new GraphWithHM();
+                                newChildGraphWithHM.TreeNodeLabel = "分裂了第" + allInnerNodeNeedToSplit[i].ToString() + "个Vertex" +
+                                                                    "，所选的两个半边的起点终点是" +
+                                                                    allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() + ";" +
+                                                                    allPossibleHalfedgeVertexIndexs[j][0, 1].ToString() + ";" +
+                                                                    allPossibleHalfedgeVertexIndexs[j][1, 0].ToString() + ";" +
+                                                                    allPossibleHalfedgeVertexIndexs[j][1, 1].ToString() +
+                                                                    "，该子节点为空";
+                                INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(newChildGraphWithHM);
+                                CurrentINode = childDHMToSplit;
+                                // 还要继续分裂剩余需要分裂的点
+
+                                continue;
+                            }
+                            #endregion
+
+                            List<int> innerNodeIndexs = new List<int>();
+                            for (int k = 0; k < gHMDeepCopy.GraphNodes.Count; k++)
+                            {
+                                if (gHMDeepCopy.GraphNodes[k].IsInner)
+                                {
+                                    innerNodeIndexs.Add(k);
+                                }
+                            }
+
+                            // 得到这种相邻2条半边情况下的所有可能的分裂情况
+                            List<int> newEndVertexAfterResetHalfedgeList;
+                            List<PlanktonMesh> edgeResetStartP = ResetHalfedgeStart(edgeSplitedP,
+                                                                 allPossibleHalfedgeVertexIndexs[j],
+                                                                 allInnerNodeNeedToSplit[i],
+                                                                 newVertexIndex,
+                                                                 innerNodeIndexs,
+                                                                 out newEndVertexAfterResetHalfedgeList);
+
+                            #region 当ResetHalfedgeStart函数无法正确产生结果时，直接执行下一次的循环
+                            // 如果新生成的半边的端点，是innerNode（包括初始的和新分裂产生的），那么返回null，然后结束这次循环（即不产生新的叶子节点）
+                            if (edgeResetStartP == null)
+                            {
+                                // continue继续下一次对allPossibleHalfedgeVertexIndexs的循环，本次的循环没有产生新的GraphWithHM（新的叶子节点）
+                                // 为了debug，这里添加一个空的叶子节点
+                                GraphWithHM newChildGraphWithHM = new GraphWithHM();
+                                newChildGraphWithHM.TreeNodeLabel = "分裂了第" + allInnerNodeNeedToSplit[i].ToString() + "个Vertex" +
+                                                                    "，所选的两个半边的起点终点是" +
+                                                                    allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() + ";" +
+                                                                    allPossibleHalfedgeVertexIndexs[j][0, 1].ToString() + ";" +
+                                                                    allPossibleHalfedgeVertexIndexs[j][1, 0].ToString() + ";" +
+                                                                    allPossibleHalfedgeVertexIndexs[j][1, 1].ToString() +
+                                                                    "，该子节点为空";
+                                INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(newChildGraphWithHM);
+                                CurrentINode = childDHMToSplit;
+                                continue;
+                            }
+                            #endregion
+
+                            List<int> newValue = new int[] { allInnerNodeNeedToSplit[i], newVertexIndex }.ToList();
+                            Dictionary<int, List<int>> volumeContainsWhichInnerNode = INodeToSplit.Data.VolumeContainsWhichInnerNode;
+                            if (volumeContainsWhichInnerNode.ContainsKey(allInnerNodeNeedToSplit[i]))
+                            {
+                                List<int> subtraction = volumeContainsWhichInnerNode[allInnerNodeNeedToSplit[i]].Except(newValue).ToList();
+                                if (subtraction.Count != 0)
+                                {
+                                    volumeContainsWhichInnerNode[allInnerNodeNeedToSplit[i]].Add(newVertexIndex);
+                                }
+                            }
+                            else
+                            {
+                                volumeContainsWhichInnerNode.Add(allInnerNodeNeedToSplit[i], new int[] { allInnerNodeNeedToSplit[i], newVertexIndex }.ToList());
+                            }
+
+                            #region 构造对于每一种半边选择可能性所产生的DecomposedHM，并且将它作为INode<DecomposedHM> dHMToSplit的叶子节点，并且递归分裂叶子节点
+                            for (int k = 0; k < edgeResetStartP.Count; k++)
+                            {
+                                List<List<int>> newGraphTables = RenewGraphTable(gHMDeepCopy.GraphTables, allPossibleHalfedgeVertexIndexs[j], newVertexIndex, newEndVertexAfterResetHalfedgeList[k]);
+
+                                string label = "分裂了第" + allInnerNodeNeedToSplit[i].ToString() + "个Vertex" +
+                                               "，所选的两个半边的起点终点是" +
+                                               allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() + ";" +
+                                               allPossibleHalfedgeVertexIndexs[j][0, 1].ToString() + ";" +
+                                               allPossibleHalfedgeVertexIndexs[j][1, 0].ToString() + ";" +
+                                               allPossibleHalfedgeVertexIndexs[j][1, 1].ToString() +
+                                               "，并且是第" + k.ToString() + "分裂可能性";
+
+
+
+                                GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPNodes, newGraphTables, label, volumeContainsWhichInnerNode);
+
+                                INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(currentDHM);
+                                CurrentINode = childDHMToSplit;
+                                //if (!viOfNewDecomposed.Contains(newVertexIndex))
+                                //{
+                                //    viOfNewDecomposed.Add(newVertexIndex);
+                                //}
+                                //if (!viHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
+                                //{
+                                //    viHasBeenDecomposed.Add(innerNodeToSplitIndexList[i]);
+                                //}
+
+                                // 递归分裂叶子节点
+                                Decompose(childDHMToSplit);
+                                // GenerateDecomposedHMs(childDHMToSplit, viOfNewDecomposed, viHasBeenDecomposed);
+                            }
+                            #endregion
+
+                            
+                        }
+
+                        
+                        #endregion
+
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            if (cycleCount == 0)
+            {
+                ParentINode = INodeToSplit.Parent;
+            }
+
         }
+
+        ///// <summary>
+        ///// 对顶点进行递归分裂
+        ///// </summary>
+        ///// <param name="gHMToSplit"></param>
+        ///// <param name="viOfNewDecomposed"></param>
+        ///// <param name="viHasBeenDecomposed"></param>
+        //public void GenerateDecomposedHMs(INode<GraphWithHM> gHMToSplit, List<int> viOfNewDecomposed, List<int> viHasBeenDecomposed)
+        //{
+        //    // 深拷贝DecomposedHM
+        //    GraphWithHM gHMDeepCopy = new GraphWithHM(gHMToSplit.Data);
+        //    ParentINode = gHMDeepCopy;
+
+        //    List<int> innerNodeToSplitIndexList = new List<int>();
+        //    for (int i = 0; i < gHMDeepCopy.PlanktonMesh.Vertices.Count; i++)
+        //    {
+        //        if (gHMDeepCopy.GraphNodes[i].IsInner)
+        //        {
+        //            innerNodeToSplitIndexList.Add(i);
+        //        }
+        //    }
+
+        //    innerNodeToSplitIndexList = innerNodeToSplitIndexList.Except<int>(viOfNewDecomposed).ToList();
+        //    innerNodeToSplitIndexList = innerNodeToSplitIndexList.Except<int>(viHasBeenDecomposed).ToList();
+
+        //    if (innerNodeToSplitIndexList.Count == 0)
+        //    {
+                
+        //        return;
+        //    }
+        //    else
+        //    {
+        //        for (int i = 0; i < innerNodeToSplitIndexList.Count; i++)
+        //        {
+        //            int degree = gHMDeepCopy.PlanktonMesh.Vertices.GetValence(innerNodeToSplitIndexList[i]);
+
+                    
+
+        //            switch (degree)
+        //            {
+        //                case 5:
+        //                    #region 对于度为5的顶点
+
+        //                    #region 获取5条半边中的相邻2条半边，以及它们的起点和终点
+        //                    List<int[,]> allPossibleHalfedgeVertexIndexs = GetAllPossibleHStartAndEndIndexs(gHMDeepCopy.PlanktonMesh, innerNodeToSplitIndexList[i]);
+        //                    #endregion
+
+        //                    #region 循环计算所有半边情况的所有分割可能性
+        //                    // 对于每一种相邻2条半边的情况
+        //                    for (int j = 0; j < allPossibleHalfedgeVertexIndexs.Count; j++)
+        //                    {
+
+        //                        // 向存储当前顶点所有可能的分裂结果的列表中添加分裂的可能性
+        //                        List<GraphNode> newPNodes;
+        //                        int newVertexIndex;
+        //                        PlanktonMesh edgeSplitedP = SplitEdgeIntoTwo(gHMDeepCopy.PlanktonMesh,
+        //                                                        allPossibleHalfedgeVertexIndexs[j],
+        //                                                        2,
+        //                                                        gHMDeepCopy.GraphNodes,
+        //                                                        out newPNodes,
+        //                                                        out newVertexIndex);
+
+        //                        #region 当SplitEdgeIntoTwo函数无法正确分裂时，抛出异常
+        //                        if (newVertexIndex == -1)
+        //                        {
+        //                            string exceptionReport = gHMToSplit.Data.TreeNodeLabel + "->" + "VertexIndex:" +
+        //                                                     innerNodeToSplitIndexList[i].ToString() +
+        //                                                     "-" + j.ToString() + " " +
+        //                                                     "cant split edge into two. Halfedge StartVertex is " +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() +
+        //                                                     "Halfedge EndVertex is " +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][0, 1].ToString();
+        //                            ExceptionReports.Add(exceptionReport);
+
+        //                            // continue继续下一次对allPossibleHalfedgeVertexIndexs的循环，本次的循环没有产生新的GraphWithHM（新的叶子节点）
+        //                            // 为了debug，这里添加一个空的叶子节点
+        //                            GraphWithHM newChildGraphWithHM = new GraphWithHM();
+        //                            newChildGraphWithHM.TreeNodeLabel = "分裂了第" + innerNodeToSplitIndexList[i].ToString() + "个Vertex" +
+        //                                                     "，所选的两个半边的起点终点是" +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() + ";" +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][0, 1].ToString() + ";" +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][1, 0].ToString() + ";" +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][1, 1].ToString() +
+        //                                                     "，该子节点为空";
+        //                            INode<GraphWithHM> childDHMToSplit = gHMToSplit.AddChild(newChildGraphWithHM);
+        //                            continue;
+        //                        }
+        //                        #endregion
+
+        //                        // 得到这种相邻2条半边情况下的所有可能的分裂情况
+        //                        List<int> newEndVertexAfterResetHalfedgeList;
+        //                        List<PlanktonMesh> edgeResetStartP = ResetHalfedgeStart(edgeSplitedP,
+        //                                                             allPossibleHalfedgeVertexIndexs[j],
+        //                                                             innerNodeToSplitIndexList[i],
+        //                                                             newVertexIndex,
+        //                                                             innerNodeToSplitIndexList,
+        //                                                             out newEndVertexAfterResetHalfedgeList);
+
+        //                        #region 当ResetHalfedgeStart函数无法正确产生结果时，直接执行下一次的循环
+        //                        // 如果新生成的半边的端点，是innerNode（包括初始的和新分裂产生的），那么返回null，然后结束这次循环（即不产生新的叶子节点）
+        //                        if (edgeResetStartP == null)
+        //                        {
+        //                            // continue继续下一次对allPossibleHalfedgeVertexIndexs的循环，本次的循环没有产生新的GraphWithHM（新的叶子节点）
+        //                            // 为了debug，这里添加一个空的叶子节点
+        //                            GraphWithHM newChildGraphWithHM = new GraphWithHM();
+        //                            newChildGraphWithHM.TreeNodeLabel = "分裂了第" + innerNodeToSplitIndexList[i].ToString() + "个Vertex" +
+        //                                                     "，所选的两个半边的起点终点是" +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() + ";" +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][0, 1].ToString() + ";" +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][1, 0].ToString() + ";" +
+        //                                                     allPossibleHalfedgeVertexIndexs[j][1, 1].ToString() +
+        //                                                     "，该子节点为空";
+        //                            INode<GraphWithHM> childDHMToSplit = gHMToSplit.AddChild(newChildGraphWithHM);
+        //                            continue;
+        //                        }
+        //                        #endregion
+
+        //                        List<int> newValue = new int[] { innerNodeToSplitIndexList[i], newVertexIndex }.ToList();
+
+        //                        Dictionary<int, List<int>> volumeContainsWhichInnerNode = new Dictionary<int, List<int>>();
+        //                        foreach (KeyValuePair<int, List<int>> pair in ParentINode.VolumeContainsWhichInnerNode)
+        //                        {
+        //                            volumeContainsWhichInnerNode.Add(pair.Key, pair.Value);
+        //                        }
+
+        //                        if (volumeContainsWhichInnerNode.ContainsKey(innerNodeToSplitIndexList[i]))
+        //                        {
+        //                            List<int> subtraction = volumeContainsWhichInnerNode[innerNodeToSplitIndexList[i]].Except(newValue).ToList();
+        //                            if (subtraction .Count != 0 )
+        //                            {
+        //                                volumeContainsWhichInnerNode[innerNodeToSplitIndexList[i]].Add(newVertexIndex);
+        //                            }
+        //                        }
+        //                        else
+        //                        {
+        //                            volumeContainsWhichInnerNode.Add(innerNodeToSplitIndexList[i], new int[] { innerNodeToSplitIndexList[i], newVertexIndex }.ToList());
+        //                        }
+
+        //                        #region 构造对于每一种半边选择可能性所产生的DecomposedHM，并且将它作为INode<DecomposedHM> dHMToSplit的叶子节点，并且递归分裂叶子节点
+        //                        for (int k = 0; k < edgeResetStartP.Count; k++)
+        //                        {
+        //                            List<List<int>> newGraphTables = RenewGraphTable(gHMDeepCopy.GraphTables, allPossibleHalfedgeVertexIndexs[j], newVertexIndex, newEndVertexAfterResetHalfedgeList[k]);
+
+        //                            string label = "分裂了第" + innerNodeToSplitIndexList[i].ToString() + "个Vertex" +
+        //                                           "，所选的两个半边的起点终点是" +
+        //                                           allPossibleHalfedgeVertexIndexs[j][0, 0].ToString() + ";" +
+        //                                           allPossibleHalfedgeVertexIndexs[j][0, 1].ToString() + ";" +
+        //                                           allPossibleHalfedgeVertexIndexs[j][1, 0].ToString() + ";" +
+        //                                           allPossibleHalfedgeVertexIndexs[j][1, 1].ToString() +
+        //                                           "，并且是第" + k.ToString() + "分裂可能性";
+
+        //                            GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[k], newPNodes, newGraphTables, label, volumeContainsWhichInnerNode);
+        //                            CurrentINode = currentDHM;
+
+        //                            INode<GraphWithHM> childDHMToSplit = gHMToSplit.AddChild(currentDHM);
+
+        //                            if (!viOfNewDecomposed.Contains(newVertexIndex))
+        //                            {
+        //                                viOfNewDecomposed.Add(newVertexIndex);
+        //                            }
+        //                            if (!viHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
+        //                            {
+        //                                viHasBeenDecomposed.Add(innerNodeToSplitIndexList[i]);
+        //                            }
+                                    
+        //                            // 递归分裂叶子节点
+        //                            GenerateDecomposedHMs(childDHMToSplit, viOfNewDecomposed, viHasBeenDecomposed);
+        //                        }
+        //                        #endregion
+        //                    }
+        //                    #endregion
+
+        //                    #endregion
+        //                    break;
+        //                case 4:
+        //                    // 记录度为4的正确的情况
+        //                    string correctReport = gHMDeepCopy.TreeNodeLabel + " -> " + "VertexIndex: " +
+        //                                           innerNodeToSplitIndexList[i].ToString() + " " +
+        //                                           "degree is " + degree.ToString();
+        //                    CorrectReports.Add(correctReport);
+        //                    break;
+
+        //                default:
+        //                    // 暂时先记录一下度为其他值的情况
+        //                    string defaultReport = gHMDeepCopy.TreeNodeLabel + " -> " + "VertexIndex: " +
+        //                                           innerNodeToSplitIndexList[i].ToString() + " " +
+        //                                           "degree is " + degree.ToString();
+        //                    DefaultReports.Add(defaultReport);
+        //                    break;
+        //            }
+        //        }
+        //    }
+
+            
+        //    return;
+        //}
 
 
         /// <summary>
@@ -738,7 +983,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                              startNodeArea / splitParts);
             nodeAttribute.ConnectivityTable = new int[] { startVertexIndex, endVertexIndex };
             nodeAttribute.AdjacencyTable = new int[] { };
-            graphNodesDeepCopy.Add(new GraphNode(midVertex, nodeAttribute, true));
+            GraphNode newNode = new GraphNode(midVertex, nodeAttribute, true);
+            newNode.IsNewDecomposed = true;
+            graphNodesDeepCopy.Add(newNode);
 
             // 输出out参数
             newPNodes = graphNodesDeepCopy;
@@ -806,6 +1053,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             newP.Faces.AddFaces(pFaceVertexOrder);
             #endregion
 
+            newP.Compact();
+
             return newP;
         }
 
@@ -823,7 +1072,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                      int[,] possibleHStartAndEndIndexs,
                                                      int vertexToSplitIndex, 
                                                      int targetVertexIndex, 
-                                                     List<int> innerNodeToSplitIndexList,
+                                                     List<int> innerNodeIndexs,
                                                      out List<int> newEndVertexAfterResetHalfedgeList)
         {
             #region 深拷贝
@@ -1058,13 +1307,22 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 List<int> intersect = splitedFaceWithOriginIndexLoL[i].Intersect<int>(splitedFaceWithNewIndexLoL[i]).ToList<int>();
                 intersect.Remove(targetVertexIndex);
-                if (innerNodeToSplitIndexList.Intersect<int>(intersect).Count() != 0)
+
+                //if (innerNodeToSplitIndexList.Intersect<int>(intersect).Count() != 0)
+                //{
+                //    newEndVertexAfterResetHalfedgeList = null;
+                //    return null;
+                //}
+                if (innerNodeIndexs.Contains(intersect[0]))
                 {
                     newEndVertexAfterResetHalfedgeList = null;
                     return null;
                 }
+
+
                 newEndVertexAfterResetHalfedgeList.Add(intersect[0]);
             }
+
 
 
 
@@ -1156,14 +1414,26 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             #endregion
 
-            // debug
-            List<List<string>> printFaces2 = new List<List<string>>();
+            //// debug
+            //List<List<string>> printFaces2 = new List<List<string>>();
+            //for (int i = 0; i < rebulidNewHalfedgeP.Count; i++)
+            //{
+            //    printFaces2.Add(new List<string>());
+            //    printFaces2[i] = UtilityFunctions.PrintFacesVertices(rebulidNewHalfedgeP[i]);
+            //}
+            #endregion
+
             for (int i = 0; i < rebulidNewHalfedgeP.Count; i++)
             {
-                printFaces2.Add(new List<string>());
-                printFaces2[i] = UtilityFunctions.PrintFacesVertices(rebulidNewHalfedgeP[i]);
+                rebulidNewHalfedgeP[i].Compact();
+
             }
-            #endregion
+
+            for (int i = 0; i < rebulidNewHalfedgeP.Count; i++)
+            {
+
+            }
+
             return rebulidNewHalfedgeP;
         }
 
@@ -1174,7 +1444,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             for (int i = 0; i < graphTables.Count; i++)
             {
                 graphTablesDeepCopy.Add(new List<int>());
-                graphTablesDeepCopy[i].AddRange(graphTables[i].Select(num => num));
+                graphTablesDeepCopy[i].AddRange(graphTables[i]);
             }
 
             int halfedgeStartVertexIndex = possibleHStartAndEndIndexs[0, 0];
@@ -1550,7 +1820,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 base.Layout();
                 /* 先执行base.Layout()，可以按GH电池默认方式计算电池的出/入口需要的高度，我们在下面基于这个高度进行更改 */
-                Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 20.0f);
+                Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 42.0f);
             }
 
             protected override void Render(GH_Canvas canvas, Graphics graphics, GH_CanvasChannel channel)
@@ -1560,23 +1830,45 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 /* 额外的电池渲染，仅在“Objects”这个渲染轨道绘制 */
                 if (channel == GH_CanvasChannel.Objects)
                 {
-                    RectangleF buttonRect = /* 按钮的位置 */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+                    RectangleF buttonRect1 = /* 按钮的位置 */ new RectangleF(Bounds.X, Bounds.Bottom - 42, Bounds.Width, 20.0f);
 
                     /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
-                    buttonRect.Inflate(-2.0f, -2.0f);
+                    buttonRect1.Inflate(-2.0f, -2.0f);
 
-                    using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect, GH_Palette.Black))
+                    using (GH_Capsule capsule1 = GH_Capsule.CreateCapsule(buttonRect1, GH_Palette.Black))
                     {
                         /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
                         /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
                         /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
-                        capsule.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
+                        capsule1.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
                     }
 
-                    graphics.DrawString(string.Format("{0} / {1}", ((GhcDecomposeVertex)Owner).CurrentIndex.ToString(), ((GhcDecomposeVertex)Owner).CountOfAllPossibleGraphWithHM.ToString()),
+                    graphics.DrawString(string.Format("CurrentLeafNode: {0} / {1}", ((GhcDecomposeVertex)Owner).CurrentLeafNodeIndex.ToString(), ((GhcDecomposeVertex)Owner).CountOfAllLeafNodes.ToString()),
                                         new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
                                         Brushes.White,
-                                        buttonRect,
+                                        buttonRect1,
+                                        new StringFormat()
+                                        {
+                                            Alignment = StringAlignment.Center,
+                                            LineAlignment = StringAlignment.Center
+                                        });
+
+                    RectangleF buttonRect2 = new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+                    /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
+                    buttonRect2.Inflate(-2.0f, -2.0f);
+
+                    using (GH_Capsule capsule2 = GH_Capsule.CreateCapsule(buttonRect2, GH_Palette.Black))
+                    {
+                        /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
+                        /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
+                        /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
+                        capsule2.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
+                    }
+
+                    graphics.DrawString(string.Format("CurrentTreeBranch: {0} / {1}", ((GhcDecomposeVertex)Owner).CurrentDepth.ToString(), ((GhcDecomposeVertex)Owner).SelectedBranchDepth.ToString()),
+                                        new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
+                                        Brushes.White,
+                                        buttonRect2,
                                         new StringFormat()
                                         {
                                             Alignment = StringAlignment.Center,

@@ -18,6 +18,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
     {
         public List<List<int>> DVertexBelongsToWhichInnerNode { get; }
 
+        public List<List<int>> DVertexBelongsToWhichVolume { get; }
+
         /// <summary>
         /// 构造空的DualGraphWithHM对象
         /// </summary>
@@ -120,6 +122,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.DVertexBelongsToWhichInnerNode.Add(new List<int>());
                 this.DVertexBelongsToWhichInnerNode[i].AddRange(dVertexBelongsToWhichInnerNode[i]);
             }
+
+            // 
         }
     }
 }
