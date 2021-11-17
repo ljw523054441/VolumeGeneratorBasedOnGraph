@@ -123,8 +123,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
             // pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
 
-            pManager.AddGenericParameter("SelectedTreeNodeString", "S", "", GH_ParamAccess.item);
+            pManager.AddGenericParameter("SelectedTreeNodeLabel", "SL", "", GH_ParamAccess.item);
             pManager.AddGenericParameter("SelectedTreeNodeHistory", "SH", "", GH_ParamAccess.list);
+            pManager.AddGenericParameter("VolumeContainsWhichInnerNode", "VC", "", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -295,16 +296,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
 
-
+                #region 电池结果输出
                 // TreeDebug
-                INode<GraphWithHM> treeTop = Tree.Root.Child;
+                //INode<GraphWithHM> treeTop = Tree.Root.Child;
 
-                List<INode<GraphWithHM>> allChildren = new List<INode<GraphWithHM>>();
-                foreach (var item in Tree.AllChildren.Nodes)
-                {
-                    allChildren.Add(item);
-                }
-
+                //List<INode<GraphWithHM>> allChildren = new List<INode<GraphWithHM>>();
+                //foreach (var item in Tree.AllChildren.Nodes)
+                //{
+                //    allChildren.Add(item);
+                //}
 
                 INode<GraphWithHM> selectedINode = allLeafNodes[indexOfLeafNodes];
 
@@ -322,34 +322,30 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 selectedGenealogy.Reverse();
 
                 GraphWithHM seletedGHM = selectedGenealogy[indexInItsGenealogy].Data;
-                DA.SetData("SelectedTreeNodeString", seletedGHM.TreeNodeLabel);
+                DA.SetData("SelectedTreeNodeLabel", seletedGHM.TreeNodeLabel);
 
                 GraphWithHM embededGraphWithHM = new GraphWithHM();
+                List<string> selectedTreeNodeHistory = seletedGHM.TreeNodeHistory;
+                List<string> selectedVolumeContainsWhichInnerNode = new List<string>();
                 if (seletedGHM.VolumeContainsWhichInnerNode != null)
                 {
+                    foreach (var keyValuePair in seletedGHM.VolumeContainsWhichInnerNode)
+                    {
+                        selectedVolumeContainsWhichInnerNode.Add(string.Format("{0}:{1}", keyValuePair.Key, string.Join(",", keyValuePair.Value)));
+                    }
+
                     embededGraphWithHM = GraphWithHM.ReTutteEmbeding(seletedGHM);
                 }
                 else
                 {
+                    selectedVolumeContainsWhichInnerNode = null;
+
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "当前节点为空叶子节点，现在显示的是其父节点");
                     embededGraphWithHM = GraphWithHM.ReTutteEmbeding(selectedGenealogy[indexInItsGenealogy].Parent.Data);
                 }
-
-
-                #endregion
-
-                
-
-
-                List<string> selectedTreeNodeHistory = new List<string>();
-                foreach (var keyValuePair in embededGraphWithHM.VolumeContainsWhichInnerNode)
-                {
-                    selectedTreeNodeHistory.Add(string.Format("{0}:{1}", keyValuePair.Key, string.Join(",", keyValuePair.Value)));
-                }
-                // string str = string.Join(";", selectedTreeNodeHistory);
                 DA.SetDataList("SelectedTreeNodeHistory", selectedTreeNodeHistory);
+                DA.SetDataList("VolumeContainsWhichInnerNode", selectedVolumeContainsWhichInnerNode);
 
-                #region 电池结果输出
 
                 // -1 是消除Root节点的影响
                 CountOfAllLeafNodes = allLeafNodes.Count - 1;
@@ -357,6 +353,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 DA.SetData("CountOfAllPossibleGraphWithHM", allLeafNodes.Count - 1);
                 DA.SetData("SelectedGraphWithHM", embededGraphWithHM);
+
+                #endregion
+
                 #endregion
 
                 #region 用于输出Debug数据
@@ -551,14 +550,36 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                 allPossibleHalfedgeVertexIndexs[i][1, 0].ToString() + ";" +
                                                                 allPossibleHalfedgeVertexIndexs[i][1, 1].ToString() +
                                                                 "，该子节点为空";
+
+                            // 这段代码没有进行深拷贝
+                            //newChildGraphWithHM.TreeNodeHistory = INodeToSplit.Data.TreeNodeHistory;
+                            //newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+
+                            newChildGraphWithHM.TreeNodeHistory = new List<string>();
+                            if (INodeToSplit.Data.TreeNodeHistory == null)
+                            {
+                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+                            }
+                            else
+                            {
+                                for (int j = 0; j < INodeToSplit.Data.TreeNodeHistory.Count; j++)
+                                {
+                                    newChildGraphWithHM.TreeNodeHistory.Add(INodeToSplit.Data.TreeNodeHistory[j]);
+                                }
+                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+                            }
+
                             INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(newChildGraphWithHM);
                             CurrentINode = childDHMToSplit;
-                            // 还要继续分裂剩余需要分裂的点
+
+
+                            /* 这里考虑是否还要添加继续分裂剩余需要分裂的点的算法 */
 
                             continue;
                         }
                         #endregion
 
+                        // 分裂后新的InnerNodeList
                         List<int> newInnerNodeIndexs = new List<int>();
                         for (int k = 0; k < newPNodes.Count; k++)
                         {
@@ -591,12 +612,32 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                 allPossibleHalfedgeVertexIndexs[i][1, 0].ToString() + ";" +
                                                                 allPossibleHalfedgeVertexIndexs[i][1, 1].ToString() +
                                                                 "，该子节点为空";
+
+                            // 这段代码没有进行深拷贝
+                            //newChildGraphWithHM.TreeNodeHistory = INodeToSplit.Data.TreeNodeHistory;
+                            //newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+
+                            newChildGraphWithHM.TreeNodeHistory = new List<string>();
+                            if (INodeToSplit.Data.TreeNodeHistory == null)
+                            {
+                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+                            }
+                            else
+                            {
+                                for (int j = 0; j < INodeToSplit.Data.TreeNodeHistory.Count; j++)
+                                {
+                                    newChildGraphWithHM.TreeNodeHistory.Add(INodeToSplit.Data.TreeNodeHistory[j]);
+                                }
+                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+                            }
+
                             INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(newChildGraphWithHM);
                             CurrentINode = childDHMToSplit;
                             continue;
                         }
                         #endregion
 
+                        // 构造volumeContainsWhichInnerNode
                         List<int> newValue = new int[] { currentVertexToSplit, newVertexIndex }.ToList();
                         Dictionary<int, List<int>> volumeContainsWhichInnerNode = INodeToSplit.Data.VolumeContainsWhichInnerNode;
                         if (volumeContainsWhichInnerNode.ContainsKey(currentVertexToSplit))
@@ -629,16 +670,31 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                             GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[j], newPNodes, newGraphTables, label, volumeContainsWhichInnerNode);
 
+                            // 这段代码没有深拷贝
+                            //currentDHM.TreeNodeHistory = INodeToSplit.Data.TreeNodeHistory;
+                            //if (currentDHM.TreeNodeHistory == null)
+                            //{
+                            //    currentDHM.TreeNodeHistory = new List<string>();
+                            //}
+                            //currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2}", RecursionDepth, currentVertexToSplit, newVertexIndex));
+
+                            currentDHM.TreeNodeHistory = new List<string>();
+                            if (INodeToSplit.Data.TreeNodeHistory == null)
+                            {
+                                currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2}", RecursionDepth, currentVertexToSplit, newVertexIndex));
+                            }
+                            else
+                            {
+                                for (int k = 0; k < INodeToSplit.Data.TreeNodeHistory.Count; k++)
+                                {
+                                    currentDHM.TreeNodeHistory.Add(INodeToSplit.Data.TreeNodeHistory[k]);
+                                }
+                                currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2}", RecursionDepth, currentVertexToSplit, newVertexIndex));
+                            }
+
+
                             INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(currentDHM);
                             CurrentINode = childDHMToSplit;
-                            //if (!viOfNewDecomposed.Contains(newVertexIndex))
-                            //{
-                            //    viOfNewDecomposed.Add(newVertexIndex);
-                            //}
-                            //if (!viHasBeenDecomposed.Contains(innerNodeToSplitIndexList[i]))
-                            //{
-                            //    viHasBeenDecomposed.Add(innerNodeToSplitIndexList[i]);
-                            //}
 
                             // 递归分裂叶子节点
                             Decompose(childDHMToSplit, verticesToSplit);

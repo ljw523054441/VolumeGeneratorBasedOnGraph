@@ -29,6 +29,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.PlanktonMesh = new PlanktonMesh();
             this.TreeNodeLabel = null;
             this.TreeNodeHistory = null;
+            this.VolumeContainsWhichInnerNode = null;
         }
 
         /// <summary>
@@ -59,9 +60,22 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(source.PlanktonMesh);
-
+            // 深拷贝TreeNodeLabel
             this.TreeNodeLabel = (string)source.TreeNodeLabel.Clone();
-
+            // 深拷贝TreeNodeHistory
+            if (source.TreeNodeHistory != null)
+            {
+                this.TreeNodeHistory = new List<string>();
+                for (int i = 0; i < source.TreeNodeHistory.Count; i++)
+                {
+                    this.TreeNodeHistory.Add(source.TreeNodeHistory[i]);
+                }
+            }
+            else
+            {
+                this.TreeNodeHistory = null;
+            }
+            // 深拷贝VolumeContainsWhichInnerNode
             this.VolumeContainsWhichInnerNode = new Dictionary<int, List<int>>();
             if (source.VolumeContainsWhichInnerNode != null)
             {
@@ -70,17 +84,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     this.VolumeContainsWhichInnerNode.Add(pair.Key, pair.Value);
                 }
             }
-            
-
-            this.TreeNodeHistory = new List<string>();
-            if (source.TreeNodeHistory != null)
-            {
-                for (int i = 0; i < source.TreeNodeHistory.Count; i++)
-                {
-                    this.TreeNodeHistory.Add(source.TreeNodeHistory[i]);
-                }
-            }
-            
         }
 
         /// <summary>
@@ -124,10 +127,12 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
-
+            // 设置空的TreeNodeLabel
             this.TreeNodeLabel = "尚未进行过Decompose的GraphWithHFMesh对象";
-
-            this.VolumeContainsWhichInnerNode = new Dictionary<int, List<int>>();
+            // 设置空的TreeNodeHistory
+            this.TreeNodeHistory = null;
+            // 设置空的VolumeContainsWhichInnerNode
+            this.VolumeContainsWhichInnerNode = null;
         }
 
         /// <summary>
@@ -179,9 +184,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
-
+            // 设置新的TreeNodeLabel
             this.TreeNodeLabel = treeNodeLabel;
-
+            // 设置空的TreeNodeHistory
+            this.TreeNodeHistory = null;
+            // 设置新的VolumeContainsWhichInnerNode
             this.VolumeContainsWhichInnerNode = new Dictionary<int, List<int>>();
             foreach (KeyValuePair<int, List<int>> pair in volumeContainsWhichInnerNode)
             {
@@ -222,8 +229,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     innerNodeDegreeList.Add(newPlanktonMesh.Vertices.GetVertexNeighbours(i).Length);
                 }
             }
-
-            // DataTree<int> triangleGraphDT = UtilityFunctions.LoLToDataTree<int>(triangleGraphTables);
             #endregion
 
             #region 计算矩阵 P(outer)
