@@ -351,6 +351,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 CountOfAllLeafNodes = allLeafNodes.Count - 1;
                 CurrentLeafNodeIndex = indexOfLeafNodes;
 
+
+                // embededPlanktonMesh Debug
+                List<string> pFacesVertices = UtilityFunctions.PrintFacesVertices(embededGraphWithHM.PlanktonMesh);
+
+
+
                 DA.SetData("CountOfAllPossibleGraphWithHM", allLeafNodes.Count - 1);
                 DA.SetData("SelectedGraphWithHM", embededGraphWithHM);
 
@@ -558,7 +564,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             newChildGraphWithHM.TreeNodeHistory = new List<string>();
                             if (INodeToSplit.Data.TreeNodeHistory == null)
                             {
-                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败;所选择的两个半边是:{2}-{3},{4}-{5}",
+                                                                                      RecursionDepth, 
+                                                                                      currentVertexToSplit,
+                                                                                      allPossibleHalfedgeVertexIndexs[i][0, 0],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][0, 1],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][1, 0],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][1, 1]));
                             }
                             else
                             {
@@ -566,7 +578,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                 {
                                     newChildGraphWithHM.TreeNodeHistory.Add(INodeToSplit.Data.TreeNodeHistory[j]);
                                 }
-                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败;所选择的两个半边是:{2}-{3},{4}-{5}",
+                                                                                      RecursionDepth, 
+                                                                                      currentVertexToSplit,
+                                                                                      allPossibleHalfedgeVertexIndexs[i][0, 0],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][0, 1],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][1, 0],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][1, 1]));
                             }
 
                             INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(newChildGraphWithHM);
@@ -620,7 +638,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             newChildGraphWithHM.TreeNodeHistory = new List<string>();
                             if (INodeToSplit.Data.TreeNodeHistory == null)
                             {
-                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败;所选择的两个半边是:{2}-{3},{4}-{5}", 
+                                                                                      RecursionDepth, 
+                                                                                      currentVertexToSplit,
+                                                                                      allPossibleHalfedgeVertexIndexs[i][0, 0],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][0, 1],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][1, 0],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][1, 1]));
                             }
                             else
                             {
@@ -628,7 +652,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                 {
                                     newChildGraphWithHM.TreeNodeHistory.Add(INodeToSplit.Data.TreeNodeHistory[j]);
                                 }
-                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
+                                newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败;所选择的两个半边是:{2}-{3},{4}-{5}",
+                                                                                      RecursionDepth, 
+                                                                                      currentVertexToSplit,
+                                                                                      allPossibleHalfedgeVertexIndexs[i][0, 0],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][0, 1],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][1, 0],
+                                                                                      allPossibleHalfedgeVertexIndexs[i][1, 1]));
                             }
 
                             INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(newChildGraphWithHM);
@@ -681,7 +711,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             currentDHM.TreeNodeHistory = new List<string>();
                             if (INodeToSplit.Data.TreeNodeHistory == null)
                             {
-                                currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2}", RecursionDepth, currentVertexToSplit, newVertexIndex));
+                                currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2};所选择的两个半边是:{3}-{4},{5}-{6}", 
+                                                                             RecursionDepth, 
+                                                                             currentVertexToSplit, 
+                                                                             newVertexIndex, 
+                                                                             allPossibleHalfedgeVertexIndexs[i][0, 0],
+                                                                             allPossibleHalfedgeVertexIndexs[i][0, 1],
+                                                                             allPossibleHalfedgeVertexIndexs[i][1, 0],
+                                                                             allPossibleHalfedgeVertexIndexs[i][1, 1]));
                             }
                             else
                             {
@@ -689,7 +726,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                 {
                                     currentDHM.TreeNodeHistory.Add(INodeToSplit.Data.TreeNodeHistory[k]);
                                 }
-                                currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2}", RecursionDepth, currentVertexToSplit, newVertexIndex));
+                                currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2};所选择的两个半边是:{3}-{4},{5}-{6}",
+                                                                             RecursionDepth,
+                                                                             currentVertexToSplit,
+                                                                             newVertexIndex,
+                                                                             allPossibleHalfedgeVertexIndexs[i][0, 0],
+                                                                             allPossibleHalfedgeVertexIndexs[i][0, 1],
+                                                                             allPossibleHalfedgeVertexIndexs[i][1, 0],
+                                                                             allPossibleHalfedgeVertexIndexs[i][1, 1]));
                             }
 
 
@@ -1155,7 +1199,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                      int[,] possibleHStartAndEndIndexs,
                                                      int vertexToSplitIndex, 
                                                      int targetVertexIndex, 
-                                                     List<int> innerNodeIndexs,
+                                                     List<int> newInnerNodeIndexs,
                                                      out List<int> newEndVertexAfterResetHalfedgeList)
         {
             #region 深拷贝
@@ -1361,7 +1405,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #region 如果分裂顶点vertexToSplit，属于AdjacentFace时
             if (vertexToSplitBelongsToAdjacent && !vertexToSplitBelongsToPairAdjacent)
             {
-                #region 判断VertexToSplit和TargetVertex谁在谁左边
+                #region 判断VertexToSplit和TargetVertex谁在谁左边，true表示t在v右边；false表示t在v左边
                 bool flag = RelationOfTwoVerticesInFaceVertexList(vertexToSplitIndex, targetVertexIndex, viAroundAdjacentFace);
                 #endregion
 
@@ -1371,7 +1415,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #region 如果分裂顶点vertexToSplit，属于PairFace时
             else
             {
-                #region 判断VertexToSplit和TargetVertex谁在谁左边
+                #region 判断VertexToSplit和TargetVertex谁在谁左边，true表示t在v右边；false表示t在v左边
                 bool flag = RelationOfTwoVerticesInFaceVertexList(vertexToSplitIndex, targetVertexIndex, viAroundPairAdjacentFace);
                 #endregion
 
@@ -1386,26 +1430,39 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 如果新生成的半边的端点，是innerNode（包括初始的和新分裂产生的），那么返回null
             // 同时输出anotherEndVertexAfterResetHalfedgeList的列表，对应每种splitedFace的情况
             newEndVertexAfterResetHalfedgeList = new List<int>();
+            List<int> indexToKeep = new List<int>();
             for (int i = 0; i < splitedFaceWithOriginIndexLoL.Count; i++)
             {
                 List<int> intersect = splitedFaceWithOriginIndexLoL[i].Intersect<int>(splitedFaceWithNewIndexLoL[i]).ToList<int>();
                 intersect.Remove(targetVertexIndex);
 
-                //if (innerNodeToSplitIndexList.Intersect<int>(intersect).Count() != 0)
-                //{
-                //    newEndVertexAfterResetHalfedgeList = null;
-                //    return null;
-                //}
-                if (innerNodeIndexs.Contains(intersect[0]))
+                if (newInnerNodeIndexs.Contains(intersect[0]))
                 {
-                    newEndVertexAfterResetHalfedgeList = null;
-                    return null;
+                    continue;
                 }
-
-
-                newEndVertexAfterResetHalfedgeList.Add(intersect[0]);
+                else
+                {
+                    indexToKeep.Add(i);
+                    newEndVertexAfterResetHalfedgeList.Add(intersect[0]);
+                }
             }
 
+            List<List<int>> finalSplitedFaceWithOriginIndexLoL = new List<List<int>>();
+            List<List<int>> finalSplitedFaceWithNewIndexLoL = new List<List<int>>();
+            if (newEndVertexAfterResetHalfedgeList == null)
+            {
+                return null;
+            }
+            else
+            {
+                for (int i = 0; i < indexToKeep.Count; i++)
+                {
+                    finalSplitedFaceWithOriginIndexLoL.Add(new List<int>());
+                    finalSplitedFaceWithNewIndexLoL.Add(new List<int>());
+                    finalSplitedFaceWithOriginIndexLoL[i].AddRange(splitedFaceWithOriginIndexLoL[indexToKeep[i]]);
+                    finalSplitedFaceWithNewIndexLoL[i].AddRange(splitedFaceWithNewIndexLoL[indexToKeep[i]]);
+                }
+            }
 
 
 
@@ -1425,7 +1482,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
              * 第三层List存储每个Face的顶点
              */
             List<List<List<int>>> rebuildPFaceVertexOrder = new List<List<List<int>>>();
-            for (int i = 0; i < splitedFaceWithOriginIndexLoL.Count; i++)
+            for (int i = 0; i < finalSplitedFaceWithOriginIndexLoL.Count; i++)
             {
                 rebuildPFaceVertexOrder.Add(new List<List<int>>());
                 for (int j = 0; j < resetHalfEdgeStartP.Faces.Count; j++)
@@ -1434,47 +1491,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     rebuildPFaceVertexOrder[i].Add(new List<int>());
                     if (j == whichFaceNeedSplitLaterIndex)
                     {
-                        // rebuildPFaceVertexOrder[i].Add(splitedFaceWithOriginIndexLoL[i]);
-
-                        rebuildPFaceVertexOrder[i][j].AddRange(splitedFaceWithOriginIndexLoL[i]);
+                        rebuildPFaceVertexOrder[i][j].AddRange(finalSplitedFaceWithOriginIndexLoL[i]);
                     }
                     else
                     {
                         int[] faceVertexOrder = resetHalfEdgeStartP.Faces.GetFaceVertices(j);
-                        // rebuildPFaceVertexOrder[i].Add(faceVertexOrder.ToList<int>());
-
                         rebuildPFaceVertexOrder[i][j].AddRange(faceVertexOrder.ToList<int>());
                     }
                 }
                 // 注意这里还要额外加上split后新生成的面
                 rebuildPFaceVertexOrder[i].Add(new List<int>());
-                rebuildPFaceVertexOrder[i][resetHalfEdgeStartP.Faces.Count].AddRange(splitedFaceWithNewIndexLoL[i]);
+                rebuildPFaceVertexOrder[i][resetHalfEdgeStartP.Faces.Count].AddRange(finalSplitedFaceWithNewIndexLoL[i]);
             }
-
-            //int iIndex = -1;
-            //int jIndex = -1;
-            //for (int i = 0; i < resetHalfEdgeStartP.Faces.Count; i++)
-            //{
-            //    rebuildPFaceVertexOrder.Add(new List<List<int>>());
-            //    iIndex = i;
-            //    for (int j = 0; j < splitedFaceWithOriginIndexLoL.Count; j++)
-            //    {
-            //        if (i == whichFaceNeedSplitLaterIndex)
-            //        {
-            //            rebuildPFaceVertexOrder[i].Add(splitedFaceWithOriginIndexLoL[j]);
-            //            jIndex = j;
-            //        }
-            //        else
-            //        {
-            //            int[] faceVertexOrder = resetHalfEdgeStartP.Faces.GetFaceVertices(i);
-            //            rebuildPFaceVertexOrder[i].Add(faceVertexOrder.ToList<int>());
-            //        }
-            //    }
-                
-            //}
-            //// 注意这里还要额外加上split后新生成的面
-            //rebuildPFaceVertexOrder.Add(new List<List<int>>());
-            //rebuildPFaceVertexOrder[iIndex + 1].Add(splitedFaceWithNewIndexLoL[jIndex]);
 
             #endregion
 
@@ -1497,25 +1525,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             #endregion
 
-            //// debug
-            //List<List<string>> printFaces2 = new List<List<string>>();
-            //for (int i = 0; i < rebulidNewHalfedgeP.Count; i++)
-            //{
-            //    printFaces2.Add(new List<string>());
-            //    printFaces2[i] = UtilityFunctions.PrintFacesVertices(rebulidNewHalfedgeP[i]);
-            //}
             #endregion
-
-            for (int i = 0; i < rebulidNewHalfedgeP.Count; i++)
-            {
-                rebulidNewHalfedgeP[i].Compact();
-
-            }
-
-            for (int i = 0; i < rebulidNewHalfedgeP.Count; i++)
-            {
-
-            }
 
             return rebulidNewHalfedgeP;
         }
@@ -1624,6 +1634,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
 
             // 如果VertexToSplit和TargetVertex逆时针数的间隔大于顺时针数的间隔，那么VertexToSplit在TargetVertex的左边
+            // 判断VertexToSplit和TargetVertex谁在谁左边，true表示t在v右边；false表示t在v左边
             if (counterClockwiseCount < clockwiseCount)
             {
                 flag = true;
@@ -1646,6 +1657,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             splitedFaceWithNewIndexLoL = new List<List<int>>();
             splitedFaceWithOriginIndexLoL = new List<List<int>>();
 
+            // 判断VertexToSplit和TargetVertex谁在谁左边，true表示t在v右边；false表示t在v左边
             if (flag)
             {
                 #region usedVertexIndex用来存储目前构成过子面的顶点
@@ -1693,6 +1705,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             else
             {
+                List<int> faceVertexListInOriginalOrder = new List<int>();
+                for (int i = 0; i < faceVertexList.Count; i++)
+                {
+                    faceVertexListInOriginalOrder.Add(faceVertexList[i]);
+                }
+
                 // 把列表反一下，就可以复用上面的计算过程，相当于正好把vertexToSplit跟targetVertex两个顺序反过来
                 faceVertexList.Reverse();
 
@@ -1713,7 +1731,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     #region 求差集，得到除了usedVertex外的其他点
                     List<int> unusedVertexIndexs = new List<int>();
-                    unusedVertexIndexs = faceVertexList.Except(usedVertexIndexs).ToList<int>();
+                    // 注意这里用来求差集的faceVertexList必须是原来没Reverse()过的，因为它的顺序影响最后差集中元素的顺序
+                    unusedVertexIndexs = faceVertexListInOriginalOrder.Except(usedVertexIndexs).ToList<int>();
                     #endregion
 
                     #region 从targetVertex的下下一个顶点开始构造新分割产生的三角形newFace
@@ -1730,7 +1749,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     splitedFaceWithNewIndexLoL.Add(new List<int>());
 
                     // 求差集即可
-                    List<int> remainingVertex = faceVertexList.Except(splitedFaceWithOriginIndexLoL[iteration]).ToList<int>();
+                    List<int> remainingVertex = faceVertexListInOriginalOrder.Except(splitedFaceWithOriginIndexLoL[iteration]).ToList<int>();
                     splitedFaceWithNewIndexLoL[iteration].AddRange(remainingVertex);
                     splitedFaceWithNewIndexLoL[iteration].Add(targetVertexIndex);
                     // 注意这里是add了splitedFaceWithNewIndexLoL[iteration].First()

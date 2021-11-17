@@ -88,6 +88,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             if (DA.GetData<GraphWithHM>("GraphWithHM", ref graphWithHM))
             {
+                if (graphWithHM.VolumeContainsWhichInnerNode == null)
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "当前传入的GraphWithHM是来自一个空的叶子节点");
+                    return;
+                }
+                
                 // 获取节点
                 List<GraphNode> graphNodes = graphWithHM.GraphNodes;
                 List<List<int>> graphTables = graphWithHM.GraphTables;
