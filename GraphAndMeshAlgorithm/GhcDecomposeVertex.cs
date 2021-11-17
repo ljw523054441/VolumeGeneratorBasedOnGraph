@@ -467,24 +467,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
         public void Decompose(INode<GraphWithHM> INodeToSplit, List<int> verticesToSplit)
         {
-            //List<int> allInnerNodeNeedToSplit = new List<int>();
-            //List<int> allInnerNodeNeedToSplitDegrees = new List<int>();
-            //for (int i = 0; i < INodeToSplit.Data.GraphNodes.Count; i++)
-            //{
-            //    if (INodeToSplit.Data.GraphNodes[i].IsInner)
-            //    {
-            //        if (!INodeToSplit.Data.GraphNodes[i].IsNewDecomposed)
-            //        {
-            //            int degree = INodeToSplit.Data.PlanktonMesh.Vertices.GetValence(i);
-            //            if (degree != 4)
-            //            {
-            //                allInnerNodeNeedToSplit.Add(i);
-            //                allInnerNodeNeedToSplitDegrees.Add(degree);
-            //            }
-            //        }
-            //    }
-            //}
-
             // 开始执行当前层级的递归，递归深度++
             RecursionDepth++;
 
@@ -1206,12 +1188,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             PlanktonMesh PDeepCopy = new PlanktonMesh(P);
             #endregion
 
-            //// debug 显示每条边的起点与终点index
-            //List<string> printHalfedgeStartAndEnd = new List<string>();
-            //printHalfedgeStartAndEnd = UtilityFunctions.PrintHalfedgeStartAndEnd(PDeepCopy);
-
-            int halfedgeStartVertexIndex = possibleHStartAndEndIndexs[0, 0];
-            int halfedgeEndVertexIndex = possibleHStartAndEndIndexs[0, 1];
             int anotherHalfedgeStartVertexIndex = possibleHStartAndEndIndexs[1, 0];
             int anotherHalfedgeEndVertexIndex = possibleHStartAndEndIndexs[1, 1];
 
@@ -1262,9 +1238,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             #region 修改包围AdjacentFace的顶点列表以及包围PairAdjacentFace的顶点列表
             // 用目标顶点属于哪个面，来判断该怎么修改viAroundAdjacentFace和viAroundPairAdjacentFace列表
-            //bool targetVertexBelongsToAdjacent = viAroundAdjacentFace.Contains(targetVertexIndex);
-            //bool targetVertexBelongsToPairAdjacent = viAroundPairAdjacentFace.Contains(targetVertexIndex);
-
             // 获取targetVertex在Face顶点列表的序号
             int indexInFace = viAroundAdjacentFace.IndexOf(targetVertexIndex);
             // 获取targetVertex在PairFace顶点列表的序号
@@ -1280,55 +1253,47 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 当目标顶点targetVertex属于PairFace时
             else if (indexInFace == -1 && indexInPairFace != -1)
             {
-                // 当targetVertex在PairFace中时
-                // 从PairFace顶点列表中删除第一个（即vertexToSplit）
-                viAroundPairAdjacentFace.RemoveAt(0);
-                // 把targetVertex按照它在PairFace顶点列表中的序号，放在Face顶点列表中
-                // 需要判断是放在队尾，还是插入
-                if (indexInPairFace >= viAroundAdjacentFace.Count)
+                List<int> intersect = viAroundPairAdjacentFace.Intersect<int>(viAroundAdjacentFace).ToList();
+                intersect.Remove(vertexToSplitIndex);
+                int originEndVertex = intersect[0];
+
+                if (viAroundPairAdjacentFace.IndexOf(originEndVertex) < viAroundPairAdjacentFace.IndexOf(targetVertexIndex))
                 {
                     viAroundAdjacentFace.Add(targetVertexIndex);
                 }
                 else
                 {
-                    viAroundAdjacentFace.Insert(indexInPairFace, targetVertexIndex);
+                    int diff = viAroundPairAdjacentFace.IndexOf(originEndVertex) - viAroundPairAdjacentFace.IndexOf(targetVertexIndex);
+                    viAroundAdjacentFace.Insert(viAroundAdjacentFace.IndexOf(originEndVertex) - diff + 1, targetVertexIndex);
                 }
+
+                // 从PairFace顶点列表中删除第一个（即vertexToSplit）
+                viAroundPairAdjacentFace.RemoveAt(0);
+
             }
-            // 当目标顶点targetVertex属于Face时
+            // 当目标顶点targetVertex属于AdjacentFace时
             else
             {
-                // 当targetVertex在Face中时
-                // 从Face顶点列表中删除第一个（即vertexToSplit）
-                viAroundAdjacentFace.RemoveAt(0);
-                // 把targetVertex按照它在Face顶点列表中的序号，放在PairFace顶点列表中
-                // 需要判断是放在队尾，还是插入
-                if (indexInFace >= viAroundPairAdjacentFace.Count)
+                List<int> intersect = viAroundPairAdjacentFace.Intersect<int>(viAroundAdjacentFace).ToList();
+                intersect.Remove(vertexToSplitIndex);
+                int originEndVertex = intersect[0];
+
+                if (viAroundAdjacentFace.IndexOf(originEndVertex) < viAroundAdjacentFace.IndexOf(targetVertexIndex))
                 {
                     viAroundPairAdjacentFace.Add(targetVertexIndex);
                 }
                 else
                 {
-                    viAroundPairAdjacentFace.Insert(indexInFace, targetVertexIndex);
+                    int diff = viAroundAdjacentFace.IndexOf(originEndVertex) - viAroundAdjacentFace.IndexOf(targetVertexIndex);
+                    viAroundPairAdjacentFace.Insert(viAroundPairAdjacentFace.IndexOf(originEndVertex) - diff + 1, targetVertexIndex);
                 }
+
+                // 从Face顶点列表中删除第一个（即vertexToSplit）
+                viAroundAdjacentFace.RemoveAt(0);
+
+
             }
 
-            //if (!targetVertexBelongsToAdjacent && !targetVertexBelongsToPairAdjacent)
-            //{
-            //    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "输入的targetVertex " + vertexToSplitIndex.ToString() + " 不属于要改变的面");
-            //    return null;
-            //}
-            //// 当目标顶点targetVertex属于pairAdjacentFace时
-            //else if (!targetVertexBelongsToAdjacent && targetVertexBelongsToPairAdjacent)
-            //{
-            //    //viAroundAdjacentFace.Insert(1, targetVertexIndex);
-            //    //viAroundPairAdjacentFace.RemoveAt(0);
-            //}
-            //// 当目标顶点targetVertex属于AdjacentFace时
-            //else
-            //{
-            //    //viAroundAdjacentFace.RemoveAt(0);
-            //    //viAroundPairAdjacentFace.Insert(1, targetVertexIndex);
-            //}
             #endregion
 
             #region 用变量whichFaceNeedSplitIndex记录哪一个面在下面将度补满的过程中，需要再进行split
@@ -1764,39 +1729,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 faceVertexList.Reverse();
 
-                //int iteration = 0;
-                //List<int> usedVertexIndexs = new List<int>();
-                //// 添加targetVertex的上一个顶点，同时为了防止数组越界，用取余的方式来做index
-                //// usedVertexIndexs.Add(faceVertexList[(faceVertexList.IndexOf(targetVertexIndex) - 1 + faceVertexList.Count) % faceVertexList.Count]);
-                //// 添加targetVertex
-                //usedVertexIndexs.Add(targetVertexIndex);
-                //// 添加vertexToSplit
-                //usedVertexIndexs.Add(vertexToSplitIndex);
-
-
-                //List<int> unusedVertexIndexs = new List<int>();
-
-                //for (int i = (faceVertexList.IndexOf(vertexToSplitIndex) + 1) % faceVertexList.Count; i < faceVertexList.Count; i++)
-                //{
-                //    usedVertexIndexs.Add(faceVertexList[i]);
-
-                //    // 求差集
-                //    unusedVertexIndexs = (List<int>)faceVertexList.Except(usedVertexIndexs);
-
-                //    #region 从vertexToSplit的下一个顶点开始构造新分割产生的三角形newFace
-
-                //    #endregion
-                //    // 此时usedVertexIndexs中不包含当前的faceVertexList[i]
-                //    splitedFaceWithNewIndexLoL.Add(new List<int>());
-                //    splitedFaceWithNewIndexLoL[iteration].AddRange(usedVertexIndexs);
-
-
-
-
-                //    // 持续更新iteration
-                //    iteration++;
-
-                //}
             }
         }
 
