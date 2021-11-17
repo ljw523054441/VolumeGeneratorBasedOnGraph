@@ -29,7 +29,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             DualVertexTextDots = new List<TextDot>();
 
             NodePoints = new List<Point3d>();
-            NodePointIndex = new List<int>();
+            DualNodeCorrespondingInnerNodeIndex = new List<int>();
             GraphEdges = new List<Line>();
             NodeTextDots = new List<TextDot>();
         }
@@ -42,7 +42,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<TextDot> DualVertexTextDots;
 
         private List<Point3d> NodePoints;
-        private List<int> NodePointIndex;
+        private List<int> DualNodeCorrespondingInnerNodeIndex;
         private List<Line> GraphEdges;
         private List<TextDot> NodeTextDots;
 
@@ -70,7 +70,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
             pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
             // 2
-            pManager.AddIntegerParameter("faceIndexsFromOuterNodes", "", "", GH_ParamAccess.tree);
+            // pManager.AddIntegerParameter("faceIndexsFromOuterNodes", "", "", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -94,10 +94,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     return;
                 }
                 
-                // 获取节点
+                // 获取相关属性
                 List<GraphNode> graphNodes = graphWithHM.GraphNodes;
                 List<List<int>> graphTables = graphWithHM.GraphTables;
                 PlanktonMesh pGraphWithHM = graphWithHM.PlanktonMesh;
+
+                Dictionary<int, List<int>> volumeContainsWhichInnerNode = graphWithHM.VolumeContainsWhichInnerNode;
 
                 #region 获得对偶图
                 // 利用半边数据结构求出对偶
@@ -133,14 +135,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 得到所有的innerNode的序号和outerNode的序号
-
                 List<int> innerNodeIndexs = graphWithHM.InnerNodeIndexList;
                 List<int> outerNodeIndexs = graphWithHM.OuterNodeIndexList;
                 int innerNodeCount = graphWithHM.InnerNodeCount;
                 int outerNodeCount = graphWithHM.OuterNodeCount;
                 #endregion
 
-                #region 找到每个outerNode相关的面和发出的半边
+                #region 计算faceIndexsAroundOuterNodes，找到每个outerNode相关的面和发出的半边
                 // 对于每个outerNode找到由它发出的半边
                 List<List<int>> halfedgeIndexsStartFromOuterNodes = new List<List<int>>();
                 // 对于每个outerNode找到与它相关的面
@@ -158,7 +159,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     faceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNode);
                 }
                 #endregion
-                DA.SetDataTree(5, UtilityFunctions.LoLToDataTree<int>(faceIndexsAroundOuterNodes));
+                // DA.SetDataTree(5, UtilityFunctions.LoLToDataTree<int>(faceIndexsAroundOuterNodes));
 
                 #region 将每个outerNode相关的面的index的列表，分割成两个一组两个一组
                 List<List<int[]>> pairFaceIndexsAroundOuterNodes = new List<List<int[]>>();
@@ -177,7 +178,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
 
-                NodePointIndex.Clear();
+                
+                List<int> dualNodeCorrespondingInnerNodeIndex = new List<int>();
                 #region 找到对偶图中的面所对应的InnerNode的序号，即NodePointIndex，NodePointIndex实际上是对偶图每个面所对应的原来图中的InnerNode的序号
                 List<List<int>> pFaceIndexAroundInnerNode = new List<List<int>>();
                 List<int> correspondingInnerNodeIndex = new List<int>();
@@ -191,7 +193,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         pFaceIndexAroundInnerNode.Add(pGraphWithHM.Vertices.GetVertexFaces(i).ToList<int>());
                         correspondingInnerNodeIndex.Add(i);
                     }
-
                 }
 
                 for (int i = 0; i < D.Faces.Count; i++)
@@ -204,10 +205,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                          */
                         if (D.Faces.GetFaceVertices(i).Except(pFaceIndexAroundInnerNode[j]).ToArray().Length == 0)
                         {
-                            NodePointIndex.Add(correspondingInnerNodeIndex[j]);
+                            dualNodeCorrespondingInnerNodeIndex.Add(correspondingInnerNodeIndex[j]);
                         }
                     }
                 }
+                DualNodeCorrespondingInnerNodeIndex.Clear();
+                DualNodeCorrespondingInnerNodeIndex = dualNodeCorrespondingInnerNodeIndex;
+
                 #endregion
 
                 #region 找到对偶图中每个顶点属于哪个InnerNode
@@ -230,14 +234,73 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     foreach (int dFaceIndex in dFaceIndexAroundVertice[i])
                     {
                         // NodePointIndex实际上是对偶图每个面所对应的原来图中的InnerNode的序号
-                        dVertexBelongsToWhichInnerNode[i].Add(NodePointIndex[dFaceIndex]);
+                        dVertexBelongsToWhichInnerNode[i].Add(DualNodeCorrespondingInnerNodeIndex[dFaceIndex]);
                     }
                 }
                 #endregion
 
-                DualGraphWithHM dualGraphWithHM = new DualGraphWithHM(D, graphNodes, graphTables, "Dual", dVertexBelongsToWhichInnerNode);
+                #region 找到对偶图中每个顶点属于哪个Volume
+                Dictionary<int, List<int>> volumeCorrespondingDualVertices = new Dictionary<int, List<int>>();
+                foreach (KeyValuePair<int, List<int>> pair in volumeContainsWhichInnerNode)
+                {
+                    List<int> dualVertices = new List<int>();
+                    for (int i = 0; i < pair.Value.Count; i++)
+                    {
+                        for (int j = 0; j < dVertexBelongsToWhichInnerNode[pair.Value[i]].Count; j++)
+                        {
+                            if (!dualVertices.Contains(dVertexBelongsToWhichInnerNode[pair.Value[i]][j]))
+                            {
+                                dualVertices.Add(dVertexBelongsToWhichInnerNode[pair.Value[i]][j]);
+                            }
+                        }
+                    }
+                    volumeCorrespondingDualVertices.Add(pair.Key, dualVertices);
+                }
+
+
+
+                #endregion
+
+                DualGraphWithHM dualGraphWithHM = new DualGraphWithHM(D, 
+                                                                      graphNodes, 
+                                                                      graphTables, 
+                                                                      dualNodeCorrespondingInnerNodeIndex, 
+                                                                      faceIndexsAroundOuterNodes,
+                                                                      dVertexBelongsToWhichInnerNode,
+                                                                      volumeCorrespondingDualVertices);
+
+
+                
+                List<PlanktonXYZ> dVertex = new List<PlanktonXYZ>();
+                for (int i = 0; i < D.Vertices.Count; i++)
+                {
+                    dVertex.Add(D.Vertices[i].ToXYZ());
+                }
+                List<List<int>> integrateDFace = new List<List<int>>();
+                foreach (KeyValuePair<int, List<int>> pair in volumeCorrespondingDualVertices)
+                {
+                    integrateDFace.Add(new List<int>());
+                    integrateDFace.Last().AddRange(pair.Value);
+                }
+
+                PlanktonMesh integrateD = new PlanktonMesh();
+                integrateD.Vertices.AddVertices(dVertex);
+                integrateD.Faces.AddFaces(integrateDFace);
+
+                DualGraphWithHM integrateDualGraphHM = new DualGraphWithHM()
+
+
+
+
+
+
 
                 DA.SetData("DualGraphWithHM", dualGraphWithHM);
+
+
+
+
+
 
 
                 #region 可视化部分
@@ -288,7 +351,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     if (graphNodes[i].IsInner)
                     {
-                        NodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, graphNodes[i].NodeAttribute.NodeLabel), this.NodePoints[NodePointIndex.IndexOf(i)]));
+                        NodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, graphNodes[i].NodeAttribute.NodeLabel), this.NodePoints[DualNodeCorrespondingInnerNodeIndex.IndexOf(i)]));
                     }
                 }
                 #endregion
