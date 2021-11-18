@@ -356,6 +356,17 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 volumeNodeCorrespondingInnerNodes[i].AddRange(volumeContainsWhichInnerNode[volumeNodesIndex[i]]);
             }
 
+            List<List<int>> volumeNodeCorrespondingDFace = new List<List<int>>();
+            for (int i = 0; i < volumeNodeCorrespondingInnerNodes.Count; i++)
+            {
+                volumeNodeCorrespondingDFace.Add(new List<int>());
+                for (int j = 0; j < volumeNodeCorrespondingInnerNodes[i].Count; j++)
+                {
+                    List<int> innerNodeCorrespondingWhichDFace = this.InnerNodeCorrespondingWhichDFace();
+                    volumeNodeCorrespondingDFace[i].Add(innerNodeCorrespondingWhichDFace[InnerNodeIndexList.IndexOf(volumeNodeCorrespondingInnerNodes[i][j])]);
+                }
+            }
+
             // 构造DFaceVolumeNodeTable，表头是DFace的序号列表和volumeNodesIndex列表
             this.DFaceVolumeNodeTable = new Matrix(this.PlanktonMesh.Faces.Count, volumeNodes.Count);
             for (int i = 0; i < volumeNodesIndex.Count; i++)
@@ -425,65 +436,46 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             PlanktonMesh integratePlanktonMesh = new PlanktonMesh(this.PlanktonMesh);
 
+
+
             List<int> halfedgeForMerge = new List<int>();
-            for (int i = 0; i < volumeNodeCorrespondingInnerNodes.Count; i++)
+            for (int i = 0; i < volumeNodeCorrespondingDFace.Count; i++)
             {
-                int[] halfedges = this.PlanktonMesh.Faces.GetHalfedges(volumeNodeCorrespondingInnerNodes[i][0]);
-                for (int j = 0; j < halfedges.Length; j++)
-                {
-                    for (int k = 1; k < volumeNodeCorrespondingInnerNodes[i].Count; k++)
-                    {
-                        if (this.PlanktonMesh.Halfedges[halfedges[j]].AdjacentFace == k)
-                        {
-                            halfedgeForMerge.Add(halfedges[j]);
-                            break;
-                        }
-                    }
-                    
-                }
-                
+                List<int> publicHalfedge = this.FindPublicHalfedge(this.PlanktonMesh, volumeNodeCorrespondingDFace[i]);
+                halfedgeForMerge.AddRange(publicHalfedge);
             }
 
-            for (int i = 0; i < volumeNodeCorrespondingInnerNodes.Count; i++)
+
+            for (int i = 0; i < halfedgeForMerge.Count; i++)
             {
-                int currentIndex = 0;
-                while (currentIndex < volumeContainsWhichInnerNode[i].Count)
-                {
-                    int[] halfedges = this.PlanktonMesh.Faces.GetHalfedges(volumeNodeCorrespondingInnerNodes[i][currentIndex]);
-                    for (int j = 0; j < halfedges.Length; j++)
-                    {
-
-                    }
-                }
+                integratePlanktonMesh.Faces.MergeFaces(halfedgeForMerge[i]);
             }
-                
-
-            
-            integratePlanktonMesh.Faces.MergeFaces()
+            integratePlanktonMesh.Compact();
+            this.IntegratePlanktonMesh = integratePlanktonMesh;
 
 
             this.IntegrateFaceCorrespondingVolumeNodes = new List<GraphNode>();
             this.IntegrateFaceCorrespondingVolumeNodes.AddRange(volumeNodes);
 
-            List<PlanktonXYZ> planktonVertex = new List<PlanktonXYZ>();
-            for (int i = 0; i < this.PlanktonMesh.Vertices.Count; i++)
-            {
-                planktonVertex.Add(this.PlanktonMesh.Vertices[i].ToXYZ());
-            }
+            //List<PlanktonXYZ> planktonVertex = new List<PlanktonXYZ>();
+            //for (int i = 0; i < this.PlanktonMesh.Vertices.Count; i++)
+            //{
+            //    planktonVertex.Add(this.PlanktonMesh.Vertices[i].ToXYZ());
+            //}
 
-            this.IntegratePlanktonMesh = new PlanktonMesh();
-            this.IntegratePlanktonMesh.Vertices.AddVertices(planktonVertex);
-            this.IntegratePlanktonMesh.Faces.AddFaces(volumeNodeCorrespondingDVertice);
+            //this.IntegratePlanktonMesh = new PlanktonMesh();
+            //this.IntegratePlanktonMesh.Vertices.AddVertices(planktonVertex);
+            //this.IntegratePlanktonMesh.Faces.AddFaces(volumeNodeCorrespondingDVertice);
 
 
 
-            // 深拷贝FaceIndexsAroundOuterNodes
-            this.DFaceIndexsAroundOuterNodes = new List<List<int>>();
-            for (int i = 0; i < faceIndexsAroundOuterNodes.Count; i++)
-            {
-                this.DFaceIndexsAroundOuterNodes.Add(new List<int>());
-                this.DFaceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNodes[i]);
-            }
+            //// 深拷贝FaceIndexsAroundOuterNodes
+            //this.DFaceIndexsAroundOuterNodes = new List<List<int>>();
+            //for (int i = 0; i < faceIndexsAroundOuterNodes.Count; i++)
+            //{
+            //    this.DFaceIndexsAroundOuterNodes.Add(new List<int>());
+            //    this.DFaceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNodes[i]);
+            //}
 
 
 
@@ -507,7 +499,30 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public List<int> FindPublicHalfedge(PlanktonMesh p, List<int> faceIndexs)
         {
+            List<int[]> facePairs = new List<int[]>();
+            for (int i = 0; i < faceIndexs.Count; i++)
+            {
+                for (int j = i + 1; j < faceIndexs.Count; j++)
+                {
+                    facePairs.Add(new int[2] { faceIndexs[i], faceIndexs[j] });
+                }
+            }
 
+            List<int> publicHalfedge = new List<int>();
+            for (int i = 0; i < facePairs.Count; i++)
+            {
+                int secondFace = facePairs[i][1];
+                int[] secondFaceEdges = p.Faces.GetHalfedges(secondFace);
+                foreach (int firstFaceEdge in p.Faces.GetHalfedges(facePairs[i][0]))
+                {
+                    if (secondFaceEdges.Contains(p.Halfedges.GetPairHalfedge(firstFaceEdge)))
+                    {
+                        publicHalfedge.Add(firstFaceEdge);
+                    }
+                }
+            }
+
+            return publicHalfedge;
         }
 
         public List<int> InnerNodeCorrespondingWhichDFace()
