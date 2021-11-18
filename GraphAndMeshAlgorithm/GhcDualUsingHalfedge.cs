@@ -1,5 +1,6 @@
 ﻿using Grasshopper;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Attributes;
 using Rhino;
 using Rhino.Collections;
 using Rhino.Geometry;
@@ -10,7 +11,10 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Windows.Forms;
 using VolumeGeneratorBasedOnGraph.Class;
+using Grasshopper.GUI.Canvas;
+using Grasshopper.GUI;
 
 namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {
@@ -28,10 +32,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             DualPolylines = new List<List<Point3d>>();
             DualVertexTextDots = new List<TextDot>();
 
-            NodePoints = new List<Point3d>();
-            DualNodeCorrespondingInnerNodeIndex = new List<int>();
-            GraphEdges = new List<Line>();
-            NodeTextDots = new List<TextDot>();
+            OriginGraphNodePoints = new List<Point3d>();
+            DualFaceIndexCorrespondingInnerNodeIndex = new List<int>();
+            OriginGraphEdges = new List<Line>();
+            OriginGraphNodeTextDots = new List<TextDot>();
         }
 
 
@@ -41,10 +45,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<List<Point3d>> DualPolylines;
         private List<TextDot> DualVertexTextDots;
 
-        private List<Point3d> NodePoints;
-        private List<int> DualNodeCorrespondingInnerNodeIndex;
-        private List<Line> GraphEdges;
-        private List<TextDot> NodeTextDots;
+        private List<Point3d> OriginGraphNodePoints;
+        private List<int> DualFaceIndexCorrespondingInnerNodeIndex;
+        private List<int> DualFaceIndexCorrespondingVolumeNodeIndex;
+        private List<Line> OriginGraphEdges;
+        private List<TextDot> OriginGraphNodeTextDots;
+
+        public enum CalMode { Daul, IntegrateDual}
+        public CalMode CompWorkMode { get; set; } = CalMode.Daul;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -95,10 +103,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 
                 // 获取相关属性
-                List<GraphNode> graphNodes = graphWithHM.GraphNodes;
-                List<List<int>> graphTables = graphWithHM.GraphTables;
+                List<GraphNode> originGraphNodes = graphWithHM.GraphNodes;
+                List<List<int>> originGraphTables = graphWithHM.GraphTables;
                 PlanktonMesh pGraphWithHM = graphWithHM.PlanktonMesh;
 
+                List<int> volumeNodesIndex = graphWithHM.VolumeNodesIndex;
+                List<GraphNode> volumeNodes = graphWithHM.VolumeNodes;
                 Dictionary<int, List<int>> volumeContainsWhichInnerNode = graphWithHM.VolumeContainsWhichInnerNode;
 
                 #region 获得对偶图
@@ -141,6 +151,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 int outerNodeCount = graphWithHM.OuterNodeCount;
                 #endregion
 
+
+
+
                 #region 计算faceIndexsAroundOuterNodes，找到每个outerNode相关的面和发出的半边
                 // 对于每个outerNode找到由它发出的半边
                 List<List<int>> halfedgeIndexsStartFromOuterNodes = new List<List<int>>();
@@ -161,6 +174,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
                 // DA.SetDataTree(5, UtilityFunctions.LoLToDataTree<int>(faceIndexsAroundOuterNodes));
 
+
+
+
+
                 #region 将每个outerNode相关的面的index的列表，分割成两个一组两个一组
                 List<List<int[]>> pairFaceIndexsAroundOuterNodes = new List<List<int[]>>();
                 /* 对于每个outerNode，找到跟它相关的面中，每两个相邻面的index，这个面的index就是Dual中顶点的index
@@ -178,14 +195,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
 
-                
-                List<int> dualNodeCorrespondingInnerNodeIndex = new List<int>();
+                #region 计算FaceCorresponding相关
+                List<int> dualFaceCorrespondingInnerNodeIndex = new List<int>();
                 #region 找到对偶图中的面所对应的InnerNode的序号，即NodePointIndex，NodePointIndex实际上是对偶图每个面所对应的原来图中的InnerNode的序号
                 List<List<int>> pFaceIndexAroundInnerNode = new List<List<int>>();
                 List<int> correspondingInnerNodeIndex = new List<int>();
-                for (int i = 0; i < graphNodes.Count; i++)
+                for (int i = 0; i < originGraphNodes.Count; i++)
                 {
-                    if (graphNodes[i].IsInner)
+                    if (originGraphNodes[i].IsInner)
                     {
                         //pFaceIndexAroundInnerNode.Add(new List<int>());
                         //pFaceIndexAroundInnerNode[i].AddRange(P.Vertices.GetVertexFaces(i));
@@ -205,14 +222,28 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                          */
                         if (D.Faces.GetFaceVertices(i).Except(pFaceIndexAroundInnerNode[j]).ToArray().Length == 0)
                         {
-                            dualNodeCorrespondingInnerNodeIndex.Add(correspondingInnerNodeIndex[j]);
+                            dualFaceCorrespondingInnerNodeIndex.Add(correspondingInnerNodeIndex[j]);
                         }
                     }
                 }
-                DualNodeCorrespondingInnerNodeIndex.Clear();
-                DualNodeCorrespondingInnerNodeIndex = dualNodeCorrespondingInnerNodeIndex;
+
+                List<GraphNode> dualFaceCorrespondingInnerNodes = new List<GraphNode>();
+                for (int i = 0; i < dualFaceCorrespondingInnerNodeIndex.Count; i++)
+                {
+                    dualFaceCorrespondingInnerNodes.Add(originGraphNodes[dualFaceCorrespondingInnerNodeIndex[i]]);
+                }
+
+
+                DualFaceIndexCorrespondingInnerNodeIndex.Clear();
+                DualFaceIndexCorrespondingInnerNodeIndex = dualFaceCorrespondingInnerNodeIndex;
 
                 #endregion
+                #endregion
+
+                
+
+
+
 
                 #region 找到对偶图中每个顶点属于哪个InnerNode
                 // 找到对偶图中每个顶点邻接的Face的Index，要去掉-1
@@ -234,10 +265,20 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     foreach (int dFaceIndex in dFaceIndexAroundVertice[i])
                     {
                         // NodePointIndex实际上是对偶图每个面所对应的原来图中的InnerNode的序号
-                        dVertexBelongsToWhichInnerNode[i].Add(DualNodeCorrespondingInnerNodeIndex[dFaceIndex]);
+                        dVertexBelongsToWhichInnerNode[i].Add(DualFaceIndexCorrespondingInnerNodeIndex[dFaceIndex]);
                     }
                 }
                 #endregion
+
+
+                List<List<int>> innerNodeContainsWhichDVertex = new List<List<int>>();
+                for (int i = 0; i < graphWithHM.InnerNodeIndexList.Count; i++)
+                {
+                    innerNodeContainsWhichDVertex.Add(new List<int>());
+                }
+
+
+
 
                 #region 找到对偶图中每个顶点属于哪个Volume
                 Dictionary<int, List<int>> volumeCorrespondingDualVertices = new Dictionary<int, List<int>>();
@@ -259,114 +300,166 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
 
+
+
                 #endregion
 
-                DualGraphWithHM dualGraphWithHM = new DualGraphWithHM(D, 
-                                                                      graphNodes, 
-                                                                      graphTables, 
-                                                                      dualNodeCorrespondingInnerNodeIndex, 
-                                                                      faceIndexsAroundOuterNodes,
-                                                                      dVertexBelongsToWhichInnerNode,
-                                                                      volumeCorrespondingDualVertices);
-
-
                 
-                List<PlanktonXYZ> dVertex = new List<PlanktonXYZ>();
-                for (int i = 0; i < D.Vertices.Count; i++)
-                {
-                    dVertex.Add(D.Vertices[i].ToXYZ());
-                }
-                List<List<int>> integrateDFace = new List<List<int>>();
-                foreach (KeyValuePair<int, List<int>> pair in volumeCorrespondingDualVertices)
-                {
-                    integrateDFace.Add(new List<int>());
-                    integrateDFace.Last().AddRange(pair.Value);
-                }
-
-                PlanktonMesh integrateD = new PlanktonMesh();
-                integrateD.Vertices.AddVertices(dVertex);
-                integrateD.Faces.AddFaces(integrateDFace);
-
-                DualGraphWithHM integrateDualGraphHM = new DualGraphWithHM()
 
 
-
-
-
+                DualGraphWithHM dualGraphWithHM = new DualGraphWithHM(D, 
+                                                                      originGraphNodes, 
+                                                                      originGraphTables, 
+                                                                      dualFaceCorrespondingInnerNodeIndex,
+                                                                      volumeNodesIndex,
+                                                                      volumeNodes,
+                                                                      volumeContainsWhichInnerNode,
+                                                                      faceIndexsAroundOuterNodes);
 
 
                 DA.SetData("DualGraphWithHM", dualGraphWithHM);
 
 
-
-
-
-
-
                 #region 可视化部分
+                PlanktonMesh MeshForVisualize = new PlanktonMesh();
 
-                #region clear
-                // 对偶图
-                DualVertices.Clear();
-                DualPolylines.Clear();
-                DualVertexTextDots.Clear();
-                // 原来的图
-                NodePoints.Clear();
-                
-                GraphEdges.Clear();
-                NodeTextDots.Clear();
-                #endregion
-
-                #region 对偶图
-                DualVertices = PlanktonGh.RhinoSupport.GetPositions(D).ToList();
-
-                Polyline[] dualPolylines = PlanktonGh.RhinoSupport.ToPolylines(D);
-                for (int i = 0; i < dualPolylines.Length; i++)
+                if (CompWorkMode == CalMode.Daul)
                 {
-                    DualPolylines.Add(new List<Point3d>());
-                    DualPolylines[i].AddRange(dualPolylines[i]);
-                }
+                    MeshForVisualize = dualGraphWithHM.PlanktonMesh;
 
-                for (int i = 0; i < D.Vertices.Count; i++)
-                {
-                    // 这里不能是D.Vertices.GetVertexFaces(i)，这样才能正确显示原来图中的InnerNode的序号
-                    // string arg = string.Join<int>(";", D.Vertices.GetVertexFaces(i));
-                    string arg = string.Join<int>(";", dVertexBelongsToWhichInnerNode[i]);
-                    TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), DualVertices[i]);
-                    DualVertexTextDots.Add(textDot);
-                }
-                #endregion
+                    #region clear
+                    // 对偶图
+                    DualVertices.Clear();
+                    DualPolylines.Clear();
+                    DualVertexTextDots.Clear();
+                    // 原来的图
+                    OriginGraphNodePoints.Clear();
+                    OriginGraphEdges.Clear();
+                    OriginGraphNodeTextDots.Clear();
+                    #endregion
 
-                #region 原来的图
+                    #region 对偶图
+                    DualVertices = PlanktonGh.RhinoSupport.GetPositions(MeshForVisualize).ToList();
 
-                #region 添加对偶图所有面的中心点作为NodePoint的坐标位置
-                for (int i = 0; i < D.Faces.Count; i++)
-                {
-                    NodePoints.Add(PlanktonGh.RhinoSupport.ToPoint3d(D.Faces.GetFaceCenter(i)));
-                }
-                #endregion
-
-                #region 根据innerNode的序号，写入对应的NodeTextDots
-                for (int i = 0; i < graphNodes.Count; i++)
-                {
-                    if (graphNodes[i].IsInner)
+                    Polyline[] dualPolylines = PlanktonGh.RhinoSupport.ToPolylines(MeshForVisualize);
+                    for (int i = 0; i < dualPolylines.Length; i++)
                     {
-                        NodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, graphNodes[i].NodeAttribute.NodeLabel), this.NodePoints[DualNodeCorrespondingInnerNodeIndex.IndexOf(i)]));
+                        DualPolylines.Add(new List<Point3d>());
+                        DualPolylines[i].AddRange(dualPolylines[i]);
                     }
-                }
-                #endregion
 
-                #region 代表innerNode的点之间连线
-                List<List<int>> faceAdjacency = UtilityFunctions.GetAdjacencyFaceIndexs(D);
-                for (int i = 0; i < NodePoints.Count; i++)
-                {
-                    for (int j = 0; j < faceAdjacency[i].Count; j++)
+                    for (int i = 0; i < MeshForVisualize.Vertices.Count; i++)
                     {
-                        GraphEdges.Add(new Line(NodePoints[i], NodePoints[faceAdjacency[i][j]]));
+                        // 这里不能是pMeshForVisualize.Vertices.GetVertexFaces(i)，这样才能正确显示原来图中的InnerNode的序号
+                        // string arg = string.Join<int>(";", D.Vertices.GetVertexFaces(i));
+                        string arg = string.Join<int>(";", dualGraphWithHM.DVertexBelongsToWhichInnerNode()[i]);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), DualVertices[i]);
+                        DualVertexTextDots.Add(textDot);
                     }
+                    #endregion
+
+                    #region 原来的图
+
+                    #region 添加对偶图所有面的中心点作为NodePoint的坐标位置
+                    for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
+                    {
+                        OriginGraphNodePoints.Add(PlanktonGh.RhinoSupport.ToPoint3d(MeshForVisualize.Faces.GetFaceCenter(i)));
+                    }
+                    #endregion
+
+                    #region 根据innerNode的序号，写入对应的NodeTextDots
+                    for (int i = 0; i < originGraphNodes.Count; i++)
+                    {
+                        if (originGraphNodes[i].IsInner)
+                        {
+                            OriginGraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, originGraphNodes[i].NodeAttribute.NodeLabel), this.OriginGraphNodePoints[DualFaceIndexCorrespondingInnerNodeIndex.IndexOf(i)]));
+                        }
+                    }
+                    #endregion
+
+                    #region 代表innerNode的点之间连线
+                    List<List<int>> faceAdjacency = UtilityFunctions.GetAdjacencyFaceIndexs(MeshForVisualize);
+                    for (int i = 0; i < OriginGraphNodePoints.Count; i++)
+                    {
+                        for (int j = 0; j < faceAdjacency[i].Count; j++)
+                        {
+                            OriginGraphEdges.Add(new Line(OriginGraphNodePoints[i], OriginGraphNodePoints[faceAdjacency[i][j]]));
+                        }
+                    }
+                    #endregion
+                    #endregion
                 }
-                #endregion
-                #endregion
+                else
+                {
+
+                    MeshForVisualize = dualGraphWithHM.IntegratePlanktonMesh;
+
+                    DualFaceIndexCorrespondingVolumeNodeIndex = dualGraphWithHM.DFaceBelongsToWhichVolumeNode();
+
+                    #region clear
+                    // 对偶图
+                    DualVertices.Clear();
+                    DualPolylines.Clear();
+                    DualVertexTextDots.Clear();
+                    // 原来的图
+                    OriginGraphNodePoints.Clear();
+                    OriginGraphEdges.Clear();
+                    OriginGraphNodeTextDots.Clear();
+                    #endregion
+
+                    #region 对偶图
+                    DualVertices = PlanktonGh.RhinoSupport.GetPositions(MeshForVisualize).ToList();
+
+                    Polyline[] dualPolylines = PlanktonGh.RhinoSupport.ToPolylines(MeshForVisualize);
+                    for (int i = 0; i < dualPolylines.Length; i++)
+                    {
+                        DualPolylines.Add(new List<Point3d>());
+                        DualPolylines[i].AddRange(dualPolylines[i]);
+                    }
+
+                    for (int i = 0; i < MeshForVisualize.Vertices.Count; i++)
+                    {
+                        // 这里不能是pMeshForVisualize.Vertices.GetVertexFaces(i)，这样才能正确显示原来图中的InnerNode的序号
+                        // string arg = string.Join<int>(";", D.Vertices.GetVertexFaces(i));
+                        string arg = string.Join<int>(";", dualGraphWithHM.DVertexBelongsToWhichVolumeNode()[i]);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), DualVertices[i]);
+                        DualVertexTextDots.Add(textDot);
+                    }
+                    #endregion
+
+                    #region 原来的图
+
+                    //#region 添加对偶图所有面的中心点作为NodePoint的坐标位置
+                    //for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
+                    //{
+                    //    OriginGraphNodePoints.Add(PlanktonGh.RhinoSupport.ToPoint3d(MeshForVisualize.Faces.GetFaceCenter(i)));
+                    //}
+                    //#endregion
+
+                    //#region 根据innerNode的序号，写入对应的NodeTextDots
+                    //for (int i = 0; i < originGraphNodes.Count; i++)
+                    //{
+                    //    if (originGraphNodes[i].IsInner)
+                    //    {
+                    //        OriginGraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, originGraphNodes[i].NodeAttribute.NodeLabel), this.OriginGraphNodePoints[DualFaceIndexCorrespondingInnerNodeIndex.IndexOf(i)]));
+                    //    }
+                    //}
+                    //#endregion
+
+                    //#region 代表innerNode的点之间连线
+                    //List<List<int>> faceAdjacency = UtilityFunctions.GetAdjacencyFaceIndexs(MeshForVisualize);
+                    //for (int i = 0; i < OriginGraphNodePoints.Count; i++)
+                    //{
+                    //    for (int j = 0; j < faceAdjacency[i].Count; j++)
+                    //    {
+                    //        OriginGraphEdges.Add(new Line(OriginGraphNodePoints[i], OriginGraphNodePoints[faceAdjacency[i][j]]));
+                    //    }
+                    //}
+                    //#endregion
+                    #endregion
+                }
+
+
 
                 #endregion
 
@@ -382,7 +475,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 args.Display.DrawPolyline(DualPolylines[i], Color.DarkOrange, Thickness);
             }
 
-            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+            args.Display.DrawLines(OriginGraphEdges, Color.ForestGreen, Thickness);
 
             for (int i = 0; i < DualVertexTextDots.Count; i++)
             {
@@ -391,10 +484,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 args.Display.EnableDepthTesting(true);
             }
 
-            for (int i = 0; i < NodeTextDots.Count; i++)
+            for (int i = 0; i < OriginGraphNodeTextDots.Count; i++)
             {
                 args.Display.EnableDepthTesting(false);
-                args.Display.DrawDot(NodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                args.Display.DrawDot(OriginGraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
             }
         }
@@ -408,7 +501,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 args.Display.DrawPolyline(DualPolylines[i], Color.DarkOrange, Thickness);
             }
 
-            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+            args.Display.DrawLines(OriginGraphEdges, Color.ForestGreen, Thickness);
 
             for (int i = 0; i < DualVertexTextDots.Count; i++)
             {
@@ -417,10 +510,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 args.Display.EnableDepthTesting(true);
             }
 
-            for (int i = 0; i < NodeTextDots.Count; i++)
+            for (int i = 0; i < OriginGraphNodeTextDots.Count; i++)
             {
                 args.Display.EnableDepthTesting(false);
-                args.Display.DrawDot(NodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                args.Display.DrawDot(OriginGraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
             }
         }
@@ -444,6 +537,84 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         public override Guid ComponentGuid
         {
             get { return new Guid("f73e455b-814f-4409-84da-b82a6df8f8f6"); }
+        }
+
+        public override void CreateAttributes()/* 重写CreateAttribute方法以启用自定义电池外观 */
+        {
+            Attributes = new GhcAttribute(this);
+        }
+    }
+
+    public class GhcAttribute : GH_ComponentAttributes
+    {
+        public GhcAttribute(GhcDualUsingHalfedge component) : base(component) { }
+
+        protected override void Layout()
+        {
+            base.Layout();
+            /* 先执行base.Layout()，可以按GH电池默认方式计算电池的出/入口需要的高度，我们在下面基于这个高度进行更改 */
+            Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 20.0f);
+        }
+
+        protected override void Render(GH_Canvas canvas, Graphics graphics, GH_CanvasChannel channel)
+        {
+            base.Render(canvas, graphics, channel);/* 执行基本的电池渲染 */
+
+            /* 额外的电池渲染，仅在“Objects”这个渲染轨道绘制 */
+            if (channel == GH_CanvasChannel.Objects)
+            {
+                RectangleF buttonRect = /* 按钮的位置 */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+
+                /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
+                buttonRect.Inflate(-2.0f, -2.0f);
+
+                using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect,GH_Palette.Black))
+                {
+                    /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
+                    /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
+                    /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
+                    capsule.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
+                }
+
+                graphics.DrawString(((GhcDualUsingHalfedge)Owner).CompWorkMode.ToString(),
+                                    new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
+                                    Brushes.White,
+                                    buttonRect,
+                                    new StringFormat()
+                                    {
+                                        Alignment = StringAlignment.Center,
+                                        LineAlignment = StringAlignment.Center,
+                                    });
+            }
+        }
+
+        public override GH_ObjectResponse RespondToMouseDown(GH_Canvas sender, GH_CanvasMouseEvent e)
+        {
+            RectangleF buttonRect = /* -重新计算按钮的区域大小- */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+
+            if (e.Button == MouseButtons.Left && buttonRect.Contains(e.CanvasLocation))
+            {
+                GhcDualUsingHalfedge comp = (GhcDualUsingHalfedge)Owner;/* 通过Owner属性来获得电池本身 */
+
+                /* 依照电池当前工作状态来改变电池 */
+                if (comp.CompWorkMode == GhcDualUsingHalfedge.CalMode.Daul)
+                {
+                    comp.CompWorkMode = GhcDualUsingHalfedge.CalMode.IntegrateDual;
+                }
+                else
+                {
+                    comp.CompWorkMode = GhcDualUsingHalfedge.CalMode.Daul;
+                }
+
+                /* 改变完电池后，重启计算 */
+                comp.ExpireSolution(true);
+
+                /* 结束鼠标事件处理，通知GH已经处理完毕 */
+                return GH_ObjectResponse.Handled;
+            }
+
+            /* 若上述条件未满足，则直接返回“未处理” */
+            return GH_ObjectResponse.Ignore;
         }
     }
 }

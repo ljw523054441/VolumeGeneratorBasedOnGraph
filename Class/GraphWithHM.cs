@@ -19,7 +19,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public List<string> TreeNodeHistory { get; set; }
 
+        public List<int> VolumeNodesIndex { get; set; }
+
+        public List<GraphNode> VolumeNodes { get; set; }
+
         public Dictionary<int, List<int>> VolumeContainsWhichInnerNode { get; set; }
+
+
+        public List<GraphNode> OriginGraphNodes { get; set; }
+        public List<List<int>> OriginGraphTables { get; set; }
+
 
         /// <summary>
         /// 构造空的GraphWithHFMesh对象
@@ -27,8 +36,13 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public GraphWithHM():base()
         {
             this.PlanktonMesh = new PlanktonMesh();
+
             this.TreeNodeLabel = null;
+
             this.TreeNodeHistory = null;
+            this.VolumeNodesIndex = null;
+            this.VolumeNodes = null;
+
             this.VolumeContainsWhichInnerNode = null;
         }
 
@@ -62,19 +76,28 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.PlanktonMesh = new PlanktonMesh(source.PlanktonMesh);
             // 深拷贝TreeNodeLabel
             this.TreeNodeLabel = (string)source.TreeNodeLabel.Clone();
-            // 深拷贝TreeNodeHistory
-            if (source.TreeNodeHistory != null)
+
+
+            // 深拷贝TreeNodeHistory，深拷贝VolumeNodesIndex，深拷贝VolumeNodes
+            if (source.TreeNodeHistory != null && source.VolumeNodesIndex != null && source.VolumeNodes != null)
             {
                 this.TreeNodeHistory = new List<string>();
+                this.VolumeNodesIndex = new List<int>();
+                this.VolumeNodes = new List<GraphNode>();
                 for (int i = 0; i < source.TreeNodeHistory.Count; i++)
                 {
                     this.TreeNodeHistory.Add(source.TreeNodeHistory[i]);
+                    this.VolumeNodesIndex.Add(source.VolumeNodesIndex[i]);
+                    this.VolumeNodes.Add(new GraphNode(source.VolumeNodes[i]));
                 }
             }
             else
             {
                 this.TreeNodeHistory = null;
+                this.VolumeNodesIndex = null;
+                this.VolumeNodes = null;
             }
+
             // 深拷贝VolumeContainsWhichInnerNode
             this.VolumeContainsWhichInnerNode = new Dictionary<int, List<int>>();
             if (source.VolumeContainsWhichInnerNode != null)
@@ -129,8 +152,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
             // 设置空的TreeNodeLabel
             this.TreeNodeLabel = "尚未进行过Decompose的GraphWithHFMesh对象";
-            // 设置空的TreeNodeHistory
+            // 设置空的TreeNodeHistory，设置空的VolumeNodesIndex，设置空的VolumeNode
             this.TreeNodeHistory = null;
+            this.VolumeNodesIndex = null;
+            this.VolumeNodes = null;
             // 设置空的VolumeContainsWhichInnerNode
             this.VolumeContainsWhichInnerNode = null;
         }
@@ -186,8 +211,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
             // 设置新的TreeNodeLabel
             this.TreeNodeLabel = treeNodeLabel;
-            // 设置空的TreeNodeHistory
+            // 设置空的TreeNodeHistory，设置空的VolumeNodesIndex，设置空的VolumeNode
             this.TreeNodeHistory = null;
+            this.VolumeNodesIndex = null;
+            this.VolumeNodes = null;
             // 设置新的VolumeContainsWhichInnerNode
             this.VolumeContainsWhichInnerNode = new Dictionary<int, List<int>>();
             foreach (KeyValuePair<int, List<int>> pair in volumeContainsWhichInnerNode)
@@ -325,6 +352,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
             GraphWithHM embededGraphWithHM = new GraphWithHM(embededPlanktonMesh, newGraphNodes, originGraphTables);
 
             embededGraphWithHM.TreeNodeLabel = newGraphWithHM.TreeNodeLabel;
+            embededGraphWithHM.TreeNodeHistory = newGraphWithHM.TreeNodeHistory;
+            embededGraphWithHM.VolumeNodes = newGraphWithHM.VolumeNodes;
+            embededGraphWithHM.VolumeNodesIndex = newGraphWithHM.VolumeNodesIndex;
             embededGraphWithHM.VolumeContainsWhichInnerNode = newGraphWithHM.VolumeContainsWhichInnerNode;
 
             return embededGraphWithHM;
