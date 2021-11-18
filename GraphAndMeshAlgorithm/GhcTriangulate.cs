@@ -703,7 +703,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
                     buttonRect.Inflate(-2.0f, -2.0f);
 
-                    using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect, GH_Palette.Black))
+                    using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect, GH_Palette.Normal))
                     {
                         /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
                         /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
@@ -711,9 +711,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         capsule.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
                     }
 
-                    graphics.DrawString(string.Format("{0} / {1}", ((GhcTriangulate)Owner).CurrentIndex.ToString(), ((GhcTriangulate)Owner).CountOfAllGraphWithHM.ToString()),
+                    graphics.DrawString(string.Format("CurrentIndex:{0} / {1}", ((GhcTriangulate)Owner).CurrentIndex.ToString(), ((GhcTriangulate)Owner).CountOfAllGraphWithHM.ToString()),
                                         new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
-                                        Brushes.White,
+                                        Brushes.Black,
                                         buttonRect,
                                         new StringFormat()
                                         {

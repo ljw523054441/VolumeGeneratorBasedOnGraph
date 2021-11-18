@@ -1869,7 +1869,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
                     buttonRect1.Inflate(-2.0f, -2.0f);
 
-                    using (GH_Capsule capsule1 = GH_Capsule.CreateCapsule(buttonRect1, GH_Palette.Black))
+                    using (GH_Capsule capsule1 = GH_Capsule.CreateCapsule(buttonRect1, GH_Palette.Normal))
                     {
                         /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
                         /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
@@ -1879,7 +1879,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                     graphics.DrawString(string.Format("CurrentLeafNode: {0} / {1}", ((GhcDecomposeVertex)Owner).CurrentLeafNodeIndex.ToString(), ((GhcDecomposeVertex)Owner).CountOfAllLeafNodes.ToString()),
                                         new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
-                                        Brushes.White,
+                                        Brushes.Black,
                                         buttonRect1,
                                         new StringFormat()
                                         {
@@ -1891,7 +1891,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
                     buttonRect2.Inflate(-2.0f, -2.0f);
 
-                    using (GH_Capsule capsule2 = GH_Capsule.CreateCapsule(buttonRect2, GH_Palette.Black))
+                    using (GH_Capsule capsule2 = GH_Capsule.CreateCapsule(buttonRect2, GH_Palette.Normal))
                     {
                         /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
                         /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
@@ -1901,7 +1901,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                     graphics.DrawString(string.Format("CurrentTreeBranch: {0} / {1}", ((GhcDecomposeVertex)Owner).CurrentDepth.ToString(), ((GhcDecomposeVertex)Owner).SelectedBranchDepth.ToString()),
                                         new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
-                                        Brushes.White,
+                                        Brushes.Black,
                                         buttonRect2,
                                         new StringFormat()
                                         {
