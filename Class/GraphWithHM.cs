@@ -20,7 +20,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public List<string> TreeNodeHistory { get; set; }
 
 
-        public SortedDictionary<int, GraphNode> VolumeIndex_VolumeNode { get; set; }
+        public SortedDictionary<int, GraphNode> Volume_VolumeNode { get; set; }
 
         public SortedDictionary<int, List<int>> Volume_Inner { get; set; }
 
@@ -41,7 +41,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.TreeNodeHistory = null;
 
-            this.VolumeIndex_VolumeNode = null;
+            this.Volume_VolumeNode = null;
 
             this.Volume_Inner = null;
         }
@@ -94,17 +94,17 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             }
             // 深拷贝VolumeIndex_VolumeNode
-            if (source.VolumeIndex_VolumeNode != null)
+            if (source.Volume_VolumeNode != null)
             {
-                this.VolumeIndex_VolumeNode = new SortedDictionary<int, GraphNode>();
-                foreach (var item in source.VolumeIndex_VolumeNode)
+                this.Volume_VolumeNode = new SortedDictionary<int, GraphNode>();
+                foreach (var item in source.Volume_VolumeNode)
                 {
-                    this.VolumeIndex_VolumeNode.Add(item.Key, item.Value);
+                    this.Volume_VolumeNode.Add(item.Key, item.Value);
                 }
             }
             else
             {
-                this.VolumeIndex_VolumeNode = null;
+                this.Volume_VolumeNode = null;
             }
             // 深拷贝Volume_Inner
             this.Volume_Inner = new SortedDictionary<int, List<int>>();
@@ -170,7 +170,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // 设置空的TreeNodeHistory
             this.TreeNodeHistory = null;
             // 设置空的VolumeIndex_VolumeNode
-            this.VolumeIndex_VolumeNode = null;
+            this.Volume_VolumeNode = null;
             // 设置空的Volume_Inner
             this.Volume_Inner = null;
         }
@@ -231,7 +231,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // 设置空的TreeNodeHistory
             this.TreeNodeHistory = null;
             // 设置空的VolumeIndex_VolumeNode
-            this.VolumeIndex_VolumeNode = null;
+            this.Volume_VolumeNode = null;
             // 设置新的Volume_Inner
             this.Volume_Inner = new SortedDictionary<int, List<int>>();
             foreach (KeyValuePair<int, List<int>> pair in volumeContainsWhichInnerNode)
@@ -374,7 +374,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             embededGraphWithHM.TreeNodeLabel = newGraphWithHM.TreeNodeLabel;
             embededGraphWithHM.TreeNodeHistory = newGraphWithHM.TreeNodeHistory;
-            embededGraphWithHM.VolumeIndex_VolumeNode = newGraphWithHM.VolumeIndex_VolumeNode;
+            embededGraphWithHM.Volume_VolumeNode = newGraphWithHM.Volume_VolumeNode;
             embededGraphWithHM.Volume_Inner = newGraphWithHM.Volume_Inner;
 
             return embededGraphWithHM;
