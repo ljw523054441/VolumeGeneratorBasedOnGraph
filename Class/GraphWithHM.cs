@@ -19,15 +19,15 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public List<string> TreeNodeHistory { get; set; }
 
-        public List<int> VolumeNodesIndex { get; set; }
 
-        public List<GraphNode> VolumeNodes { get; set; }
+        public SortedDictionary<int, GraphNode> VolumeIndex_VolumeNode { get; set; }
 
-        public Dictionary<int, List<int>> VolumeContainsWhichInnerNode { get; set; }
+        public SortedDictionary<int, List<int>> Volume_Inner { get; set; }
 
 
-        public List<GraphNode> OriginGraphNodes { get; set; }
-        public List<List<int>> OriginGraphTables { get; set; }
+
+        public List<GraphNode> UndividedGraphNodes { get; set; }
+        public List<List<int>> UndividedGraphTables { get; set; }
 
 
         /// <summary>
@@ -40,10 +40,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.TreeNodeLabel = null;
 
             this.TreeNodeHistory = null;
-            this.VolumeNodesIndex = null;
-            this.VolumeNodes = null;
 
-            this.VolumeContainsWhichInnerNode = null;
+            this.VolumeIndex_VolumeNode = null;
+
+            this.Volume_Inner = null;
         }
 
         /// <summary>
@@ -52,6 +52,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="source"></param>
         public GraphWithHM(GraphWithHM source)
         {
+            #region 父类属性
             // 深拷贝List<List<int>>
             this.GraphTables = new List<List<int>>();
             for (int i = 0; i < source.GraphTables.Count; i++)
@@ -70,42 +71,53 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.OuterNodeCount = source.OuterNodeCount;
             this.InnerNodeIndexList = source.InnerNodeIndexList;
             this.OuterNodeIndexList = source.OuterNodeIndexList;
-
+            #endregion
 
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(source.PlanktonMesh);
             // 深拷贝TreeNodeLabel
             this.TreeNodeLabel = (string)source.TreeNodeLabel.Clone();
 
-
-            // 深拷贝TreeNodeHistory，深拷贝VolumeNodesIndex，深拷贝VolumeNodes
-            if (source.TreeNodeHistory != null && source.VolumeNodesIndex != null && source.VolumeNodes != null)
+            // 深拷贝TreeNodeHistory
+            if (source.TreeNodeHistory != null )
             {
                 this.TreeNodeHistory = new List<string>();
-                this.VolumeNodesIndex = new List<int>();
-                this.VolumeNodes = new List<GraphNode>();
                 for (int i = 0; i < source.TreeNodeHistory.Count; i++)
                 {
                     this.TreeNodeHistory.Add(source.TreeNodeHistory[i]);
-                    this.VolumeNodesIndex.Add(source.VolumeNodesIndex[i]);
-                    this.VolumeNodes.Add(new GraphNode(source.VolumeNodes[i]));
                 }
+                
             }
             else
             {
                 this.TreeNodeHistory = null;
-                this.VolumeNodesIndex = null;
-                this.VolumeNodes = null;
-            }
 
-            // 深拷贝VolumeContainsWhichInnerNode
-            this.VolumeContainsWhichInnerNode = new Dictionary<int, List<int>>();
-            if (source.VolumeContainsWhichInnerNode != null)
+            }
+            // 深拷贝VolumeIndex_VolumeNode
+            if (source.VolumeIndex_VolumeNode != null)
             {
-                foreach (KeyValuePair<int, List<int>> pair in source.VolumeContainsWhichInnerNode)
+                this.VolumeIndex_VolumeNode = new SortedDictionary<int, GraphNode>();
+                foreach (var item in source.VolumeIndex_VolumeNode)
                 {
-                    this.VolumeContainsWhichInnerNode.Add(pair.Key, pair.Value);
+                    this.VolumeIndex_VolumeNode.Add(item.Key, item.Value);
                 }
+            }
+            else
+            {
+                this.VolumeIndex_VolumeNode = null;
+            }
+            // 深拷贝Volume_Inner
+            this.Volume_Inner = new SortedDictionary<int, List<int>>();
+            if (source.Volume_Inner != null)
+            {
+                foreach (KeyValuePair<int, List<int>> pair in source.Volume_Inner)
+                {
+                    this.Volume_Inner.Add(pair.Key, pair.Value);
+                }
+            }
+            else
+            {
+                this.Volume_Inner = null;
             }
         }
 
@@ -116,6 +128,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                            List<GraphNode> graphNodes,
                            List<List<int>> graphTables)
         {
+            #region 父类属性
             // 深拷贝List<List<int>>
             this.GraphTables = new List<List<int>>();
             for (int i = 0; i < graphTables.Count; i++)
@@ -147,34 +160,36 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     this.OuterNodeIndexList.Add(i);
                 }
             }
+            #endregion
 
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
             // 设置空的TreeNodeLabel
             this.TreeNodeLabel = "尚未进行过Decompose的GraphWithHFMesh对象";
-            // 设置空的TreeNodeHistory，设置空的VolumeNodesIndex，设置空的VolumeNode
+
+            // 设置空的TreeNodeHistory
             this.TreeNodeHistory = null;
-            this.VolumeNodesIndex = null;
-            this.VolumeNodes = null;
-            // 设置空的VolumeContainsWhichInnerNode
-            this.VolumeContainsWhichInnerNode = null;
+            // 设置空的VolumeIndex_VolumeNode
+            this.VolumeIndex_VolumeNode = null;
+            // 设置空的Volume_Inner
+            this.Volume_Inner = null;
         }
 
         /// <summary>
         /// 用于在进行Decompose后，构造GraphWithHFMesh对象
         /// </summary>
         /// <param name="planktonMesh"></param>
-        /// <param name="graphTables"></param>
         /// <param name="graphNodes"></param>
-        /// <param name="decomposeTheithVertex"></param>
-        /// <param name="decomposeTheithPairHFVertexIndex"></param>
-        /// <param name="decomposeTheithPairHFResult"></param>
+        /// <param name="graphTables"></param>
+        /// <param name="treeNodeLabel"></param>
+        /// <param name="volumeContainsWhichInnerNode"></param>
         public GraphWithHM(PlanktonMesh planktonMesh,
                            List<GraphNode> graphNodes,
                            List<List<int>> graphTables, 
                            string treeNodeLabel,
-                           Dictionary<int,List<int>> volumeContainsWhichInnerNode)
+                           SortedDictionary<int,List<int>> volumeContainsWhichInnerNode)
         {
+            #region 父类属性
             // 深拷贝List<List<int>>
             this.GraphTables = new List<List<int>>();
             for (int i = 0; i < graphTables.Count; i++)
@@ -206,26 +221,32 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     this.OuterNodeIndexList.Add(i);
                 }
             }
+            #endregion
 
             // 深拷贝PlanktonMesh
             this.PlanktonMesh = new PlanktonMesh(planktonMesh);
             // 设置新的TreeNodeLabel
             this.TreeNodeLabel = treeNodeLabel;
-            // 设置空的TreeNodeHistory，设置空的VolumeNodesIndex，设置空的VolumeNode
+
+            // 设置空的TreeNodeHistory
             this.TreeNodeHistory = null;
-            this.VolumeNodesIndex = null;
-            this.VolumeNodes = null;
-            // 设置新的VolumeContainsWhichInnerNode
-            this.VolumeContainsWhichInnerNode = new Dictionary<int, List<int>>();
+            // 设置空的VolumeIndex_VolumeNode
+            this.VolumeIndex_VolumeNode = null;
+            // 设置新的Volume_Inner
+            this.Volume_Inner = new SortedDictionary<int, List<int>>();
             foreach (KeyValuePair<int, List<int>> pair in volumeContainsWhichInnerNode)
             {
-                this.VolumeContainsWhichInnerNode.Add(pair.Key, pair.Value);
+                this.Volume_Inner.Add(pair.Key, pair.Value);
             }
         }
 
 
 
-
+        /// <summary>
+        /// ReTutte嵌入
+        /// </summary>
+        /// <param name="source"></param>
+        /// <returns></returns>
         public static GraphWithHM ReTutteEmbeding(GraphWithHM source)
         {
             #region 计算相关矩阵的前置条件
@@ -353,9 +374,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             embededGraphWithHM.TreeNodeLabel = newGraphWithHM.TreeNodeLabel;
             embededGraphWithHM.TreeNodeHistory = newGraphWithHM.TreeNodeHistory;
-            embededGraphWithHM.VolumeNodes = newGraphWithHM.VolumeNodes;
-            embededGraphWithHM.VolumeNodesIndex = newGraphWithHM.VolumeNodesIndex;
-            embededGraphWithHM.VolumeContainsWhichInnerNode = newGraphWithHM.VolumeContainsWhichInnerNode;
+            embededGraphWithHM.VolumeIndex_VolumeNode = newGraphWithHM.VolumeIndex_VolumeNode;
+            embededGraphWithHM.Volume_Inner = newGraphWithHM.Volume_Inner;
 
             return embededGraphWithHM;
         }

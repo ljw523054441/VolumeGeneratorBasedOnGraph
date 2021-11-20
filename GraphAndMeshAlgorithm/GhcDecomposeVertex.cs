@@ -327,9 +327,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 GraphWithHM embededGraphWithHM = new GraphWithHM();
                 List<string> selectedTreeNodeHistory = seletedGHM.TreeNodeHistory;
                 List<string> selectedVolumeContainsWhichInnerNode = new List<string>();
-                if (seletedGHM.VolumeContainsWhichInnerNode != null)
+                if (seletedGHM.Volume_Inner != null)
                 {
-                    foreach (var keyValuePair in seletedGHM.VolumeContainsWhichInnerNode)
+                    foreach (var keyValuePair in seletedGHM.Volume_Inner)
                     {
                         selectedVolumeContainsWhichInnerNode.Add(string.Format("{0}:{1}", keyValuePair.Key, string.Join(",", keyValuePair.Value)));
                     }
@@ -357,16 +357,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
                 #region 保存并传递原来未分裂之前的GraphNodes和GraphTables
-                embededGraphWithHM.OriginGraphNodes = new List<GraphNode>();
+                embededGraphWithHM.UndividedGraphNodes = new List<GraphNode>();
                 for (int i = 0; i < graphWithHM.GraphNodes.Count; i++)
                 {
-                    embededGraphWithHM.OriginGraphNodes.Add(new GraphNode(graphWithHM.GraphNodes[i]));
+                    embededGraphWithHM.UndividedGraphNodes.Add(new GraphNode(graphWithHM.GraphNodes[i]));
                 }
-                embededGraphWithHM.OriginGraphTables = new List<List<int>>();
+                embededGraphWithHM.UndividedGraphTables = new List<List<int>>();
                 for (int i = 0; i < graphWithHM.GraphTables.Count; i++)
                 {
-                    embededGraphWithHM.OriginGraphTables.Add(new List<int>());
-                    embededGraphWithHM.OriginGraphTables[i].AddRange(graphWithHM.GraphTables[i]);
+                    embededGraphWithHM.UndividedGraphTables.Add(new List<int>());
+                    embededGraphWithHM.UndividedGraphTables[i].AddRange(graphWithHM.GraphTables[i]);
                 }
                 #endregion
 
@@ -503,7 +503,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             ParentINode = INodeToSplit;
 
-            GraphNode volumeNode = INodeToSplit.Data.GraphNodes[currentVertexToSplit];
+            GraphNode currentVolumeNodeToSplit = INodeToSplit.Data.GraphNodes[currentVertexToSplit];
 
 
             // int currentLevel = allInnerNodeNeedToSplit[i];
@@ -560,11 +560,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             // 这段代码没有进行深拷贝
                             //newChildGraphWithHM.TreeNodeHistory = INodeToSplit.Data.TreeNodeHistory;
                             //newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
-
                             newChildGraphWithHM.TreeNodeHistory = new List<string>();
-                            newChildGraphWithHM.VolumeNodesIndex = new List<int>();
-                            newChildGraphWithHM.VolumeNodes = new List<GraphNode>();
-                            if (INodeToSplit.Data.TreeNodeHistory == null && INodeToSplit.Data.VolumeNodesIndex == null && INodeToSplit.Data.VolumeNodes == null)
+                            newChildGraphWithHM.VolumeIndex_VolumeNode = new SortedDictionary<int, GraphNode>();
+                            if (INodeToSplit.Data.TreeNodeHistory == null && INodeToSplit.Data.VolumeIndex_VolumeNode == null)
                             {
                                 newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败;所选择的两个半边是:{2}-{3},{4}-{5}",
                                                                                       RecursionDepth, 
@@ -573,16 +571,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                                       allPossibleHalfedgeVertexIndexs[i][0, 1],
                                                                                       allPossibleHalfedgeVertexIndexs[i][1, 0],
                                                                                       allPossibleHalfedgeVertexIndexs[i][1, 1]));
-                                newChildGraphWithHM.VolumeNodesIndex.Add(currentVertexToSplit);
-                                newChildGraphWithHM.VolumeNodes.Add(volumeNode);
+
+                                newChildGraphWithHM.VolumeIndex_VolumeNode.Add(currentVertexToSplit, currentVolumeNodeToSplit);
                             }
                             else
                             {
                                 for (int j = 0; j < INodeToSplit.Data.TreeNodeHistory.Count; j++)
                                 {
                                     newChildGraphWithHM.TreeNodeHistory.Add(INodeToSplit.Data.TreeNodeHistory[j]);
-                                    newChildGraphWithHM.VolumeNodesIndex.Add(INodeToSplit.Data.VolumeNodesIndex[j]);
-                                    newChildGraphWithHM.VolumeNodes.Add(INodeToSplit.Data.VolumeNodes[j]);
                                 }
                                 newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败;所选择的两个半边是:{2}-{3},{4}-{5}",
                                                                                       RecursionDepth, 
@@ -591,8 +587,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                                       allPossibleHalfedgeVertexIndexs[i][0, 1],
                                                                                       allPossibleHalfedgeVertexIndexs[i][1, 0],
                                                                                       allPossibleHalfedgeVertexIndexs[i][1, 1]));
-                                newChildGraphWithHM.VolumeNodesIndex.Add(currentVertexToSplit);
-                                newChildGraphWithHM.VolumeNodes.Add(volumeNode);
+
+                                foreach (var item in INodeToSplit.Data.VolumeIndex_VolumeNode)
+                                {
+                                    newChildGraphWithHM.VolumeIndex_VolumeNode.Add(item.Key, item.Value);
+                                }
+                                newChildGraphWithHM.VolumeIndex_VolumeNode.Add(currentVertexToSplit, currentVolumeNodeToSplit);
                             }
 
 
@@ -645,9 +645,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             //newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败", RecursionDepth, currentVertexToSplit));
 
                             newChildGraphWithHM.TreeNodeHistory = new List<string>();
-                            newChildGraphWithHM.VolumeNodesIndex = new List<int>();
-                            newChildGraphWithHM.VolumeNodes = new List<GraphNode>();
-                            if (INodeToSplit.Data.TreeNodeHistory == null && INodeToSplit.Data.VolumeNodesIndex == null && INodeToSplit.Data.VolumeNodes == null)
+                            newChildGraphWithHM.VolumeIndex_VolumeNode = new SortedDictionary<int, GraphNode>();
+                            if (INodeToSplit.Data.TreeNodeHistory == null && INodeToSplit.Data.VolumeIndex_VolumeNode == null)
                             {
                                 newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败;所选择的两个半边是:{2}-{3},{4}-{5}",
                                                                                       RecursionDepth,
@@ -656,16 +655,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                                       allPossibleHalfedgeVertexIndexs[i][0, 1],
                                                                                       allPossibleHalfedgeVertexIndexs[i][1, 0],
                                                                                       allPossibleHalfedgeVertexIndexs[i][1, 1]));
-                                newChildGraphWithHM.VolumeNodesIndex.Add(currentVertexToSplit);
-                                newChildGraphWithHM.VolumeNodes.Add(volumeNode);
+
+                                newChildGraphWithHM.VolumeIndex_VolumeNode.Add(currentVertexToSplit, currentVolumeNodeToSplit);
                             }
                             else
                             {
                                 for (int j = 0; j < INodeToSplit.Data.TreeNodeHistory.Count; j++)
                                 {
                                     newChildGraphWithHM.TreeNodeHistory.Add(INodeToSplit.Data.TreeNodeHistory[j]);
-                                    newChildGraphWithHM.VolumeNodesIndex.Add(INodeToSplit.Data.VolumeNodesIndex[j]);
-                                    newChildGraphWithHM.VolumeNodes.Add(INodeToSplit.Data.VolumeNodes[j]);
                                 }
                                 newChildGraphWithHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点分裂失败;所选择的两个半边是:{2}-{3},{4}-{5}",
                                                                                       RecursionDepth,
@@ -674,8 +671,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                                       allPossibleHalfedgeVertexIndexs[i][0, 1],
                                                                                       allPossibleHalfedgeVertexIndexs[i][1, 0],
                                                                                       allPossibleHalfedgeVertexIndexs[i][1, 1]));
-                                newChildGraphWithHM.VolumeNodesIndex.Add(currentVertexToSplit);
-                                newChildGraphWithHM.VolumeNodes.Add(volumeNode);
+
+                                foreach (var item in INodeToSplit.Data.VolumeIndex_VolumeNode)
+                                {
+                                    newChildGraphWithHM.VolumeIndex_VolumeNode.Add(item.Key, item.Value);
+                                }
+                                newChildGraphWithHM.VolumeIndex_VolumeNode.Add(currentVertexToSplit, currentVolumeNodeToSplit);
                             }
 
                             INode<GraphWithHM> childDHMToSplit = INodeToSplit.AddChild(newChildGraphWithHM);
@@ -684,20 +685,20 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         }
                         #endregion
 
-                        // 构造volumeContainsWhichInnerNode
+                        // 构造volume_inner
                         List<int> newValue = new int[] { currentVertexToSplit, newVertexIndex }.ToList();
-                        Dictionary<int, List<int>> volumeContainsWhichInnerNode = INodeToSplit.Data.VolumeContainsWhichInnerNode;
-                        if (volumeContainsWhichInnerNode.ContainsKey(currentVertexToSplit))
+                        SortedDictionary<int, List<int>> volume_inner = INodeToSplit.Data.Volume_Inner;
+                        if (volume_inner.ContainsKey(currentVertexToSplit))
                         {
-                            List<int> subtraction = volumeContainsWhichInnerNode[currentVertexToSplit].Except(newValue).ToList();
+                            List<int> subtraction = volume_inner[currentVertexToSplit].Except(newValue).ToList();
                             if (subtraction.Count != 0)
                             {
-                                volumeContainsWhichInnerNode[currentVertexToSplit].Add(newVertexIndex);
+                                volume_inner[currentVertexToSplit].Add(newVertexIndex);
                             }
                         }
                         else
                         {
-                            volumeContainsWhichInnerNode.Add(currentVertexToSplit, new int[] { currentVertexToSplit, newVertexIndex }.ToList());
+                            volume_inner.Add(currentVertexToSplit, new int[] { currentVertexToSplit, newVertexIndex }.ToList());
                         }
 
                         #region 构造对于每一种半边选择可能性所产生的DecomposedHM，并且将它作为INode<DecomposedHM> dHMToSplit的叶子节点，并且递归分裂叶子节点
@@ -705,7 +706,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         {
                             List<List<int>> newGraphTables = RenewGraphTable(gHMDeepCopy.GraphTables, allPossibleHalfedgeVertexIndexs[i], newVertexIndex, newEndVertexAfterResetHalfedgeList[j]);
 
-                            string label = "分裂了第" + currentVertexToSplit.ToString() + "个Vertex" +
+                            string treeNodeLabel = "分裂了第" + currentVertexToSplit.ToString() + "个Vertex" +
                                            "，所选的两个半边的起点终点是" +
                                            allPossibleHalfedgeVertexIndexs[i][0, 0].ToString() + ";" +
                                            allPossibleHalfedgeVertexIndexs[i][0, 1].ToString() + ";" +
@@ -713,9 +714,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                            allPossibleHalfedgeVertexIndexs[i][1, 1].ToString() +
                                            "，并且是第" + j.ToString() + "分裂可能性";
 
-
-
-                            GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[j], newPNodes, newGraphTables, label, volumeContainsWhichInnerNode);
+                            GraphWithHM currentDHM = new GraphWithHM(edgeResetStartP[j], newPNodes, newGraphTables, treeNodeLabel, volume_inner);
 
                             // 这段代码没有深拷贝
                             //currentDHM.TreeNodeHistory = INodeToSplit.Data.TreeNodeHistory;
@@ -724,11 +723,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             //    currentDHM.TreeNodeHistory = new List<string>();
                             //}
                             //currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2}", RecursionDepth, currentVertexToSplit, newVertexIndex));
-
                             currentDHM.TreeNodeHistory = new List<string>();
-                            currentDHM.VolumeNodesIndex = new List<int>();
-                            currentDHM.VolumeNodes = new List<GraphNode>();
-                            if (INodeToSplit.Data.TreeNodeHistory == null && INodeToSplit.Data.VolumeNodesIndex == null && INodeToSplit.Data.VolumeNodes == null)
+                            currentDHM.VolumeIndex_VolumeNode = new SortedDictionary<int, GraphNode>();
+                            if (INodeToSplit.Data.TreeNodeHistory == null && INodeToSplit.Data.VolumeIndex_VolumeNode == null)
                             {
                                 currentDHM.TreeNodeHistory.Add(string.Format("递归深度:{0},{1}点被分裂为{1}，{2};所选择的两个半边是:{3}-{4},{5}-{6}", 
                                                                              RecursionDepth, 
@@ -738,8 +735,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                              allPossibleHalfedgeVertexIndexs[i][0, 1],
                                                                              allPossibleHalfedgeVertexIndexs[i][1, 0],
                                                                              allPossibleHalfedgeVertexIndexs[i][1, 1]));
-                                currentDHM.VolumeNodesIndex.Add(currentVertexToSplit);
-                                currentDHM.VolumeNodes.Add(volumeNode);
+
+                                currentDHM.VolumeIndex_VolumeNode.Add(currentVertexToSplit, currentVolumeNodeToSplit);
                             }
                             else
                             {
@@ -757,8 +754,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                              allPossibleHalfedgeVertexIndexs[i][0, 1],
                                                                              allPossibleHalfedgeVertexIndexs[i][1, 0],
                                                                              allPossibleHalfedgeVertexIndexs[i][1, 1]));
-                                currentDHM.VolumeNodesIndex.Add(currentVertexToSplit);
-                                currentDHM.VolumeNodes.Add(volumeNode);
+                                foreach (var item in INodeToSplit.Data.VolumeIndex_VolumeNode)
+                                {
+                                    currentDHM.VolumeIndex_VolumeNode.Add(item.Key, item.Value);
+                                }
+                                currentDHM.VolumeIndex_VolumeNode.Add(currentVertexToSplit, currentVolumeNodeToSplit);
                             }
 
 
