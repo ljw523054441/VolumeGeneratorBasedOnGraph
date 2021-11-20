@@ -102,7 +102,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //// 对输入的Curve类型的boundaryPolyline进行类型转换，转换成Curve类的子类Polyline
                 //boundaryPolylineCurve.TryGetPolyline(out boundaryPolyline);
 
-                PlanktonMesh D = dualGraphWithHM.PlanktonMesh;
+                PlanktonMesh D = dualGraphWithHM.DualPlanktonMesh;
                 List<GraphNode> graphNodes = dualGraphWithHM.GraphNodes;
 
                 int innerNodeCount = dualGraphWithHM.InnerNodeCount;

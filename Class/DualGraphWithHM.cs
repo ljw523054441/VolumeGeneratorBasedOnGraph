@@ -16,44 +16,23 @@ namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class DualGraphWithHM : Graph
     {
-        public PlanktonMesh PlanktonMesh { get; set; }
+        public PlanktonMesh DualPlanktonMesh { get; set; }
+        public PlanktonMesh IntegrateDualPlanktonMesh { get; set; }
 
-        public PlanktonMesh IntegratePlanktonMesh { get; set; }
+        public SortedDictionary<int,GraphNode> Volume_VolumeNode { get; set; }
+        public SortedDictionary<int,List<int>> Volume_Inner { get; set; }
+        public SortedDictionary<int,int> Inner_DFace { get; set; }
+        public SortedDictionary<int,List<int>> DFace_DVertice { get; set; }
 
+        public SortedDictionary<int,GraphNode> Inner_InnerNode { get; set; }
+        public SortedDictionary<int,GraphNode> DFace_InnerNode { get; set; }
+        public SortedDictionary<int,List<int>> DVertice_Inner { get; set; }
+        public SortedDictionary<int,List<int>> DVertice_Volume { get; set; }
 
-        public List<int> VolumeNodesIndex { get; set; }
-
-        // public List<int> DualFaceCorrespondingInnerNodeIndexs { get; set; }
-
-        // public List<int> InnerNodeCorrespondingDualFace { get; set; }
-
-        public Matrix DFaceInnerNodeTable { get; set; }
-
-        public List<int> DFaceInnerNodeList { get; set; }
-        public List<int> InnerNodeDFaceList { get; set; }
-
-        public Matrix DFaceVolumeNodeTable { get; set; }
-
-        // public List<List<int>> InnerNodeCorrespondingDualFaceVertices { get; set; }
-
-        // public List<List<int>> VolumeNodeCorrespondingDualFaceVertices { get; set; }
-        public Matrix DVerticeInnerNodeTable { get; set; }
-
-        public Matrix DVerticeVolumeNodeTable { get; set; }
-
-
-        public List<GraphNode> DualFaceCorrespondingInnerNodes { get; set; }
-        public List<GraphNode> IntegrateFaceCorrespondingVolumeNodes { get; set; }
-
-        // public List<int> IntegrateFaceCorrespondingVolumeNodeIndexs { get; set; }
-
+        public SortedDictionary<int,List<int>> Volume_DVertice { get; set; }
 
 
         public List<List<int>> DFaceIndexsAroundOuterNodes { get; }
-
-        //public List<List<int>> DVertexBelongsToWhichInnerNode { get; }
-
-        //public Dictionary<int,List<int>> DVertexBelongsToWhichVolume { get; }
 
 
 
@@ -62,33 +41,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// </summary>
         public DualGraphWithHM() : base()
         {
-            this.PlanktonMesh = new PlanktonMesh();
-            this.IntegratePlanktonMesh = new PlanktonMesh();
-
-
-            // this.DualFaceCorrespondingInnerNodeIndexs = new List<int>();
-
-            // this.InnerNodeCorrespondingDualFace = new List<int>();
-            // this.InnerNodeCorrespondingDualFaceVertices = new List<List<int>>();
-            // this.VolumeNodeCorrespondingDualFaceVertices = new List<List<int>>();
-
-            this.VolumeNodesIndex = null;
-            
-            this.DFaceInnerNodeTable = null;
-            this.DFaceVolumeNodeTable = null;
-
-            this.DVerticeInnerNodeTable = null;
-            this.DVerticeVolumeNodeTable = null;
-
-
-            this.DualFaceCorrespondingInnerNodes = new List<GraphNode>();
-            this.IntegrateFaceCorrespondingVolumeNodes = new List<GraphNode>();
-            // this.IntegrateFaceCorrespondingVolumeNodeIndexs = new List<int>();
-            
-
-            this.DFaceIndexsAroundOuterNodes = new List<List<int>>();
-            //this.DVertexBelongsToWhichInnerNode = new List<List<int>>();
-            //this.DVertexBelongsToWhichVolume = new Dictionary<int, List<int>>();
+            this.DualPlanktonMesh = new PlanktonMesh();
+            this.IntegrateDualPlanktonMesh = new PlanktonMesh();
         }
 
         /// <summary>
@@ -120,81 +74,90 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
 
             // 深拷贝PlanktonMesh
-            this.PlanktonMesh = new PlanktonMesh(source.PlanktonMesh);
+            this.DualPlanktonMesh = new PlanktonMesh(source.DualPlanktonMesh);
             // 深拷贝IntegratePlanktonMesh
-            this.IntegratePlanktonMesh = new PlanktonMesh(source.IntegratePlanktonMesh);
+            this.IntegrateDualPlanktonMesh = new PlanktonMesh(source.IntegrateDualPlanktonMesh);
 
-
-            //// 深拷贝DualFaceCorrespondingInnerNodeIndexs
-            //this.DualFaceCorrespondingInnerNodeIndexs = new List<int>();
-            //this.DualFaceCorrespondingInnerNodeIndexs.AddRange(source.DualFaceCorrespondingInnerNodeIndexs);
-
-            //// 深拷贝InnerNodeCorrespondingDualFace
-            //this.InnerNodeCorrespondingDualFace = new List<int>();
-            //this.InnerNodeCorrespondingDualFace.AddRange(source.InnerNodeCorrespondingDualFace);
-
-
-            this.VolumeNodesIndex = new List<int>();
-            this.VolumeNodesIndex.AddRange(source.VolumeNodesIndex);
-
-            // 深拷贝 Matrix DFaceInnerNodeTable
-            this.DFaceInnerNodeTable = new Matrix(source.DFaceInnerNodeTable.RowCount, source.DFaceInnerNodeTable.ColumnCount);
-            for (int i = 0; i < source.DFaceInnerNodeTable.RowCount; i++)
+            if (source.Volume_VolumeNode != null)
             {
-                for (int j = 0; j < source.DFaceInnerNodeTable.ColumnCount; j++)
+                this.Volume_VolumeNode = new SortedDictionary<int, GraphNode>();
+                foreach (var item in source.Volume_VolumeNode)
                 {
-                    this.DFaceInnerNodeTable[i, j] = source.DVerticeInnerNodeTable[i, j];
-                }
-            }
-            // 深拷贝 Matrix DFaceVolumeNodeTable
-            this.DFaceVolumeNodeTable = new Matrix(source.DFaceVolumeNodeTable.RowCount, source.DFaceVolumeNodeTable.ColumnCount);
-            for (int i = 0; i < source.DFaceVolumeNodeTable.RowCount; i++)
-            {
-                for (int j = 0; j < source.DFaceVolumeNodeTable.ColumnCount; j++)
-                {
-                    this.DFaceVolumeNodeTable[i, j] = source.DFaceVolumeNodeTable[i, j];
-                }
-            }
-            // 深拷贝 Matrix DVerticeInnerNodeTable
-            this.DVerticeInnerNodeTable = new Matrix(source.DVerticeInnerNodeTable.RowCount, source.DVerticeInnerNodeTable.ColumnCount);
-            for (int i = 0; i < source.DVerticeInnerNodeTable.RowCount; i++)
-            {
-                for (int j = 0; j < source.DVerticeInnerNodeTable.ColumnCount; j++)
-                {
-                    this.DVerticeInnerNodeTable[i, j] = source.DVerticeInnerNodeTable[i, j];
-                }
-            }
-            // 深拷贝 Matrix DVerticeVolumeNodeTable
-            this.DVerticeVolumeNodeTable = new Matrix(source.DVerticeVolumeNodeTable.RowCount, source.DVerticeVolumeNodeTable.ColumnCount);
-            for (int i = 0; i < source.DVerticeVolumeNodeTable.RowCount; i++)
-            {
-                for (int j = 0; j < source.DVerticeVolumeNodeTable.ColumnCount; j++)
-                {
-                    this.DVerticeVolumeNodeTable[i, j] = source.DVerticeVolumeNodeTable[i, j];
+                    this.Volume_VolumeNode.Add(item.Key, item.Value);
                 }
             }
 
-
-            // 深拷贝 List<Graph> DualFaceCorrespondingInnerNodes
-            this.DualFaceCorrespondingInnerNodes = new List<GraphNode>();
-            for (int i = 0; i < source.DualFaceCorrespondingInnerNodes.Count; i++)
+            if (source.Volume_Inner != null)
             {
-                this.DualFaceCorrespondingInnerNodes.Add(new GraphNode(source.DualFaceCorrespondingInnerNodes[i]));
+                this.Volume_Inner = new SortedDictionary<int, List<int>>();
+                foreach (var item in source.Volume_Inner)
+                {
+                    this.Volume_Inner.Add(item.Key, item.Value);
+                }
             }
 
-            // 深拷贝 List<Graph> IntegrateFaceCorrespondingVolumeNodes
-            this.IntegrateFaceCorrespondingVolumeNodes = new List<GraphNode>();
-            for (int i = 0; i < source.IntegrateFaceCorrespondingVolumeNodes.Count; i++)
+            if (source.Inner_DFace != null)
             {
-                this.IntegrateFaceCorrespondingVolumeNodes.Add(new GraphNode(source.IntegrateFaceCorrespondingVolumeNodes[i]));
+                this.Inner_DFace = new SortedDictionary<int, int>();
+                foreach (var item in source.Inner_DFace)
+                {
+                    this.Inner_DFace.Add(item.Key, item.Value);
+                }
             }
-            //// 深拷贝IntegrateFaceCorrespondingVolumeNodeIndexs
-            //this.IntegrateFaceCorrespondingVolumeNodeIndexs = new List<int>();
-            //this.IntegrateFaceCorrespondingVolumeNodeIndexs.AddRange(source.IntegrateFaceCorrespondingVolumeNodeIndexs);
 
+            if (source.DFace_DVertice != null)
+            {
+                this.DFace_DVertice = new SortedDictionary<int, List<int>>();
+                foreach (var item in source.DFace_DVertice)
+                {
+                    this.DFace_DVertice.Add(item.Key, item.Value);
+                }
+            }
 
+            if (source.DVertice_Inner != null)
+            {
+                this.DVertice_Inner = new SortedDictionary<int, List<int>>();
+                foreach (var item in source.DVertice_Inner)
+                {
+                    this.DVertice_Inner.Add(item.Key, item.Value);
+                }
+            }
 
+            if (source.DVertice_Volume != null)
+            {
+                this.DVertice_Volume = new SortedDictionary<int, List<int>>();
+                foreach (var item in source.DVertice_Volume)
+                {
+                    this.DVertice_Volume.Add(item.Key, item.Value);
+                }
+            }
 
+            if (source.Volume_DVertice != null)
+            {
+                this.Volume_DVertice = new SortedDictionary<int, List<int>>();
+                foreach (var item in source.Volume_DVertice)
+                {
+                    this.Volume_DVertice.Add(item.Key, item.Value);
+                }
+            }
+
+            if (source.Inner_InnerNode != null)
+            {
+                this.Inner_InnerNode = new SortedDictionary<int, GraphNode>();
+                foreach (var item in source.Inner_InnerNode)
+                {
+                    this.Inner_InnerNode.Add(item.Key, item.Value);
+                }
+            }
+
+            if (source.DFace_InnerNode != null)
+            {
+                this.DFace_InnerNode = new SortedDictionary<int, GraphNode>();
+                foreach (var item in source.DFace_InnerNode)
+                {
+                    this.DFace_InnerNode.Add(item.Key, item.Value);
+                }
+            }
 
             // 深拷贝FaceIndexsAroundOuterNodes
             this.DFaceIndexsAroundOuterNodes = new List<List<int>>();
@@ -203,41 +166,26 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.DFaceIndexsAroundOuterNodes.Add(new List<int>());
                 this.DFaceIndexsAroundOuterNodes[i].AddRange(source.DFaceIndexsAroundOuterNodes[i]);
             }
-
-            //// 深拷贝DVertexBelongsToWhichInnerNode
-            //this.DVertexBelongsToWhichInnerNode = new List<List<int>>();
-            //for (int i = 0; i < source.DVertexBelongsToWhichInnerNode.Count; i++)
-            //{
-            //    this.DVertexBelongsToWhichInnerNode.Add(new List<int>());
-            //    this.DVertexBelongsToWhichInnerNode[i].AddRange(source.DVertexBelongsToWhichInnerNode[i]);
-            //}
-
-            //// 深拷贝DVertexBelongsToWhichVolume
-            //this.DVertexBelongsToWhichVolume = new Dictionary<int, List<int>>();
-            //foreach (KeyValuePair<int,List<int>> pair in source.DVertexBelongsToWhichVolume)
-            //{
-            //    this.DVertexBelongsToWhichVolume.Add(pair.Key, pair.Value);
-            //}
         }
 
         /// <summary>
         /// 用于构造DualGraphWithHM
         /// </summary>
-        /// <param name="planktonMesh"></param>
-        /// <param name="graphNodes"></param>
-        /// <param name="graphTables"></param>
-        /// <param name="dVertexBelongsToWhichInnerNode"></param>
-        public DualGraphWithHM(PlanktonMesh planktonMesh,
+        /// <param name="dualPlanktonMesh"></param>
+        /// <param name="decomposedPGraphNodes"></param>
+        /// <param name="decomposedPGraphTables"></param>
+        /// <param name="volume_volumeNode"></param>
+        /// <param name="volume_inner"></param>
+        /// <param name="inner_dFace"></param>
+        /// <param name="faceIndexsAroundOuterNodes"></param>
+        public DualGraphWithHM(PlanktonMesh dualPlanktonMesh,
 
-                               List<GraphNode> graphNodes,
-                               List<List<int>> graphTables,
+                               List<GraphNode> decomposedPGraphNodes,
+                               List<List<int>> decomposedPGraphTables,
 
-                               List<int> faceCorrespondingInnerNodeIndexs,
-
-                               List<int> volumeNodesIndex,
-                               List<GraphNode> volumeNodes,
-                               Dictionary<int,List<int>> volumeContainsWhichInnerNode,
-
+                               SortedDictionary<int,GraphNode> volume_volumeNode,
+                               SortedDictionary<int,List<int>> volume_inner,
+                               SortedDictionary<int, int> inner_dFace,
 
                                List<List<int>> faceIndexsAroundOuterNodes
                                
@@ -246,28 +194,30 @@ namespace VolumeGeneratorBasedOnGraph.Class
             #region 父类属性
             // 深拷贝GraphTables
             this.GraphTables = new List<List<int>>();
-            for (int i = 0; i < graphTables.Count; i++)
+            for (int i = 0; i < decomposedPGraphTables.Count; i++)
             {
                 this.GraphTables.Add(new List<int>());
-                this.GraphTables[i].AddRange(graphTables[i]);
+                this.GraphTables[i].AddRange(decomposedPGraphTables[i]);
             }
             // 深拷贝GraphNodes
             this.GraphNodes = new List<GraphNode>();
-            for (int i = 0; i < graphNodes.Count; i++)
+            for (int i = 0; i < decomposedPGraphNodes.Count; i++)
             {
-                this.GraphNodes.Add(new GraphNode(graphNodes[i]));
+                this.GraphNodes.Add(new GraphNode(decomposedPGraphNodes[i]));
             }
 
             this.InnerNodeCount = 0;
             this.OuterNodeCount = 0;
             this.InnerNodeIndexList = new List<int>();
             this.OuterNodeIndexList = new List<int>();
-            for (int i = 0; i < graphNodes.Count; i++)
+            this.Inner_InnerNode = new SortedDictionary<int, GraphNode>();
+            for (int i = 0; i < decomposedPGraphNodes.Count; i++)
             {
-                if (graphNodes[i].IsInner)
+                if (decomposedPGraphNodes[i].IsInner)
                 {
                     this.InnerNodeCount++;
                     this.InnerNodeIndexList.Add(i);
+                    this.Inner_InnerNode.Add(i, decomposedPGraphNodes[i]);
                 }
                 else
                 {
@@ -277,171 +227,137 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             #endregion
 
-            this.VolumeNodesIndex = new List<int>();
-            this.VolumeNodesIndex.AddRange(volumeNodesIndex);
-
             // 深拷贝PlanktonMesh
-            this.PlanktonMesh = new PlanktonMesh(planktonMesh);
+            this.DualPlanktonMesh = new PlanktonMesh(dualPlanktonMesh);
 
-            // 构造DFaceInnerNodeTable，表头是DFace的序号列表和InnerNodeIndexList列表
 
-            this.DFaceInnerNodeList = faceCorrespondingInnerNodeIndexs;
-            this.InnerNodeDFaceList = new List<int>();
-            foreach (var item in faceCorrespondingInnerNodeIndexs)
+            // 构造Volume_VolumeNode
+            this.Volume_VolumeNode = new SortedDictionary<int, GraphNode>();
+            foreach (var item in volume_volumeNode)
             {
-                this.InnerNodeDFaceList.Add(faceCorrespondingInnerNodeIndexs.IndexOf(item));
+                this.Volume_VolumeNode.Add(item.Key, item.Value);
+            }
+            // 构造Volume_Inner
+            this.Volume_Inner = new SortedDictionary<int, List<int>>();
+            foreach (var item in volume_inner)
+            {
+                this.Volume_Inner.Add(item.Key, item.Value);
+            }
+            // 构造Inner_DFace
+            this.Inner_DFace = new SortedDictionary<int, int>();
+            foreach (var item in inner_dFace)
+            {
+                this.Inner_DFace.Add(item.Key, item.Value);
+            }
+            // 构造DFace_DVertice
+            this.DFace_DVertice = new SortedDictionary<int, List<int>>();
+            for (int i = 0; i < dualPlanktonMesh.Faces.Count; i++)
+            {
+                this.DFace_DVertice.Add(i, dualPlanktonMesh.Faces.GetFaceVertices(i).ToList());
             }
 
-            this.DFaceInnerNodeTable = new Matrix(this.PlanktonMesh.Faces.Count, this.InnerNodeCount);
-            for (int i = 0; i < faceCorrespondingInnerNodeIndexs.Count; i++)
+
+            this.DFace_InnerNode = new SortedDictionary<int, GraphNode>();
+            foreach (var item1 in inner_dFace)
             {
-                for (int j = 0; j < this.InnerNodeCount; j++)
+                foreach (var item2 in Inner_InnerNode)
                 {
-                    if (faceCorrespondingInnerNodeIndexs[i] == this.InnerNodeIndexList[j])
+                    if (item1.Key == item2.Key)
                     {
-                        this.DFaceInnerNodeTable[i, j] = 1;
-                    }
-                    else
-                    {
-                        this.DFaceInnerNodeTable[i, j] = 0;
+                        this.DFace_InnerNode.Add(item1.Value, item2.Value);
                     }
                 }
             }
 
-            /////debug
-            List<string> debugDFaceInnerNodeTable = DualGraphWithHM.PrintMatrix(this.DFaceInnerNodeTable);
 
 
-            // 根据InnerNode所对应的对偶Face序号，求得InnerNode所对应的对偶FaceVertice序号
-            List<List<int>> innerNodeCorrespondingDualFaceVertices = new List<List<int>>();
-            for (int i = 0; i < this.InnerNodeIndexList.Count; i++)
+            SortedDictionary<int, List<int>> dVertice_dFace = new SortedDictionary<int, List<int>>();
+            for (int i = 0; i < dualPlanktonMesh.Vertices.Count; i++)
             {
-                innerNodeCorrespondingDualFaceVertices.Add(new List<int>());
-                int debugIndex = this.InnerNodeCorrespondingWhichDFace()[i];
-                innerNodeCorrespondingDualFaceVertices[i].AddRange(this.PlanktonMesh.Faces.GetFaceVertices(debugIndex));
-            }
-
-            this.DVerticeInnerNodeTable = new Matrix(this.PlanktonMesh.Vertices.Count, this.InnerNodeCount);
-            for (int i = 0; i < innerNodeCorrespondingDualFaceVertices.Count; i++)
-            {
-                for (int j = 0; j < this.PlanktonMesh.Vertices.Count; j++)
+                foreach (var item in this.DFace_DVertice)
                 {
-                    if (innerNodeCorrespondingDualFaceVertices[i].Contains(j))
+                    if (item.Value.Contains(i))
                     {
-                        this.DVerticeInnerNodeTable[j, i] = 1;
-                    }
-                    else
-                    {
-                        this.DVerticeInnerNodeTable[j, i] = 0;
+                        if (dVertice_dFace.ContainsKey(i))
+                        {
+                            dVertice_dFace[i].Add(item.Key);
+                        }
+                        else
+                        {
+                            dVertice_dFace.Add(i, new List<int>());
+                            dVertice_dFace[i].Add(item.Key);
+                        }
                     }
                 }
             }
 
-            /////debug
-            List<string> debugDVerticeInnerNodeTable = DualGraphWithHM.PrintMatrix(this.DVerticeInnerNodeTable);
-
-            // 根据FaceCorrespondingInnerNodeIndexs，求得FaceCorrespondingInnerNodes
-            this.DualFaceCorrespondingInnerNodes = new List<GraphNode>();
-            for (int i = 0; i < faceCorrespondingInnerNodeIndexs.Count; i++)
+            this.DVertice_Inner = new SortedDictionary<int, List<int>>();
+            foreach (var item1 in dVertice_dFace)
             {
-                this.DualFaceCorrespondingInnerNodes.Add(this.GraphNodes[faceCorrespondingInnerNodeIndexs[i]]);
-            }
-
-
-
-            List<List<int>> volumeNodeCorrespondingInnerNodes = new List<List<int>>();
-            for (int i = 0; i < volumeNodesIndex.Count; i++)
-            {
-                volumeNodeCorrespondingInnerNodes.Add(new List<int>());
-                volumeNodeCorrespondingInnerNodes[i].AddRange(volumeContainsWhichInnerNode[volumeNodesIndex[i]]);
-            }
-
-            List<List<int>> volumeNodeCorrespondingDFace = new List<List<int>>();
-            for (int i = 0; i < volumeNodeCorrespondingInnerNodes.Count; i++)
-            {
-                volumeNodeCorrespondingDFace.Add(new List<int>());
-                for (int j = 0; j < volumeNodeCorrespondingInnerNodes[i].Count; j++)
+                for (int i = 0; i < item1.Value.Count; i++)
                 {
-                    List<int> innerNodeCorrespondingWhichDFace = this.InnerNodeCorrespondingWhichDFace();
-                    volumeNodeCorrespondingDFace[i].Add(innerNodeCorrespondingWhichDFace[InnerNodeIndexList.IndexOf(volumeNodeCorrespondingInnerNodes[i][j])]);
-                }
-            }
-
-            // 构造DFaceVolumeNodeTable，表头是DFace的序号列表和volumeNodesIndex列表
-            this.DFaceVolumeNodeTable = new Matrix(this.PlanktonMesh.Faces.Count, volumeNodes.Count);
-            for (int i = 0; i < volumeNodesIndex.Count; i++)
-            {
-                for (int j = 0; j < this.PlanktonMesh.Faces.Count; j++)
-                {
-                    if (volumeNodeCorrespondingInnerNodes[volumeNodesIndex[i]].Contains(faceCorrespondingInnerNodeIndexs[j]))
+                    foreach (var item2 in inner_dFace)
                     {
-                        this.DFaceVolumeNodeTable[j, volumeNodesIndex[i]] = 1;
-                    }
-                    else
-                    {
-                        this.DFaceVolumeNodeTable[j, volumeNodesIndex[i]] = 0;
+                        if (item2.Value == item1.Value[i])
+                        {
+                            if (this.DVertice_Inner.ContainsKey(item1.Key))
+                            {
+                                this.DVertice_Inner[item1.Key].Add(item2.Key);
+                            }
+                            else
+                            {
+                                this.DVertice_Inner.Add(item1.Key, new List<int>());
+                                this.DVertice_Inner[item1.Key].Add(item2.Key);
+                            }
+                        }
                     }
                 }
             }
 
-            /////debug
-            List<string> debugDFaceVolumeNodeTable = DualGraphWithHM.PrintMatrix(this.DFaceVolumeNodeTable);
-
-
-            List<List<int>> volumeNodeCorrespondingDVertice = new List<List<int>>();
-            for (int i = 0; i < volumeNodeCorrespondingInnerNodes.Count; i++)
+            this.DVertice_Volume = new SortedDictionary<int, List<int>>();
+            foreach (var item1 in this.DVertice_Inner)
             {
-                volumeNodeCorrespondingDVertice.Add(new List<int>());
-                for (int j = 0; j < volumeNodeCorrespondingInnerNodes[i].Count; j++)
+                for (int i = 0; i < item1.Value.Count; i++)
                 {
-                    int innerNodeIndex = volumeNodeCorrespondingInnerNodes[i][j];
-                    int faceIndex = faceCorrespondingInnerNodeIndexs.IndexOf(innerNodeIndex);
-                    volumeNodeCorrespondingDVertice[i].AddRange(this.PlanktonMesh.Faces.GetFaceVertices(faceIndex));
-                }
-                volumeNodeCorrespondingDVertice[i] = volumeNodeCorrespondingDVertice[i].Distinct().ToList();
-            }
-
-            this.DVerticeVolumeNodeTable = new Matrix(this.PlanktonMesh.Vertices.Count, volumeNodesIndex.Count);
-            for (int i = 0; i < this.PlanktonMesh.Vertices.Count; i++)
-            {
-                for (int j = 0; j < volumeNodeCorrespondingDVertice.Count; j++)
-                {
-                    if (volumeNodeCorrespondingInnerNodes[j].Contains(i))
+                    foreach (var item2 in volume_inner)
                     {
-                        this.DVerticeVolumeNodeTable[i, j] = 1;
-                    }
-                    else
-                    {
-                        this.DVerticeVolumeNodeTable[i, j] = 0;
+                        if (item2.Value.Contains(item1.Value[i]))
+                        {
+                            if (this.DVertice_Volume.ContainsKey(item1.Key))
+                            {
+                                if (!this.DVertice_Volume[item1.Key].Contains(item2.Key))
+                                {
+                                    this.DVertice_Volume[item1.Key].Add(item2.Key);
+                                }
+                            }
+                            else
+                            {
+                                this.DVertice_Volume.Add(item1.Key, new List<int>());
+                                this.DVertice_Volume[item1.Key].Add(item2.Key);
+                            }
+                        }
                     }
                 }
             }
 
-            /////debug
-            List<string> debugDVerticeVolumeNodeTable = DualGraphWithHM.PrintMatrix(this.DVerticeVolumeNodeTable);
-
-            //List<List<int>> volumeNodeCorrespondingDualFaceVertices = new List<List<int>>();
-            //for (int i = 0; i < volumeNodeCorrespondingInnerNodes.Count; i++)
-            //{
-            //    volumeNodeCorrespondingDualFaceVertices.Add(new List<int>());
-            //    for (int j = 0; j < volumeNodeCorrespondingInnerNodes[i].Count; j++)
-            //    {
-            //        int debug = volumeNodeCorrespondingInnerNodes[i][j];
-            //        List<List<int>> debug2 = volumeNodeCorrespondingDVertice;
-            //        List<int> dVertice = debug2[debug];
-            //        volumeNodeCorrespondingDualFaceVertices[i].AddRange(dVertice);
-            //    }
-            //}
+            SortedDictionary<int, List<int>> volume_dFace = new SortedDictionary<int, List<int>>();
+            foreach (var item1 in this.Volume_Inner)
+            {
+                volume_dFace.Add(item1.Key, new List<int>());
+                for (int i = 0; i < item1.Value.Count; i++)
+                {
+                    volume_dFace[item1.Key].Add(this.Inner_DFace[item1.Value[i]]);
+                }
+            }
 
 
-            PlanktonMesh integratePlanktonMesh = new PlanktonMesh(this.PlanktonMesh);
 
-
+            PlanktonMesh integratePlanktonMesh = new PlanktonMesh(this.DualPlanktonMesh);
 
             List<int> halfedgeForMerge = new List<int>();
-            for (int i = 0; i < volumeNodeCorrespondingDFace.Count; i++)
+            foreach (var item in volume_dFace)
             {
-                List<int> publicHalfedge = this.FindPublicHalfedge(this.PlanktonMesh, volumeNodeCorrespondingDFace[i]);
+                List<int> publicHalfedge = this.FindPublicHalfedge(this.DualPlanktonMesh, item.Value);
                 halfedgeForMerge.AddRange(publicHalfedge);
             }
 
@@ -451,50 +367,15 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 integratePlanktonMesh.Faces.MergeFaces(halfedgeForMerge[i]);
             }
             integratePlanktonMesh.Compact();
-            this.IntegratePlanktonMesh = integratePlanktonMesh;
+            this.IntegrateDualPlanktonMesh = integratePlanktonMesh;
 
 
-            this.IntegrateFaceCorrespondingVolumeNodes = new List<GraphNode>();
-            this.IntegrateFaceCorrespondingVolumeNodes.AddRange(volumeNodes);
-
-            //List<PlanktonXYZ> planktonVertex = new List<PlanktonXYZ>();
-            //for (int i = 0; i < this.PlanktonMesh.Vertices.Count; i++)
-            //{
-            //    planktonVertex.Add(this.PlanktonMesh.Vertices[i].ToXYZ());
-            //}
-
-            //this.IntegratePlanktonMesh = new PlanktonMesh();
-            //this.IntegratePlanktonMesh.Vertices.AddVertices(planktonVertex);
-            //this.IntegratePlanktonMesh.Faces.AddFaces(volumeNodeCorrespondingDVertice);
-
-
-
-            //// 深拷贝FaceIndexsAroundOuterNodes
-            //this.DFaceIndexsAroundOuterNodes = new List<List<int>>();
-            //for (int i = 0; i < faceIndexsAroundOuterNodes.Count; i++)
-            //{
-            //    this.DFaceIndexsAroundOuterNodes.Add(new List<int>());
-            //    this.DFaceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNodes[i]);
-            //}
-
-
-
-
-
-            //// 深拷贝DVertexBelongsToWhichInnerNode
-            //this.DVertexBelongsToWhichInnerNode = new List<List<int>>();
-            //for (int i = 0; i < dVertexBelongsToWhichInnerNode.Count; i++)
-            //{
-            //    this.DVertexBelongsToWhichInnerNode.Add(new List<int>());
-            //    this.DVertexBelongsToWhichInnerNode[i].AddRange(dVertexBelongsToWhichInnerNode[i]);
-            //}
-
-            //// 深拷贝DVertexBelongsToWhichVolume
-            //this.DVertexBelongsToWhichVolume = new Dictionary<int, List<int>>();
-            //foreach (KeyValuePair<int, List<int>> pair in dVertexBelongsToWhichVolume)
-            //{
-            //    this.DVertexBelongsToWhichVolume.Add(pair.Key, pair.Value);
-            //}
+            this.DFaceIndexsAroundOuterNodes = new List<List<int>>();
+            for (int i = 0; i < faceIndexsAroundOuterNodes.Count; i++)
+            {
+                this.DFaceIndexsAroundOuterNodes.Add(new List<int>());
+                this.DFaceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNodes[i]);
+            }
         }
 
         public List<int> FindPublicHalfedge(PlanktonMesh p, List<int> faceIndexs)
@@ -525,88 +406,5 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return publicHalfedge;
         }
 
-        public List<int> InnerNodeCorrespondingWhichDFace()
-        {
-            List<int> innerNodeCorrespondingWhichDFace = new List<int>();
-            for (int i = 0; i < this.DFaceInnerNodeTable.RowCount; i++)
-            {
-                for (int j = 0; j < this.DFaceInnerNodeTable.ColumnCount; j++)
-                {
-                    if (this.DFaceInnerNodeTable[i, j] == 1)
-                    {
-                        innerNodeCorrespondingWhichDFace.Add(i);
-                    }
-                }
-            }
-            return innerNodeCorrespondingWhichDFace;
-        }
-
-
-        public List<List<int>> DVertexBelongsToWhichInnerNode()
-        {
-            List<List<int>> dVertexBelongsToWhichInnerNode = new List<List<int>>();
-            for (int i = 0; i < this.DVerticeInnerNodeTable.RowCount; i++)
-            {
-                dVertexBelongsToWhichInnerNode.Add(new List<int>());
-                for (int j = 0; j < this.DVerticeInnerNodeTable.ColumnCount; j++)
-                {
-                    if (this.DVerticeInnerNodeTable[i, j] == 1)
-                    {
-                        dVertexBelongsToWhichInnerNode[i].Add(this.InnerNodeIndexList[j]);
-                    }
-                }
-            }
-            return dVertexBelongsToWhichInnerNode;
-        }
-
-        public List<List<int>> DVertexBelongsToWhichVolumeNode()
-        {
-            List<List<int>> dVertexBelongsToWhichVolumeNode = new List<List<int>>();
-            for (int i = 0; i < this.DVerticeVolumeNodeTable.RowCount; i++)
-            {
-                dVertexBelongsToWhichVolumeNode.Add(new List<int>());
-                for (int j = 0; j < this.DVerticeVolumeNodeTable.ColumnCount; j++)
-                {
-                    if (this.DVerticeVolumeNodeTable[i, j] == 1)
-                    {
-                        dVertexBelongsToWhichVolumeNode[i].Add(this.VolumeNodesIndex[j]);
-                    }
-                }
-            }
-            return dVertexBelongsToWhichVolumeNode;
-        }
-
-        public List<int> DFaceBelongsToWhichVolumeNode()
-        {
-            List<int> dFaceBelongsToWhichVolumeNode = new List<int>();
-            for (int i = 0; i < this.DFaceVolumeNodeTable.RowCount; i++)
-            {
-                for (int j = 0; j < this.DFaceVolumeNodeTable.ColumnCount; j++)
-                {
-                    if (this.DFaceVolumeNodeTable[i,j] == 1)
-                    {
-                        dFaceBelongsToWhichVolumeNode.Add(this.VolumeNodesIndex[j]);
-                    }
-                }
-            }
-            return dFaceBelongsToWhichVolumeNode;
-        }
-
-
-        public static List<string> PrintMatrix(Matrix M)
-        {
-            List<string> output = new List<string>();
-            for (int i = 0; i < M.RowCount; i++)
-            {
-                string str = string.Format("{0}行:", i);
-                for (int j = 0; j < M.ColumnCount; j++)
-                {
-                    str += string.Format("{0},", M[i, j]);
-                }
-                output.Add(str);
-            }
-
-            return output;
-        }
     }
 }
