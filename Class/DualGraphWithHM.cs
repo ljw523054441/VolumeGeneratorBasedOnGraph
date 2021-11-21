@@ -16,6 +16,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class DualGraphWithHM : Graph
     {
+        public List<GraphNode> UndividedGraphNodes { get; set; }
+        public List<List<int>> UndividedGraphTable { get; set; }
+        
         public PlanktonMesh DualPlanktonMesh { get; set; }
         public PlanktonMesh IntegrateDualPlanktonMesh { get; set; }
 
@@ -31,6 +34,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public SortedDictionary<int,List<int>> Volume_DVertice { get; set; }
 
+        public SortedDictionary<int,int> Volume_VFace { get; set; }
 
         public List<List<int>> DFaceIndexsAroundOuterNodes { get; }
 
@@ -156,6 +160,15 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 foreach (var item in source.DFace_InnerNode)
                 {
                     this.DFace_InnerNode.Add(item.Key, item.Value);
+                }
+            }
+
+            if (source.Volume_VFace != null)
+            {
+                this.Volume_VFace = new SortedDictionary<int, int>();
+                foreach (var item in source.Volume_VFace)
+                {
+                    this.Volume_VFace.Add(item.Key, item.Value);
                 }
             }
 
@@ -340,6 +353,20 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 }
             }
 
+            this.Volume_DVertice = new SortedDictionary<int, List<int>>();
+            foreach (var item in this.Volume_VolumeNode)
+            {
+                List<int> dVertice = new List<int>();
+                foreach (var item2 in this.DVertice_Volume)
+                {
+                    if (item2.Value.Contains(item.Key))
+                    {
+                        dVertice.Add(item2.Key);
+                    }
+                }
+                this.Volume_DVertice.Add(item.Key, dVertice);
+            }
+
             SortedDictionary<int, List<int>> volume_dFace = new SortedDictionary<int, List<int>>();
             foreach (var item1 in this.Volume_Inner)
             {
@@ -368,6 +395,20 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             integratePlanktonMesh.Compact();
             this.IntegrateDualPlanktonMesh = integratePlanktonMesh;
+
+
+            this.Volume_VFace = new SortedDictionary<int, int>();
+            foreach (var item in this.Volume_DVertice)
+            {
+                for (int i = 0; i < this.IntegrateDualPlanktonMesh.Faces.Count; i++)
+                {
+                    int[] set = this.IntegrateDualPlanktonMesh.Faces.GetFaceVertices(i);
+                    if (set.All(t => item.Value.Any(b => b == t)))
+                    {
+                        this.Volume_VFace.Add(item.Key, i);
+                    }
+                }
+            }
 
 
             this.DFaceIndexsAroundOuterNodes = new List<List<int>>();

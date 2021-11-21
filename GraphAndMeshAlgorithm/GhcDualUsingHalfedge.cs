@@ -227,6 +227,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                       inner_dFace,
                                                                       faceIndexsAroundOuterNodes);
 
+                dualGraphWithHM.UndividedGraphNodes = undividedPGraphNodes;
+                dualGraphWithHM.UndividedGraphTable = undividedPGraphTables;
 
                 DA.SetData("DualGraphWithHM", dualGraphWithHM);
 
