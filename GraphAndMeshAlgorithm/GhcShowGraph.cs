@@ -89,6 +89,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             GraphWithHM G = new GraphWithHM();
             PlanktonMesh P = new PlanktonMesh();
 
+            DualGraphWithHM D = new DualGraphWithHM();
+
             double distance = 0.0;
 
             double screenSize = 0.0;
@@ -101,6 +103,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             bool flagGraph = false;
             bool flagPlanktonMesh = false;
+            bool flagDualGraph = false;
 
             if (obj.Value is GraphWithHM)
             {
@@ -110,8 +113,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 flagPlanktonMesh = DA.GetData<PlanktonMesh>("PlanktonMesh or GraphWithHFMesh", ref P);
             }
+            if (obj.Value is DualGraphWithHM)
+            {
+                flagDualGraph = DA.GetData<DualGraphWithHM>("PlanktonMesh or GraphWithHFMesh", ref D);
+            }
 
-            if (flagGraph ^ flagPlanktonMesh)
+            if (flagGraph ^ flagPlanktonMesh ^ flagDualGraph)
             {
                 DA.GetData<double>("OffsetDistance", ref distance);
                 
@@ -119,6 +126,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 if (flagGraph)
                 {
                     PDeepCopy = new PlanktonMesh(G.PlanktonMesh);
+                }
+                else if (flagDualGraph)
+                {
+                    PDeepCopy = new PlanktonMesh(D.DualPlanktonMesh);
                 }
                 else
                 {
