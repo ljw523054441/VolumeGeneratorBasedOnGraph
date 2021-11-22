@@ -806,6 +806,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             /* 对startVertex的Node的相关属性进行修正，后续需要根据规则修改补充 */
             string startNodeLabel = graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeLabel;
             double startNodeArea = graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeArea;
+            double startNodeAreaProportion = graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeAreaProportion;
             // double startNodeAreaProportion = nodes[startVertexIndex].NodeAttribute.NodeAreaProportion;
 
             graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeLabel = graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeLabel + "0";
@@ -814,12 +815,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             // 对新生成的顶点，构造新的node
             GraphNodeAttribute nodeAttribute = new GraphNodeAttribute((startNodeLabel + (midVertexIndex - (graphNodes.Count - 1)).ToString()),
-                                                             startNodeArea / splitParts);
+                                                                      startNodeArea / splitParts);
+            nodeAttribute.NodeAreaProportion = startNodeAreaProportion / splitParts;
             nodeAttribute.ConnectivityTable = new int[] { startVertexIndex, endVertexIndex };
             nodeAttribute.AdjacencyTable = new int[] { };
             GraphNode newNode = new GraphNode(midVertex, nodeAttribute, true);
             newNode.IsNewDecomposed = true;
             graphNodesDeepCopy.Add(newNode);
+
+            // 修改原来点的相关属性
+            graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeArea = startNodeArea / splitParts;
+            graphNodesDeepCopy[startVertexIndex].NodeAttribute.NodeAreaProportion = startNodeAreaProportion / splitParts;
 
             // 输出out参数
             newPNodes = graphNodesDeepCopy;
