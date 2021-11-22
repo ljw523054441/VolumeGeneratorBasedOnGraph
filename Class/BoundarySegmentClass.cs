@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph.Class
 {
-    public class BoundarySegment : ICloneable
+    public class BoundarySegment //: ICloneable
     {
         public Line Line { get; set; }
 
@@ -13,6 +13,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public Point3d From { get; set; }
         public Point3d To { get; set; }
+
+        public List<int> IncludedDVertice { get; set; }
 
         /// <summary>
         /// 构造函数
@@ -31,14 +33,24 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <summary>
         /// 利用拷贝构造函数实现深拷贝
         /// </summary>
-        /// <param name="boundarySegment"></param>
-        public BoundarySegment(BoundarySegment boundarySegment)
+        /// <param name="source"></param>
+        public BoundarySegment(BoundarySegment source)
         {
             
-            this.Label = boundarySegment.Label;
-            this.From = new Point3d(boundarySegment.From);
-            this.To = new Point3d(boundarySegment.To);
+            this.Label = source.Label;
+            this.From = new Point3d(source.From);
+            this.To = new Point3d(source.To);
             this.Line = new Line(this.From, this.To);
+
+            if (source.IncludedDVertice == null)
+            {
+                this.IncludedDVertice = null;
+            }
+            else
+            {
+                this.IncludedDVertice = new List<int>();
+                this.IncludedDVertice.AddRange(source.IncludedDVertice);
+            }
         }
 
         public void Reverse()
@@ -48,19 +60,21 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.To = tmp;
 
             this.Line = new Line(this.From, this.To);
+
+            this.IncludedDVertice.Reverse();
         }
 
-        /// <summary>
-        /// 调用ICloneable接口实现深拷贝
-        /// </summary>
-        /// <returns></returns>
-        public object Clone()
-        {
-            BoundarySegment boundarySegment = (BoundarySegment)MemberwiseClone();
-            boundarySegment.From = (Point3d)MemberwiseClone();
-            boundarySegment.To = (Point3d)MemberwiseClone();
-            boundarySegment.Line = new Line(boundarySegment.From, boundarySegment.To);
-            return boundarySegment;
-        }
+        ///// <summary>
+        ///// 调用ICloneable接口实现深拷贝
+        ///// </summary>
+        ///// <returns></returns>
+        //public object Clone()
+        //{
+        //    BoundarySegment boundarySegment = (BoundarySegment)MemberwiseClone();
+        //    boundarySegment.From = (Point3d)MemberwiseClone();
+        //    boundarySegment.To = (Point3d)MemberwiseClone();
+        //    boundarySegment.Line = new Line(boundarySegment.From, boundarySegment.To);
+        //    return boundarySegment;
+        //}
     }
 }
