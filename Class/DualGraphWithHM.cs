@@ -82,6 +82,15 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // 深拷贝IntegratePlanktonMesh
             this.IntegrateDualPlanktonMesh = new PlanktonMesh(source.IntegrateDualPlanktonMesh);
 
+            this.UndividedGraphNodes = new List<GraphNode>();
+            this.UndividedGraphNodes.AddRange(source.UndividedGraphNodes);
+            this.UndividedGraphTable = new List<List<int>>();
+            for (int i = 0; i < source.UndividedGraphTable.Count; i++)
+            {
+                this.UndividedGraphTable.Add(new List<int>());
+                this.UndividedGraphTable[i].AddRange(source.UndividedGraphTable[i]);
+            }
+
             if (source.Volume_VolumeNode != null)
             {
                 this.Volume_VolumeNode = new SortedDictionary<int, GraphNode>();
