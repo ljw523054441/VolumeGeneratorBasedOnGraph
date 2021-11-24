@@ -1,5 +1,6 @@
 ﻿using Grasshopper.Kernel;
 using Plankton;
+using PlanktonGh;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
@@ -60,6 +61,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddPointParameter("BoundaryVerticesPoints", "BVP", "", GH_ParamAccess.list);
+            
             pManager.AddPointParameter("BoundaryCorner", "BC", "在边界上的角点", GH_ParamAccess.list);
 
             pManager.AddCurveParameter("ReorganizedBoundary", "RB", "经过重新组织的边界polyline", GH_ParamAccess.item);
@@ -84,7 +87,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 && DA.GetDataList<BoundarySegment>("BoundarySegments", boundarySegments))
             {
                 DualGraphWithHM dualGraphWithHMDP = new DualGraphWithHM(dualGraphWithHM);
-                PlanktonMesh D = dualGraphWithHMDP.DualPlanktonMesh;
+                // PlanktonMesh D = dualGraphWithHMDP.DualPlanktonMesh;
                 // PlanktonMesh I = dualGraphWithHM.IntegrateDualPlanktonMesh;
                 List<GraphNode> decomposedPGraphNodes = dualGraphWithHMDP.GraphNodes;
 
@@ -201,39 +204,67 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 List<List<int>> faceIndexsAroundVertex = new List<List<int>>();
-                for (int i = 0; i < D.Vertices.Count; i++)
+                for (int i = 0; i < dualGraphWithHMDP.DualPlanktonMesh.Vertices.Count; i++)
                 {
                     faceIndexsAroundVertex.Add(new List<int>());
-                    faceIndexsAroundVertex[i].AddRange(D.Vertices.GetVertexFaces(i));
+                    faceIndexsAroundVertex[i].AddRange(dualGraphWithHMDP.DualPlanktonMesh.Vertices.GetVertexFaces(i));
                     // 去除-1
                     faceIndexsAroundVertex[i].Remove(0);
                 }
 
-                #region 区分出每个Segment上的volumeJunction和innerJunction
-                List<List<int>> volumeJunctionForEachBoundarySegment = new List<List<int>>();
-                List<List<int>> innerJunctionForEachBoundarySegment = new List<List<int>>();
+                //#region 区分出每个Segment上的volumeJunction和innerJunction
+                //List<int> volumeJunctionList = new List<int>();
+                //List<int> innerJunctionList = new List<int>();
+
+                //List<List<int>> volumeJunctionForEachBoundarySegment = new List<List<int>>();
+                //List<List<int>> innerJunctionForEachBoundarySegment = new List<List<int>>();
+                //for (int i = 0; i < sortedBoundarySegments.Count; i++)
+                //{
+                //    volumeJunctionForEachBoundarySegment.Add(new List<int>());
+                //    innerJunctionForEachBoundarySegment.Add(new List<int>());
+
+                //    for (int j = 0; j < verticesIndexForEachBoundarySegment[i].Count; j++)
+                //    {
+                //        if (dualGraphWithHMDP.DVertice_Inner[verticesIndexForEachBoundarySegment[i][j]].Count > 1
+                //            && dualGraphWithHMDP.DualPlanktonMesh.Vertices.GetVertexFaces(verticesIndexForEachBoundarySegment[i][j]).Contains(-1))
+                //        {
+                //            if (dualGraphWithHMDP.DVertice_Volume[verticesIndexForEachBoundarySegment[i][j]].Count == 1)
+                //            {
+                //                innerJunctionForEachBoundarySegment[i].Add(verticesIndexForEachBoundarySegment[i][j]);
+                //                innerJunctionList.Add(verticesIndexForEachBoundarySegment[i][j]);
+                //            }
+                //            else
+                //            {
+                //                volumeJunctionForEachBoundarySegment[i].Add(verticesIndexForEachBoundarySegment[i][j]);
+                //                volumeJunctionList.Add(verticesIndexForEachBoundarySegment[i][j]);
+                //            }
+                //        }
+                //    }
+                //}
+                //#endregion
+
+                List<List<int>> juntionsIndexForEachBoundarySegment = new List<List<int>>();
                 for (int i = 0; i < sortedBoundarySegments.Count; i++)
                 {
-                    volumeJunctionForEachBoundarySegment.Add(new List<int>());
-                    innerJunctionForEachBoundarySegment.Add(new List<int>());
+                    // 深拷贝
+                    juntionsIndexForEachBoundarySegment.Add(new List<int>());
+                    juntionsIndexForEachBoundarySegment[i].AddRange(verticesIndexForEachBoundarySegment[i]);
+                    // 去除首尾顶点
+                    juntionsIndexForEachBoundarySegment[i].Remove(0);
+                    juntionsIndexForEachBoundarySegment[i].Remove(juntionsIndexForEachBoundarySegment[i].Count - 1);
+                }
 
-                    for (int j = 0; j < verticesIndexForEachBoundarySegment[i].Count; j++)
-                    {
-                        if (dualGraphWithHMDP.DVertice_Inner[verticesIndexForEachBoundarySegment[i][j]].Count > 1
-                            && dualGraphWithHMDP.DualPlanktonMesh.Vertices.GetVertexFaces(verticesIndexForEachBoundarySegment[i][j]).Contains(-1))
-                        {
-                            if (dualGraphWithHMDP.DVertice_Volume[verticesIndexForEachBoundarySegment[i][j]].Count == 1)
-                            {
-                                innerJunctionForEachBoundarySegment[i].Add(verticesIndexForEachBoundarySegment[i][j]);
-                            }
-                            else
-                            {
-                                volumeJunctionForEachBoundarySegment[i].Add(verticesIndexForEachBoundarySegment[i][j]);
-                            }
-                        }
-                    }
+                #region 对于对偶图边界上所有的Junction点进行分裂
+                for (int i = 0; i < sortedBoundarySegments.Count; i++)
+                {
+                    // 分裂后输入的dualGraphWithHMDP改变
+                    DecomposeJunction(dualGraphWithHMDP, juntionsIndexForEachBoundarySegment[i]);
                 }
                 #endregion
+
+                // 此时边界上的点，全部都是juntion点（除去每条边的首尾）
+
+
 
                 #region 分割boundarySegment
                 // 分裂每个Segment
@@ -247,6 +278,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     ITree<BoundarySegment> currentBoundary = NodeTree<BoundarySegment>.NewTree();
                     INode<BoundarySegment> top = currentBoundary.AddChild(sortedBoundarySegments[i]);
+
+                    // SortedDictionary<int, List<int>> volumeJunction_itsSplit = new SortedDictionary<int, List<int>>();
+                    DecomposeVolumeJunction(dualGraphWithHMDP, volumeJunctionForEachBoundarySegment[i]);
+
+                    // List<string> debugPrint = UtilityFunctions.PrintFacesVertices(dualGraphWithHMDP.DualPlanktonMesh);
 
                     List<List<int>> innerJunctionForEachSubSegment;
 
@@ -275,7 +311,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     innerJunctionCorrespondingWhichInnerForAllSegment.Add(new List<List<List<int>>>());
                     #endregion
 
-                    #region 像新分支中添加值
+                    #region 向新分支中添加值
                     for (int j = 0; j < innerJunctionForEachSubSegment.Count; j++)
                     {
                         innerJunctionForEachSubSegmentForAllSegment[i].Add(new List<int>());
@@ -306,6 +342,51 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 #endregion
 
+
+                List<int> boundaryVerticesOnDual = new List<int>();
+                for (int i = 0; i < dualGraphWithHMDP.DualPlanktonMesh.Vertices.Count; i++)
+                {
+                    if (dualGraphWithHMDP.DualPlanktonMesh.Vertices.NakedEdgeCount(i) >= 2)
+                    {
+                        boundaryVerticesOnDual.Add(i);
+                    }
+                }
+
+                List<Point3d> boundaryVerticesPoints = new List<Point3d>();
+                for (int i = 0; i < boundaryVerticesOnDual.Count; i++)
+                {
+                    int viIndex;
+                    int vjIndex;
+                    int iiIndex;
+                    int ijIndex;
+                    int ikIndex;
+                    // 如果是VolumeJunction点
+                    if (IsInVolumeJunctions(volumeJunctionForEachBoundarySegment,
+                                            boundaryVerticesOnDual[i],
+                                            out viIndex,
+                                            out vjIndex))
+                    {
+                        boundaryVerticesPoints.Add(volumeJunctionPointForAllSegment[viIndex][vjIndex]);
+                    }
+                    // 如果是InnerJunction点
+                    else if (IsInInnerJunctions(innerJunctionForEachSubSegmentForAllSegment,
+                                                boundaryVerticesOnDual[i],
+                                                out iiIndex,
+                                                out ijIndex,
+                                                out ikIndex))
+                    {
+                        boundaryVerticesPoints.Add(innerJunctionPointForAllSegment[viIndex][vjIndex][ikIndex]);
+                    }
+                    // 如果是边界上的角点
+                    else
+                    {
+                        boundaryVerticesPoints.Add(boundaryCorner[sortedBoundaryCornerIndexs.IndexOf(boundaryVerticesOnDual[i])]);
+                    }
+                }
+                DA.SetDataList("BoundaryVerticesPoints", boundaryVerticesPoints);
+
+
+
                 #region 可视化部分
                 BoundaryPolylinePoints.Clear();
                 BoundaryCornerTextDots.Clear();
@@ -320,9 +401,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 设置场地角点的TextDot
                 List<string> args = new List<string>();
-                for (int i = 0; i < D.Vertices.Count; i++)
+                for (int i = 0; i < dualGraphWithHMDP.DualPlanktonMesh.Vertices.Count; i++)
                 {
-                    List<int> dFaces = D.Vertices.GetVertexFaces(i).ToList();
+                    List<int> dFaces = dualGraphWithHMDP.DualPlanktonMesh.Vertices.GetVertexFaces(i).ToList();
                     // 去除-1
                     dFaces.RemoveAt(0);
                     args.Add(string.Join<int>(";", dFaces));
@@ -386,6 +467,407 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
 
         }
+
+        private bool IsInVolumeJunctions(List<List<int>> volumeJunctionForEachBoundarySegment, 
+                                         int boundaryVertex,
+                                         out int iIndex,
+                                         out int jIndex)
+        {
+            bool flag = false;
+            iIndex = -1;
+            jIndex = -1;
+            for (int i = 0; i < volumeJunctionForEachBoundarySegment.Count; i++)
+            {
+                if (volumeJunctionForEachBoundarySegment[i].Contains(boundaryVertex))
+                {
+                    flag = true;
+                    iIndex = i;
+                    jIndex = volumeJunctionForEachBoundarySegment[i].IndexOf(boundaryVertex);
+                    break;
+                }
+            }
+            return flag;
+        }
+
+        private bool IsInInnerJunctions(List<List<List<int>>> innerJunctionForEachBoundarySegment,
+                                        int boundaryVertex,
+                                        out int iIndex,
+                                        out int jIndex,
+                                        out int kIndex)
+        {
+            bool flag = false;
+            iIndex = -1;
+            jIndex = -1;
+            kIndex = -1;
+            for (int i = 0; i < innerJunctionForEachBoundarySegment.Count; i++)
+            {
+                for (int j = 0; j < innerJunctionForEachBoundarySegment[i].Count; j++)
+                {
+                    if (innerJunctionForEachBoundarySegment[i][j].Contains(boundaryVertex))
+                    {
+                        flag = true;
+                        iIndex = i;
+                        jIndex = j;
+                        kIndex = innerJunctionForEachBoundarySegment[i][j].IndexOf(boundaryVertex);
+                    }
+                }
+                
+            }
+            return flag;
+        }
+
+        private void DecomposeJunction(//INode<BoundarySegment> INodeToSplit,
+                                      DualGraphWithHM dualGraphWithHM,
+                                      List<int> junctionForCurrentSegment)
+                                      // SortedDictionary<int, List<int>> volumeJunction_itsSplit)
+        {
+            // 实际上经过此函数后，dualGraphWithHM就已经被修改了
+
+            // 判断是否需要分裂
+            for (int i = 0; i < junctionForCurrentSegment.Count; i++)
+            {
+                List<int> adjacentFace = dualGraphWithHM.DualPlanktonMesh.Vertices.GetVertexFaces(junctionForCurrentSegment[i]).ToList();
+                // adjacentFace.Remove(-1);
+                adjacentFace.Reverse();
+
+                // 与adjacentFace对应的该顶点的出半边的列表
+                List<int> correspondingH = new List<int>();
+                List<int> hs = dualGraphWithHM.DualPlanktonMesh.Vertices.GetHalfedges(junctionForCurrentSegment[i]).ToList();
+                for (int j = 0; j < adjacentFace.Count; j++)
+                {
+                    for (int k = 0; k < hs.Count; k++)
+                    {
+                        if (dualGraphWithHM.DualPlanktonMesh.Halfedges[hs[k]].AdjacentFace == adjacentFace[j])
+                        {
+                            correspondingH.Add(hs[k]);
+                            break;
+                        }
+                    }
+                }
+
+                List<int> correspondingHEnd = new List<int>();
+                for (int j = 0; j < adjacentFace.Count; j++)
+                {
+                    for (int k = 0; k < hs.Count; k++)
+                    {
+                        if (dualGraphWithHM.DualPlanktonMesh.Halfedges[hs[k]].AdjacentFace == adjacentFace[j])
+                        {
+                            correspondingHEnd.Add(dualGraphWithHM.DualPlanktonMesh.Halfedges.EndVertex(hs[k]));
+                            break;
+                        }
+                    }
+                }
+
+                if (correspondingHEnd.Count > 3)
+                {
+                    int iter = 0;
+                    int newVertexIndex = -1;
+                    int newAddedHalfedgeEndStartFromOrigin = correspondingHEnd[0];
+                    // int count = 0;
+                    List<int> newVertice = new List<int>();
+                    while (iter < correspondingHEnd.Count - 3)
+                    {
+                        int[,] currentHPairIndexs = new int[2, 2] {
+                                /* 初始化索引号为0的行 */
+                                { junctionForCurrentSegment[i],
+                                  newAddedHalfedgeEndStartFromOrigin},
+                                /* 初始化索引号为1的行 */
+                                { junctionForCurrentSegment[i],
+                                  correspondingHEnd[1 + iter]}};
+
+                        dualGraphWithHM.DualPlanktonMesh = SplitVertex(dualGraphWithHM.DualPlanktonMesh,
+                                                                           currentHPairIndexs,
+                                                                           junctionForCurrentSegment[i],
+                                                                           out newVertexIndex,
+                                                                           out newAddedHalfedgeEndStartFromOrigin);
+
+                        List<string> debugPrint = UtilityFunctions.PrintFacesVertices(dualGraphWithHM.DualPlanktonMesh);
+                        newVertice.Add(newVertexIndex);
+
+                        iter++;
+                    }
+                    // volumeJunction_itsSplit.Add(volumeJunctionForCurrentSegment[i], newVertice);
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+            // 将分裂的结果也同样应用到IntegratedPlanktonMesh上
+
+            // 更新dualGraphWithHM的DVertice_Inner属性
+        }
+
+        /// <summary>
+        /// 分裂生成新的顶点，并且将边的连接关系转移到新的顶点上
+        /// </summary>
+        /// <param name="P">要修改的PlanktonMesh</param>
+        /// <param name="HStartAndEndIndexs">一对相邻的半边的首尾顶点序号</param>
+        /// <param name="currentVolumeJunction">当前要分裂的VolumeJunction点</param>
+        /// <param name="newVertexIndex">新生成的顶点的序号</param>
+        /// <param name="newAddedHEndStartFromOrigin">新生成的半边的序号（由原来的volumeJunction点发出的）</param>
+        /// <returns></returns>
+        private PlanktonMesh SplitVertex(PlanktonMesh P,
+                                        int[,] HStartAndEndIndexs,
+                                        int currentVolumeJunction,
+                                        out int newVertexIndex,
+                                        out int newAddedHEndStartFromOrigin)
+        {
+            PlanktonMesh pDeepCopy = new PlanktonMesh(P);
+
+            #region 分裂，生成新的点
+            int halfedgeStartVertexIndex = HStartAndEndIndexs[0, 0];
+            int halfedgeEndVertexIndex = HStartAndEndIndexs[0, 1];
+
+            // 计算要分裂的边两侧的Face，准备好两个Face的顶点列表，新增midVertex作为分裂产生的新顶点
+
+            // 找到halfedgeStartVertexIndex和halfedgeEndVertexIndex所对应的那条半边
+            int halfedgeIndex = -1;
+            foreach (int hfIndex in pDeepCopy.Vertices.GetHalfedges(halfedgeStartVertexIndex))
+            {
+                if (pDeepCopy.Halfedges.EndVertex(hfIndex) == halfedgeEndVertexIndex)
+                {
+                    halfedgeIndex = hfIndex;
+                    break;
+                }
+            }
+            if (halfedgeIndex == -1)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "ResetHalfedgeStart函数出错，找不到输入起点和终点所对应的半边。");
+                newVertexIndex = -1;
+                newAddedHEndStartFromOrigin = -1;
+                return null;
+            }
+
+            int adjacentFaceIndex = pDeepCopy.Halfedges[halfedgeIndex].AdjacentFace;
+            int pairAdjacentFaceIndex = pDeepCopy.Halfedges[pDeepCopy.Halfedges.GetPairHalfedge(halfedgeIndex)].AdjacentFace;
+
+            List<int> viAroundAdjacentFace = new List<int>();
+            // 包围AdjacentFace的顶点
+            viAroundAdjacentFace = pDeepCopy.Faces.GetFaceVertices(adjacentFaceIndex).ToList<int>();
+            List<int> viAroundPairAdjacentFace = new List<int>();
+            if (pairAdjacentFaceIndex == -1)
+            {
+                viAroundPairAdjacentFace = new List<int>();
+            }
+            else
+            {
+                // 包围PairAdjcentFace的顶点
+                viAroundPairAdjacentFace = pDeepCopy.Faces.GetFaceVertices(pairAdjacentFaceIndex).ToList<int>();
+            }
+
+            int startVertexIndex = halfedgeStartVertexIndex;
+            int endVertexIndex = halfedgeEndVertexIndex;
+
+            // 向P中增加顶点
+            Point3d startVertex = pDeepCopy.Vertices[startVertexIndex].ToPoint3d();
+            Point3d endVertex = pDeepCopy.Vertices[endVertexIndex].ToPoint3d();
+            Point3d midVertex = (startVertex + endVertex) / 2;
+            pDeepCopy.Vertices.Add(midVertex);
+            int midVertexIndex = pDeepCopy.Vertices.Count - 1;
+            newVertexIndex = midVertexIndex;
+
+            #region 构造添加顶点后的新Face
+            for (int i = 0; i < viAroundAdjacentFace.Count; i++)
+            {
+                if (viAroundAdjacentFace[i] == startVertexIndex)
+                {
+                    viAroundAdjacentFace.Insert(i + 1, midVertexIndex);
+                    break;
+                }
+            }
+            for (int i = 0; i < viAroundPairAdjacentFace.Count; i++)
+            {
+                if (viAroundPairAdjacentFace[i] == endVertexIndex)
+                {
+                    viAroundPairAdjacentFace.Insert(i + 1, midVertexIndex);
+                    break;
+                }
+            }
+            #endregion
+            #endregion
+
+            #region 将原来的表示连接关系的一对半边移动到一个新分裂生成的顶点上 
+            int anotherHalfedgeStartVertexIndex = HStartAndEndIndexs[1, 0];
+            int anotherHalfedgeEndVertexIndex = HStartAndEndIndexs[1, 1];
+
+            // 找到anotherHalfedgeStartVertexIndex和anotherHalfedgeEndVertexIndex所对应的那条半边
+            int anotherHalfedgeIndex = -1;
+            foreach (int hfIndex in pDeepCopy.Vertices.GetHalfedges(anotherHalfedgeStartVertexIndex))
+            {
+                if (pDeepCopy.Halfedges.EndVertex(hfIndex) == anotherHalfedgeEndVertexIndex)
+                {
+                    anotherHalfedgeIndex = hfIndex;
+                    break;
+                }
+            }
+            if (anotherHalfedgeIndex == -1)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "ResetHalfedgeStart函数出错，找不到输入起点和终点所对应的半边。");
+                newAddedHEndStartFromOrigin = -1;
+                return null;
+            }
+
+            // int pairAnotherHalfedgeIndex = pDeepCopy.Halfedges.GetPairHalfedge(anotherHalfedgeIndex);
+
+            int anotherAdjacentFaceIndex = pDeepCopy.Halfedges[anotherHalfedgeIndex].AdjacentFace;
+            int pairAnotherAdjacentFaceIndex = pDeepCopy.Halfedges[pDeepCopy.Halfedges.GetPairHalfedge(anotherHalfedgeIndex)].AdjacentFace;
+
+            #region 包围anotherAdjacentFace的顶点
+            List<int> viAroundAnotherAdjacentFace = new List<int>();
+            int currentHalfedgeIndex = anotherHalfedgeIndex;
+            do
+            {
+                viAroundAnotherAdjacentFace.Add(pDeepCopy.Halfedges[currentHalfedgeIndex].StartVertex);
+                currentHalfedgeIndex = pDeepCopy.Halfedges[currentHalfedgeIndex].NextHalfedge;
+            } while (currentHalfedgeIndex != anotherHalfedgeIndex);
+            #endregion
+
+            #region 包围anotherPairAdjacentFace的顶点，此时anotherPairAdjacentFace就是上面的AdjacentFace
+            List<int> viAroundAnotherPairAdjacentFace = viAroundAdjacentFace;
+            #endregion
+
+            #region 修改包围AdjacentFace的顶点列表以及包围PairAdjacentFace的顶点列表
+            // 用目标顶点属于哪个面，来判断该怎么修改viAroundAdjacentFace和viAroundPairAdjacentFace列表
+            // 获取newVertex在Face顶点列表的序号
+            int indexInAnotherFace = viAroundAnotherAdjacentFace.IndexOf(newVertexIndex);
+            // 获取newVertex在PairFace顶点列表的序号
+            int indexInAnotherPairFace = viAroundAnotherPairAdjacentFace.IndexOf(newVertexIndex);
+
+            // 当目标顶点newVertex同时不属于这两个Face时报错
+            if (indexInAnotherFace == -1 && indexInAnotherPairFace == -1)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "输入的targetVertex " + currentVolumeJunction.ToString() + " 不属于要改变的面");
+                newAddedHEndStartFromOrigin = -1;
+                return null;
+            }
+            // 当目标顶点newVertex属于PairFace时
+            else if (indexInAnotherFace == -1 && indexInAnotherPairFace != -1)
+            {
+                int currentVolumeJunctionIndex = viAroundAnotherAdjacentFace.IndexOf(currentVolumeJunction);
+                viAroundAnotherAdjacentFace.Insert(currentVolumeJunctionIndex + 1, newVertexIndex);
+
+                // 从PairFace顶点列表中删除第一个（即vertexToSplit）
+                viAroundAnotherPairAdjacentFace.Remove(currentVolumeJunction);
+
+            }
+            // 当目标顶点newVertex属于AdjacentFace时
+            else
+            {
+                int currentVolumeJunctionIndex = viAroundAnotherPairAdjacentFace.IndexOf(currentVolumeJunction);
+                viAroundAnotherPairAdjacentFace.Insert(currentVolumeJunctionIndex + 1, newVertexIndex);
+
+                // 从Face顶点列表中删除第一个（即vertexToSplit）
+                viAroundAnotherAdjacentFace.Remove(currentVolumeJunction);
+            }
+            #endregion
+            #endregion
+
+            #region 转移，更新，生成新的PlanktonMesh
+            // 建立需要进行置换的面的index列表和VertexIndex列表，方便转移P的Face属性
+            List<int> needChangeFaceIndexs = new List<int>();
+            // 先anotherPair，再another
+            needChangeFaceIndexs.Add(pairAnotherAdjacentFaceIndex);
+            needChangeFaceIndexs.Add(anotherAdjacentFaceIndex);
+            List<List<int>> needChangeViAround = new List<List<int>>();
+            // 先anotherPair，再another
+            needChangeViAround.Add(viAroundAnotherPairAdjacentFace);
+            needChangeViAround.Add(viAroundAnotherAdjacentFace);
+
+            // 转移P的Vertex属性
+            List<PlanktonXYZ> pPlanktonVertex = new List<PlanktonXYZ>();
+            for (int i = 0; i < pDeepCopy.Vertices.Count; i++)
+            {
+                pPlanktonVertex.Add(pDeepCopy.Vertices[i].ToXYZ());
+            }
+
+            // 转移P的Face属性，同时替换掉两个应该删除的面
+            List<List<int>> pFaceVertexOrder = new List<List<int>>();
+
+            for (int i = 0; i < pDeepCopy.Faces.Count; i++)
+            {
+                if (needChangeFaceIndexs.Contains(i))
+                {
+                    pFaceVertexOrder.Add(new List<int>());
+                    pFaceVertexOrder[i].AddRange(needChangeViAround[needChangeFaceIndexs.IndexOf(i)]);
+                }
+                else
+                {
+                    pFaceVertexOrder.Add(new List<int>());
+                    int[] faceVertexOrder = pDeepCopy.Faces.GetFaceVertices(i);
+                    pFaceVertexOrder[i].AddRange(faceVertexOrder);
+                }
+            }
+
+            // 用转移的P的Vertex属性和P的Face属性来构造新的PlanktonMesh newP
+            PlanktonMesh newP = new PlanktonMesh();
+
+            newP.Vertices.AddVertices(pPlanktonVertex);
+            newP.Faces.AddFaces(pFaceVertexOrder);
+            #endregion
+
+            newP.Compact();
+
+            #region 输出新生成的半边的序号（由原来的volumeJunction点发出的）
+            newAddedHEndStartFromOrigin = -1;
+            for (int i = 0; i < newP.Vertices.GetHalfedges(currentVolumeJunction).Length; i++)
+            {
+                if (newP.Halfedges.EndVertex(newP.Vertices.GetHalfedges(currentVolumeJunction)[i]) == newVertexIndex)
+                {
+                    newAddedHEndStartFromOrigin = newP.Halfedges.EndVertex(newP.Vertices.GetHalfedges(currentVolumeJunction)[i]);
+                }
+            }
+
+            return newP;
+            #endregion
+        }
+
+        private void SplitBoundarySegment(BoundarySegment currentBoundarySegment,
+                                          List<int> junctionsOnCurrentBoundary,
+                                          List<int> verticeOnCurrentBoundary,
+                                          DualGraphWithHM dualGraphWithHMDP)
+        {
+            #region 计算分割后每段子segment上所包含的顶点
+            List<int> junctionIndexsInList = new List<int>();
+            for (int i = 0; i < junctionsOnCurrentBoundary.Count; i++)
+            {
+                junctionIndexsInList.Add(verticeOnCurrentBoundary.IndexOf(junctionsOnCurrentBoundary[i]));
+            }
+            // 构造[0,junctionIndex,...,verticeOnCurrentBoundary.Count - 1]的列表，用来在下面截取verticeOnCurrentBoundary列表
+            junctionIndexsInList.Insert(0, 0);
+            junctionIndexsInList.Add(verticeOnCurrentBoundary.Count - 1);
+            List<int[]> pairIndex = new List<int[]>();
+            for (int i = 0; i < junctionIndexsInList.Count - 1; i++)
+            {
+                int[] pair = new int[] { junctionIndexsInList[i], junctionIndexsInList[i + 1] };
+                pairIndex.Add(pair);
+            }
+            // 截取verticeOnCurrentBoundary列表
+            List<List<int>> dVerticesForEachSubSegment = new List<List<int>>();
+            for (int i = 0; i < pairIndex.Count; i++)
+            {
+                List<int> subList = verticeOnCurrentBoundary.Skip(pairIndex[i][0]).Take(pairIndex[i][1] - pairIndex[i][0] + 1).ToList();
+                dVerticesForEachSubSegment.Add(subList);
+            }
+            #endregion
+
+            #region 计算这段BoundarySegment上所有的Junction点所对应的t，及Point点
+            // 计算分割点的t
+            List<List<int>> JunctionCorrespondingWhichInnerForCurrentSubSegment = new List<List<int>>();
+
+            List<double> innerAreaProportionForCurrentSegment = new List<double>();
+            for (int i = 0; i < junctionsOnCurrentBoundary.Count; i++)
+            {
+                List<int> value = dualGraphWithHMDP.DVertice_Inner[junctionsOnCurrentBoundary[i]];
+
+                JunctionCorrespondingWhichInnerForCurrentSubSegment.Add(new List<int>());
+
+
+            }
+            #endregion
+        }
+
 
         public void DecomposeSegmentWithVolumeJunctions(INode<BoundarySegment> INodeToSplit, 
                               DualGraphWithHM dualGraphWithHM, 
