@@ -1,11 +1,12 @@
 ﻿using Grasshopper.Kernel;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph.Class
 {
-    public class BoundarySegment //: ICloneable
+    public class BoundarySegment
     {
         public Line Line { get; set; }
 
@@ -15,6 +16,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public Point3d To { get; set; }
 
         public List<int> IncludedDVertice { get; set; }
+
+        public int HIndex { get; set; }
 
         /// <summary>
         /// 构造函数
@@ -28,6 +31,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.From = segment.From;
             this.To = segment.To;
+
+            this.IncludedDVertice = null;
+            this.HIndex = -1;
         }
 
         /// <summary>
@@ -51,6 +57,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.IncludedDVertice = new List<int>();
                 this.IncludedDVertice.AddRange(source.IncludedDVertice);
             }
+
+            this.HIndex = source.HIndex;
         }
 
         public void Reverse()
@@ -62,6 +70,15 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.Line = new Line(this.From, this.To);
 
             this.IncludedDVertice.Reverse();
+        }
+
+        /// <summary>
+        /// 重写ToString()方法
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return "BS:" + this.Label;
         }
 
         ///// <summary>
@@ -77,4 +94,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
         //    return boundarySegment;
         //}
     }
+
+    //public class BoundarySegmentGoo : GH_GeometricGoo<BoundarySegment>
+    //{
+    //    public 
+    //}
 }
