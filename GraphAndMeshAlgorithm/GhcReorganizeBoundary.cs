@@ -1,4 +1,6 @@
-﻿using Grasshopper.Kernel;
+﻿using Grasshopper;
+using Grasshopper.Kernel;
+using Grasshopper.Kernel.Data;
 using Plankton;
 using PlanktonGh;
 using Rhino.Geometry;
@@ -20,7 +22,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
               "依据对偶图的关系重新组织边界polyline",
               "VolumeGeneratorBasedOnGraph", "CreateVolume")
         {
-            base.Message = "开发中 Todo:对偶图中，边界顶点布置方式";
+            // base.Message = "开发中 Todo:对偶图中，边界顶点布置方式";
 
             BoundaryPolylinePoints = new List<Point3d>();
             BoundaryCornerTextDots = new List<TextDot>();
@@ -59,12 +61,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddPointParameter("BoundaryVerticesPoints", "BVP", "", GH_ParamAccess.list);
-            
-            pManager.AddPointParameter("BoundaryCorner", "BC", "在边界上的角点", GH_ParamAccess.list);
+            pManager.AddGenericParameter("DualGraphWithHM", "DGHM", "经过顶点分裂的对偶图", GH_ParamAccess.item);
 
             pManager.AddCurveParameter("ReorganizedBoundary", "RB", "经过重新组织的边界polyline", GH_ParamAccess.item);
-            pManager.AddIntegerParameter("ReorganizedCornerIndex", "RCIndex", "经过重新组织的边界polyline的角点对应的对偶图中角点的index", GH_ParamAccess.list);
+
+            pManager.AddGenericParameter("SubBoundarySegments", "SS", "分割过后形成的子BoundarySegment对象", GH_ParamAccess.list);
+            // pManager.AddIntegerParameter("HalfedgeIndexOfSubBoundarySegment", "hI", "分割过后形成的子BoundarySegment对象所对应的Halfedge的序号", GH_ParamAccess.list);
+
+            // pManager.AddPointParameter("BoundaryVerticesPoints", "BVP", "", GH_ParamAccess.list);
+            
+            // pManager.AddPointParameter("BoundaryCorner", "BC", "在边界上的角点", GH_ParamAccess.list);
+            // pManager.AddIntegerParameter("ReorganizedCornerIndex", "RCIndex", "经过重新组织的边界polyline的角点对应的对偶图中角点的index", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -85,16 +92,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 && DA.GetDataList<BoundarySegment>("BoundarySegments", boundarySegments))
             {
                 DualGraphWithHM dualGraphWithHMDP = new DualGraphWithHM(dualGraphWithHM);
-                // PlanktonMesh D = dualGraphWithHMDP.DualPlanktonMesh;
-                // PlanktonMesh I = dualGraphWithHM.IntegrateDualPlanktonMesh;
                 List<GraphNode> decomposedPGraphNodes = dualGraphWithHMDP.GraphNodes;
-
-                //SortedDictionary<int, GraphNode> volume_volumeNode = dualGraphWithHM.Volume_VolumeNode;
-
-                //List<GraphNode> undividedPGraphNodes = dualGraphWithHM.UndividedGraphNodes;
-                //List<List<int>> undividedPGraphTables = dualGraphWithHM.UndividedGraphTable;
-
-
 
                 int innerNodeCount = dualGraphWithHMDP.InnerNodeCount;
                 int outerNodeCount = dualGraphWithHMDP.OuterNodeCount;
@@ -153,17 +151,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Boundary不闭合");
                 }
                 #endregion
-                DA.SetDataList("BoundaryCorner", boundaryCorner);
+                // DA.SetDataList("BoundaryCorner", boundaryCorner);
 
-                #region 输出闭合的多段线
+                #region 输出经过重新组织后，闭合的多段线
                 List<Point3d> closedBoundaryPoints = new List<Point3d>();
                 closedBoundaryPoints.AddRange(boundaryCorner);
                 closedBoundaryPoints.Add(boundaryCorner[0]);
                 Polyline reorganizedBoundary = new Polyline(closedBoundaryPoints);
                 #endregion
                 DA.SetData("ReorganizedBoundary", reorganizedBoundary);
-
-
 
                 #region 计算场地边界与角点所对应的对偶图中顶点的序号
 
@@ -179,8 +175,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     sortedBoundaryCornerIndexs.Add(faceIndexsAroundOuterNodes[i].First());
                 }
+                // DA.SetDataList("ReorganizedCornerIndex", sortedBoundaryCornerIndexs);
                 #endregion
-                DA.SetDataList("ReorganizedCornerIndex", sortedBoundaryCornerIndexs);
 
                 #region 输出从W开始的逆时针方向的，场地边界上所应该布置的对偶图顶点序号
                 List<List<int>> verticesIndexForEachBoundarySegment = new List<List<int>>();
@@ -231,7 +227,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 for (int i = 0; i < sortedBoundarySegments.Count; i++)
                 {
                     List<int> newJunctionForCurrentSegment;
-                    newDualGraphWithHM = DecomposeJunction(newDualGraphWithHM, juntionsIndexForEachBoundarySegment[i], out newJunctionForCurrentSegment);
+                    newDualGraphWithHM = DecomposeJunction(newDualGraphWithHM, 
+                                                           juntionsIndexForEachBoundarySegment[i], 
+                                                           out newJunctionForCurrentSegment);
 
                     List<string> debug1 = UtilityFunctions.PrintFacesVertices(newDualGraphWithHM.DualPlanktonMesh);
 
@@ -248,29 +246,37 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 List<string> debug = UtilityFunctions.PrintFacesVertices(newDualGraphWithHM.DualPlanktonMesh);
+                DA.SetData("DualGraphWithHM", newDualGraphWithHM);
 
                 #region 用junction点分割boundarysegment
                 List<List<BoundarySegment>> sortedSubBoundarySegment = new List<List<BoundarySegment>>();
                 List<List<List<int>>> junctionCorrespondingWhichInnerForAllSegment = new List<List<List<int>>>();
                 List<List<Point3d>> junctionPointForAllSegment = new List<List<Point3d>>();
+                List<List<int>> hIndexForAllSegment = new List<List<int>>();
 
                 // 此时边界上的点，全部都是juntion点（除去每条边的首尾）
                 for (int i = 0; i < sortedBoundarySegments.Count; i++)
                 {
+                    // 添加分支
                     sortedSubBoundarySegment.Add(new List<BoundarySegment>());
                     junctionCorrespondingWhichInnerForAllSegment.Add(new List<List<int>>());
                     junctionPointForAllSegment.Add(new List<Point3d>());
+                    hIndexForAllSegment.Add(new List<int>());
 
+                    // 初始化out参数
                     List<List<int>> junctionCorrespondingWhichInnerForCurrentSegment;
                     List<Point3d> junctionPointForCurrentSegment;
+                    List<int> hIndexForCurrentSegment;
 
                     List<BoundarySegment> subBoundarySegment = SplitBoundarySegment(sortedBoundarySegments[i],
                                                                                     newJunctionForAllSegment[i],
                                                                                     newVerticesForAllSegment[i],
                                                                                     newDualGraphWithHM,
                                                                                     out junctionCorrespondingWhichInnerForCurrentSegment,
-                                                                                    out junctionPointForCurrentSegment);
+                                                                                    out junctionPointForCurrentSegment,
+                                                                                    out hIndexForCurrentSegment);
 
+                    // 将结果添加到对应分支上
                     sortedSubBoundarySegment[i].AddRange(subBoundarySegment);
                     junctionCorrespondingWhichInnerForCurrentSegment.ForEach(item =>
                     {
@@ -278,8 +284,22 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         junctionCorrespondingWhichInnerForAllSegment[i].Last().AddRange(item);
                     });
                     junctionPointForAllSegment[i].AddRange(junctionPointForCurrentSegment);
+                    hIndexForAllSegment[i].AddRange(hIndexForCurrentSegment);
+                }
+
+                // 为每个SubBoundarySegment的HIndex属性赋值
+                for (int i = 0; i < sortedSubBoundarySegment.Count; i++)
+                {
+                    for (int j = 0; j < sortedSubBoundarySegment[i].Count; j++)
+                    {
+                        sortedSubBoundarySegment[i][j].HIndex = hIndexForAllSegment[i][j];
+                    }
                 }
                 #endregion
+
+                DataTree<BoundarySegment> sortedSubBoundarySegmentDT = UtilityFunctions.LoLToDataTree<BoundarySegment>(sortedSubBoundarySegment);
+                DA.SetDataList("SubBoundarySegments", sortedSubBoundarySegment);
+                // DA.SetDataList("HalfedgeIndexOfSubBoundarySegment", hIndexForAllSegment);
 
                 #region 可视化部分
                 BoundaryPolylinePoints.Clear();
@@ -672,7 +692,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                           List<int> verticeOnCurrentBoundary,
                                           DualGraphWithHM dualGraphWithHMDP,
                                           out List<List<int>> junctionCorrespondingWhichInnerForCurrentSegment,
-                                          out List<Point3d> junctionPointForCurrentSegment)
+                                          out List<Point3d> junctionPointForCurrentSegment,
+                                          out List<int> hIndexForCurrentSegment)
         {
             List<BoundarySegment> subSegments = new List<BoundarySegment>();
             // 没有junction在该segment上时
@@ -680,6 +701,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 junctionCorrespondingWhichInnerForCurrentSegment = new List<List<int>>();
                 junctionPointForCurrentSegment = new List<Point3d>();
+
+                hIndexForCurrentSegment = new List<int>();
+                for (int i = 0; i < dualGraphWithHMDP.DualPlanktonMesh.Halfedges.Count; i++)
+                {
+                    if (dualGraphWithHMDP.DualPlanktonMesh.Halfedges[i].StartVertex == verticeOnCurrentBoundary.Last() 
+                        && dualGraphWithHMDP.DualPlanktonMesh.Halfedges.EndVertex(i) == verticeOnCurrentBoundary.First())
+                    {
+                        hIndexForCurrentSegment.Add(i);
+                    }
+                }
+
                 subSegments.Add(currentBoundarySegment);
                 return subSegments;
             }
@@ -713,6 +745,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             junctionCorrespondingWhichInnerForCurrentSegment = new List<List<int>>();
 
             List<double> innerAreaProportionForCurrentSegment = new List<double>();
+            hIndexForCurrentSegment = new List<int>();
             for (int i = 0; i < junctionsOnCurrentBoundary.Count; i++)
             {
                 // List<int> value = dualGraphWithHMDP.DVertice_Inner[junctionsOnCurrentBoundary[i]];
@@ -722,18 +755,23 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 int dface1 = -1;
                 int dface2 = -1;
 
+                int h1 = -1;
+                int h2 = -1;
+
                 for (int j = 0; j < dualGraphWithHMDP.DualPlanktonMesh.Halfedges.Count; j++)
                 {
                     if (dualGraphWithHMDP.DualPlanktonMesh.Halfedges[j].StartVertex == junctionsOnCurrentBoundary[i]
                         && dualGraphWithHMDP.DualPlanktonMesh.Halfedges.EndVertex(j) == verticeOnCurrentBoundary[verticeOnCurrentBoundary.IndexOf(junctionsOnCurrentBoundary[i]) - 1])
                     {
                         dface1 = dualGraphWithHMDP.DualPlanktonMesh.Halfedges[j].AdjacentFace;
+                        h1 = j;
                         continue;
                     }
                     if (dualGraphWithHMDP.DualPlanktonMesh.Halfedges[j].StartVertex == verticeOnCurrentBoundary[verticeOnCurrentBoundary.IndexOf(junctionsOnCurrentBoundary[i]) + 1]
                         && dualGraphWithHMDP.DualPlanktonMesh.Halfedges.EndVertex(j) == junctionsOnCurrentBoundary[i])
                     {
                         dface2 = dualGraphWithHMDP.DualPlanktonMesh.Halfedges[j].AdjacentFace;
+                        h2 = j;
                         continue;
                     }
                 }
@@ -764,10 +802,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     innerAreaProportionForCurrentSegment.Add(inner1AreaProportion);
                     innerAreaProportionForCurrentSegment.Add(inner2AreaProportion);
+                    hIndexForCurrentSegment.Add(h1);
+                    hIndexForCurrentSegment.Add(h2);
                 }
                 else
                 {
                     innerAreaProportionForCurrentSegment.Add(inner2AreaProportion);
+                    hIndexForCurrentSegment.Add(h2);
                 }
             }
 
@@ -789,8 +830,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 junctionPointForCurrentSegment.Add(tPoint);
                 
             }
-            // 在末尾添加t=1，这样split的时候才会生成四段
-            // tList.Add(1);
             #endregion
 
             #region 分割生成子Sement
