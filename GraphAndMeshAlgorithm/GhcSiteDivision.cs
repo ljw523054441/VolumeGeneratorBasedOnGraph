@@ -23,7 +23,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
               "进行场地划分",
               "VolumeGeneratorBasedOnGraph", "CreateVolume")
         {
+            RealisticSiteFaceCenter = new List<TextDot>();
         }
+
+        private List<TextDot> RealisticSiteFaceCenter;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -181,8 +184,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     Polyline polyline = new Polyline(list);
                     debugPolylines.Add(polyline);
                 }
-
                 DA.SetDataList("DeBug Polyline", debugPolylines);
+
+                RealisticSiteFaceCenter.Clear();
+                for (int i = 0; i < debugPolylines.Count; i++)
+                {
+                    Point3d center = debugPolylines[i].CenterPoint();
+                    TextDot fCenterTextDot = new TextDot(realisticSiteFaceIndex[i].ToString(), center);
+                    RealisticSiteFaceCenter.Add(fCenterTextDot);
+                }
+
+
             }
         }
 
@@ -713,6 +725,30 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             //        //realisticSiteFacePoints[()]
             //    }
             //}
+        }
+
+        public override void DrawViewportWires(IGH_PreviewArgs args)
+        {
+            base.DrawViewportWires(args);
+
+            for (int i = 0; i < RealisticSiteFaceCenter.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(RealisticSiteFaceCenter[i], Color.ForestGreen, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+        }
+
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            base.DrawViewportMeshes(args);
+
+            for (int i = 0; i < RealisticSiteFaceCenter.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(RealisticSiteFaceCenter[i], Color.ForestGreen, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
         }
 
         /// <summary>
