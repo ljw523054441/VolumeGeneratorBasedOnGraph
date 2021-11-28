@@ -15,9 +15,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public Point3d From { get; set; }
         public Point3d To { get; set; }
 
-        public List<int> IncludedDVertice { get; set; }
+        public BoundarySegment()
+        {
 
-        public int HIndex { get; set; }
+        }
 
         /// <summary>
         /// 构造函数
@@ -32,8 +33,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.From = segment.From;
             this.To = segment.To;
 
-            this.IncludedDVertice = null;
-            this.HIndex = -1;
+            //this.IncludedDVertice = null;
+            //this.HIndex = -1;
         }
 
         /// <summary>
@@ -48,20 +49,20 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.To = new Point3d(source.To);
             this.Line = new Line(this.From, this.To);
 
-            if (source.IncludedDVertice == null)
-            {
-                this.IncludedDVertice = null;
-            }
-            else
-            {
-                this.IncludedDVertice = new List<int>();
-                this.IncludedDVertice.AddRange(source.IncludedDVertice);
-            }
+            //if (source.IncludedDVertice == null)
+            //{
+            //    this.IncludedDVertice = null;
+            //}
+            //else
+            //{
+            //    this.IncludedDVertice = new List<int>();
+            //    this.IncludedDVertice.AddRange(source.IncludedDVertice);
+            //}
 
-            this.HIndex = source.HIndex;
+            //this.HIndex = source.HIndex;
         }
 
-        public void Reverse()
+        public virtual void Reverse()
         {
             Point3d tmp = this.From;
             this.From = this.To;
@@ -69,7 +70,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.Line = new Line(this.From, this.To);
 
-            this.IncludedDVertice.Reverse();
+            //this.IncludedDVertice.Reverse();
         }
 
         /// <summary>
