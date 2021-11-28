@@ -157,6 +157,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                               out realisticSiteFacePoints,
                                                                               hHasCorrespondFE,
                                                                               feHasH);
+
+                    realisticSiteFaceVerticesForAllFace.Add(new List<int>());
+                    realisticSiteFacePointsForAllFace.Add(new List<Point3d>());
+                    realisticSiteFaceVerticesForAllFace[i + bFaceIndexThreeSideDetermined.Count].AddRange(realisticSiteFaceVertice);
+                    realisticSiteFacePointsForAllFace[i + bFaceIndexThreeSideDetermined.Count].AddRange(realisticSiteFacePoints);
+
+                    realisticSiteFaceIndex.Add(bFaceIndexTwoSidedDetermined[i]);
                 }
 
 
@@ -232,7 +239,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             List<int> realisticSiteFaceVertices = new List<int>();
             realisticSiteFacePoints = new List<Point3d>();
-            List<FaceEdgeSegment> realisticSiteFaceFE = new List<FaceEdgeSegment>();
+            List<FaceEdgeSegment> realisticSiteFE = new List<FaceEdgeSegment>();
 
             #region 找到公共边的index
             int publicHalfedge = -1;
@@ -293,7 +300,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             // 计算时[0]都被直接添加，每次循环都是添加next
             realisticSiteFaceVertices.Add(D.Halfedges[hIndexList[0]].StartVertex);
-            realisticSiteFaceFE.Add(relatedSubBoundarySegments[0]);
+            realisticSiteFE.Add(relatedSubBoundarySegments[0]);
             hHasCorrespondFE.Add(hIndexList[0]);
             // 所以i从1开始
             for (int i = 1; i < hIndexList.Count; i++)
@@ -348,7 +355,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                             FaceEdgeSegment newFE2 = new FaceEdgeSegment(lineForNewFE, label2, includedDVertice2, newestHIndex + 1);
 
-                            realisticSiteFaceFE.Add(newFE1);
+                            realisticSiteFE.Add(newFE1);
                             // realisticSiteFaceBS.Add(newFE2);
                             // 不用再向hHasCorrespondFE中添加当前的hIndex了
                             //hHasCorrespondFE.Add()
@@ -369,7 +376,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         // 向FaceBS中添加当前的faceEdgeSegment
                         if (i < relatedSubBoundarySegments.Count)
                         {
-                            realisticSiteFaceFE.Add(relatedSubBoundarySegments[i]);
+                            realisticSiteFE.Add(relatedSubBoundarySegments[i]);
                         }
                         else
                         {
@@ -380,7 +387,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             includeDV.Add(realisticSiteFaceVertices[(i + 1) % realisticSiteFaceVertices.Count]);
 
                             FaceEdgeSegment newFE = new FaceEdgeSegment(newLine, label, includeDV, hIndexList[i]);
-                            realisticSiteFaceFE.Add(newFE);
+                            realisticSiteFE.Add(newFE);
                         }
                         
                         // 向已经有对应FaceEdgeSegment的半边序号列表中，添加该半边的序号
@@ -418,7 +425,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                         FaceEdgeSegment nextFE = new FaceEdgeSegment(nextLine, label, includedDVertice, hIndexList[i]);
 
-                        realisticSiteFaceFE.Add(nextFE);
+                        realisticSiteFE.Add(nextFE);
                         hHasCorrespondFE.Add(hIndexList[i]);
 
                         // 有新的Vertex生成，故newestVertexIndex++
@@ -432,10 +439,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
 
+            feHasH.AddRange(realisticSiteFE);
+
+            return realisticSiteFaceVertices;
             // 先暂时用i作为realisticFace的序号
             // dFace_realisticFace.Add(bFaceIndexThreeSideDetermined[i], i);
             // realisticSiteFaceIndex = i
-            return realisticSiteFaceVertices;
         }
 
         private List<int> NakeEdge_2_Operation(PlanktonMesh D,
@@ -523,19 +532,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             #endregion
 
-
-            bool flag1 = hHasCorrespondFE.Contains(hIndexList[relatedSubBoundarySegments.Count + 1]);
-            bool flag2 = hHasCorrespondFE.Contains(hIndexList[relatedSubBoundarySegments.Count + 2]);
+            // 目前relatedSubBoundarySegments只有两个元素。hIndexList[relatedSubBoundarySegments.Count]是它的下一条边
+            bool flag1 = hHasCorrespondFE.Contains(hIndexList[relatedSubBoundarySegments.Count]);
+            bool flag3 = hHasCorrespondFE.Contains(D.Halfedges.GetPairHalfedge(hIndexList[relatedSubBoundarySegments.Count]));
+            bool flag2 = hHasCorrespondFE.Contains(hIndexList[relatedSubBoundarySegments.Count + 1]);
+            bool flag4 = hHasCorrespondFE.Contains(D.Halfedges.GetPairHalfedge(hIndexList[relatedSubBoundarySegments.Count + 1]));
 
             //如果两条公共边都没有在hHasCorrespondFE中出现过的话（表示这两条公共边都没有绘制过对应的FaceEdgeSegment，即这两条半边都没有生成过对应的FE）
-            if (!flag1 && !flag2)
+            if (!(flag1||flag3) && !(flag2||flag4))
             {
                 Point3d point = realisticSiteFacePoints[2];
                 Vector3d move = new Vector3d(realisticSiteFacePoints[0] - realisticSiteFacePoints[1]);
                 Point3d newPoint = point + move;
 
                 realisticSiteFacePoints.Add(newPoint);
-                realisticSiteFaceVertices.Add(newestVertexIndex + 1);
+                realisticSiteFaceVertices.Add(D.Halfedges.EndVertex(hIndexList[2]));
 
                 // 注意构造FE的Line，首尾点顺序跟halfedge顺序应该是反的
                 Line prev = new Line(newPoint, realisticSiteFacePoints[2]);
@@ -559,7 +570,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 hHasCorrespondFE.Add(hIndexList[3]);
             }
             // 如果两条中有一条出现，另一条没出现，那么求交点
-            else if ((flag1 && !flag2) || (!flag1 && flag2))
+            else if (((flag1||flag3) && !(flag2||flag4)) || (!(flag1||flag3) && (flag2||flag4)))
             {
                 FaceEdgeSegment alreadyExistFE;
                 FaceEdgeSegment feToMove;
@@ -569,10 +580,20 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 int vIndex2;
                 Point3d point2;
                 Transform move;
-                if (flag1 && !flag2)
+                if (((flag1 || flag3) && !(flag2 || flag4)))
                 {
-                    alreadyExistFE = feHasH[hHasCorrespondFE.IndexOf(hIndexList[relatedSubBoundarySegments.Count + 1])];
-                    feToMove = relatedSubBoundarySegments[0];
+                    int hIndex = -1;
+                    if (flag1)
+                    {
+                        hIndex = hIndexList[relatedSubBoundarySegments.Count];
+                    }
+                    if (flag3)
+                    {
+                        hIndex = D.Halfedges.GetPairHalfedge(hIndexList[relatedSubBoundarySegments.Count]);
+                    }
+
+                    alreadyExistFE = feHasH[hHasCorrespondFE.IndexOf(hIndex)];
+                    feToMove = relatedSubBoundarySegments[1];
                     lineToMove = feToMove.Line;
                     vIndex1 = realisticSiteFaceVertices[2];
                     point1 = realisticSiteFacePoints[2];
@@ -582,8 +603,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 else
                 {
-                    alreadyExistFE = feHasH[hHasCorrespondFE.IndexOf(hIndexList[relatedSubBoundarySegments.Count + 2])];
-                    feToMove = relatedSubBoundarySegments[1];
+                    int hIndex = -1;
+                    if (flag2)
+                    {
+                        hIndex = hIndexList[relatedSubBoundarySegments.Count + 1];
+                    }
+                    if (flag4)
+                    {
+                        hIndex = D.Halfedges.GetPairHalfedge(hIndexList[relatedSubBoundarySegments.Count + 1]);
+                    }
+
+                    alreadyExistFE = feHasH[hHasCorrespondFE.IndexOf(hIndex)];
+                    feToMove = relatedSubBoundarySegments[0];
                     lineToMove = feToMove.Line;
                     vIndex1 = realisticSiteFaceVertices[0];
                     point1 = realisticSiteFacePoints[0];
@@ -625,11 +656,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     realisticSiteFE.Add(newFE1);
                     realisticSiteFE.Add(newFE2);
 
-                    hHasCorrespondFE.Add(newestHIndex);
+                    hHasCorrespondFE.Add(newestHIndex + 1);
+
+
+                    newestVertexIndex++;
+                    newestHIndex++;
                 }
 
-                newestVertexIndex++;
-                newestHIndex++;
+                
             }
             // 如果都出现了，那么直接找两个FE的公共点即可
             else
@@ -637,7 +671,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             }
 
+            feHasH.AddRange(realisticSiteFE);
 
+            return realisticSiteFaceVertices;
             //Point3d pointToMove = realisticSiteFacePoints.Last();
             //Vector3d move = new Vector3d(realisticSiteFacePoints[realisticSiteFacePoints.Count - 3] - realisticSiteFacePoints[realisticSiteFacePoints.Count - 2]);
 
@@ -654,7 +690,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
 
-            return null;
+
 
             //realisticSiteFaceVertices.Add(D.Halfedges[hIndexList[0]].StartVertex);
             //for (int i = 1; i < realisticSiteFacePoints.Count; i++)
