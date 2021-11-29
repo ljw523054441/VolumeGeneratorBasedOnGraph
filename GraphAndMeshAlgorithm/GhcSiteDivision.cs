@@ -95,16 +95,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 List<int> realisticSiteFaceIndex = new List<int>();
 
-                SortedDictionary<int, int> dFace_realisticFace = new SortedDictionary<int, int>();
+                // SortedDictionary<int, int> dFace_realisticFace = new SortedDictionary<int, int>();
 
                 // 记录当前最新的顶点的序号
                 int newestVertexIndex = D.Vertices.Count - 1;
-
+                // 记录当前最新的半边的序号
                 int newestHIndex = D.Halfedges.Count - 1;
 
+                // 保存已经被绘制过的halfedge和其所对应的FE
                 List<int> hHasCorrespondFE = new List<int>();
                 List<FaceEdgeSegment> feHasH = new List<FaceEdgeSegment>();
 
+
+                #region 找到边缘的面（有连续的三边可以确定）
                 // 找到边缘的面（有连续的三边可以确定），因为都是四边面，所以但凡是有三边的，都是连续的三边
                 List<int> bFaceIndexThreeSideDetermined = new List<int>();
                 for (int i = 0; i < D.Faces.Count; i++)
@@ -114,27 +117,108 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         bFaceIndexThreeSideDetermined.Add(i);
                     }
                 }
+                #endregion
+                #region 找到边缘的面（有连续的两边可以确定）
                 // 找到边缘的面（有连续的两边可以确定）
                 List<int> bFaceIndexTwoSidedDetermined = new List<int>();
                 for (int i = 0; i < D.Faces.Count; i++)
                 {
                     if (D.Faces.NakedEdgeCount(i) == 2)
                     {
-                        List<int> nakedEdges = GetNakedEdges(D,i);
+                        List<int> nakedEdges = GetNakedEdges(D, i);
                         if (IsNakedEdgesContinuous(D, nakedEdges))
                         {
                             bFaceIndexTwoSidedDetermined.Add(i);
                         }
                     }
                 }
+                #endregion
+
+                #region 找到与边缘的面（有连续的三边可以确定）邻接的面，及公共边
+                List<int> aFaceIndexThreeSideDetermined = new List<int>();
+                List<int> pHalfedgeThreeSideDetermined = new List<int>();
+                for (int i = 0; i < bFaceIndexThreeSideDetermined.Count; i++)
+                {
+                    int publicHalfedge = -1;
+                    int adjacentFace = -1;
+                    int[] hs = D.Faces.GetHalfedges(bFaceIndexThreeSideDetermined[i]);
+                    for (int j = 0; j < hs.Length; j++)
+                    {
+                        if (D.Halfedges[D.Halfedges.GetPairHalfedge(hs[j])].AdjacentFace != -1)
+                        {
+                            publicHalfedge = hs[j];
+                            adjacentFace = D.Halfedges[D.Halfedges.GetPairHalfedge(hs[j])].AdjacentFace;
+
+                            pHalfedgeThreeSideDetermined.Add(publicHalfedge);
+                            aFaceIndexThreeSideDetermined.Add(adjacentFace);
+                        }
+                    }
+                }
+                #endregion
+
+                #region 找到与边缘的面（有连续的两边可以确定）邻接的面，及公共边
+                List<List<int>> aFaceIndexTwoSideDetermined = new List<List<int>>();
+                List<List<int>> pHalfedgeTwoSideDetermined = new List<List<int>>();
+                for (int i = 0; i < bFaceIndexTwoSidedDetermined.Count; i++)
+                {
+                    aFaceIndexTwoSideDetermined.Add(new List<int>());
+                    pHalfedgeTwoSideDetermined.Add(new List<int>());
+
+                    List<int> publicHalfedges = new List<int>();
+                    List<int> adjacentFaces = new List<int>();
+                    int[] hs = D.Faces.GetHalfedges(bFaceIndexTwoSidedDetermined[i]);
+                    for (int j = 0; j < hs.Length; j++)
+                    {
+                        if (D.Halfedges[D.Halfedges.GetPairHalfedge(hs[j])].AdjacentFace != -1)
+                        {
+                            publicHalfedges.Add(hs[j]);
+                            adjacentFaces.Add(D.Halfedges[D.Halfedges.GetPairHalfedge(hs[j])].AdjacentFace);
+                        }
+                    }
+
+                    aFaceIndexTwoSideDetermined[i].AddRange(adjacentFaces);
+                    pHalfedgeTwoSideDetermined[i].AddRange(publicHalfedges);
+                }
+                #endregion
+
+                #region 清除邻接面中的重复值，清除邻接面中与边缘面的重复
+                // 找到与边缘面邻接的面
+                List<int> aFaceIndex = new List<int>();
+                // 边缘的面（有连续的三边可以确定）邻接的面一定不会重复，故直接添加
+                aFaceIndex.AddRange(aFaceIndexThreeSideDetermined);
+
+                List<int> bFace = bFaceIndexThreeSideDetermined.Union(bFaceIndexTwoSidedDetermined).ToList<int>();
+                List<int> cleanedAFaceIndexTwoSideDetermined = new List<int>();
+                for (int i = 0; i < aFaceIndexTwoSideDetermined.Count; i++)
+                {
+                    for (int j = 0; j < aFaceIndexTwoSideDetermined[i].Count; j++)
+                    {
+                        // 如果找到与边缘的面（有连续的两边可以确定）邻接的面，没有在所有的边缘面中出现，就添加
+                        if (bFace.Contains(aFaceIndexTwoSideDetermined[i][j]))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            cleanedAFaceIndexTwoSideDetermined.Add(aFaceIndexTwoSideDetermined[i][j]);
+                        }
+                    }
+                }
+
+                aFaceIndex.AddRange(cleanedAFaceIndexTwoSideDetermined);
+                #endregion
+
+
+                #region 处理边缘的面（有连续的三边可以确定），以及边缘的面（有连续的两边可以确定）
 
                 // 对于每个边缘的有三边可以确定的面，找到公共边的对边
                 for (int i = 0; i < bFaceIndexThreeSideDetermined.Count; i++)
                 {
                     List<Point3d> realisticSiteFacePoints;
-                    List<int> realisticSiteFaceVertice = NakedEdge_3_Operation(D, 
-                                                                               subBoundarySegments, 
-                                                                               bFaceIndexThreeSideDetermined[i], 
+                    List<int> realisticSiteFaceVertice = NakedEdge_3_Operation(D,
+                                                                               subBoundarySegments,
+                                                                               bFaceIndexThreeSideDetermined[i],
+                                                                               pHalfedgeThreeSideDetermined[i],
                                                                                newestVertexIndex,
                                                                                newestHIndex,
                                                                                out realisticSiteFacePoints,
@@ -152,9 +236,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 for (int i = 0; i < bFaceIndexTwoSidedDetermined.Count; i++)
                 {
                     List<Point3d> realisticSiteFacePoints;
-                    List<int> realisticSiteFaceVertice = NakeEdge_2_Operation(D, 
-                                                                              subBoundarySegments, 
+                    List<int> realisticSiteFaceVertice = NakeEdge_2_Operation(D,
+                                                                              subBoundarySegments,
                                                                               bFaceIndexTwoSidedDetermined[i],
+                                                                              pHalfedgeTwoSideDetermined[i],
                                                                               newestVertexIndex,
                                                                               newestHIndex,
                                                                               out realisticSiteFacePoints,
@@ -168,9 +253,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                     realisticSiteFaceIndex.Add(bFaceIndexTwoSidedDetermined[i]);
                 }
+                #endregion
 
+                #region 处理边缘面的邻接面
 
-
+                #endregion
 
 
 
@@ -241,6 +328,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<int> NakedEdge_3_Operation(PlanktonMesh D,
                                                 List<List<FaceEdgeSegment>> subBoundarySegments,
                                                 int currentBFaceIndexThreeSideDetermined,
+                                                int publicHalfedge,
                                                 int newestVertexIndex,
                                                 int newestHIndex,
                                                 // out List<int> realisticSiteFaceVertices,
@@ -253,17 +341,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             realisticSiteFacePoints = new List<Point3d>();
             List<FaceEdgeSegment> realisticSiteFE = new List<FaceEdgeSegment>();
 
-            #region 找到公共边的index
-            int publicHalfedge = -1;
-            int[] hs = D.Faces.GetHalfedges(currentBFaceIndexThreeSideDetermined);
-            for (int i = 0; i < hs.Length; i++)
-            {
-                if (D.Halfedges[D.Halfedges.GetPairHalfedge(hs[i])].AdjacentFace != -1)
-                {
-                    publicHalfedge = hs[i];
-                }
-            }
-            #endregion
+            //#region 找到公共边的index
+            //int publicHalfedge = -1;
+            //int[] hs = D.Faces.GetHalfedges(currentBFaceIndexThreeSideDetermined);
+            //for (int i = 0; i < hs.Length; i++)
+            //{
+            //    if (D.Halfedges[D.Halfedges.GetPairHalfedge(hs[i])].AdjacentFace != -1)
+            //    {
+            //        publicHalfedge = hs[i];
+            //    }
+            //}
+            //#endregion
 
             #region 从公共边的nextHalfedge开始，依次添加这个面的所有Halfedge
             // 按顺序存储这个面的halfedge
@@ -462,6 +550,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<int> NakeEdge_2_Operation(PlanktonMesh D,
                                                List<List<FaceEdgeSegment>> subBoundarySegments,
                                                int currentBFaceIndexTwoSideDetermined,
+                                               List<int> publicHalfedges,
                                                int newestVertexIndex,
                                                int newestHIndex,
                                                out List<Point3d> realisticSiteFacePoints,
@@ -472,17 +561,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             realisticSiteFacePoints = new List<Point3d>();
             List<FaceEdgeSegment> realisticSiteFE = new List<FaceEdgeSegment>();
 
-            #region 找到公共边的index
-            List<int> publicHalfedges = new List<int>();
-            int[] hs = D.Faces.GetHalfedges(currentBFaceIndexTwoSideDetermined);
-            for (int i = 0; i < hs.Length; i++)
-            {
-                if (D.Halfedges[D.Halfedges.GetPairHalfedge(hs[i])].AdjacentFace != -1)
-                {
-                    publicHalfedges.Add(hs[i]);
-                }
-            }
-            #endregion
+            //#region 找到公共边的index
+            //List<int> publicHalfedges = new List<int>();
+            //int[] hs = D.Faces.GetHalfedges(currentBFaceIndexTwoSideDetermined);
+            //for (int i = 0; i < hs.Length; i++)
+            //{
+            //    if (D.Halfedges[D.Halfedges.GetPairHalfedge(hs[i])].AdjacentFace != -1)
+            //    {
+            //        publicHalfedges.Add(hs[i]);
+            //    }
+            //}
+            //#endregion
 
             #region 从最后一个公共边的nextHalfedge开始，依次添加这个面的所有Halfedge
             // 按顺序存储这个面的halfedge
