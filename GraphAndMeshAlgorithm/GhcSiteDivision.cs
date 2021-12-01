@@ -1132,6 +1132,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             #endregion
 
+            /* 这里需要进行判断，prevFE有没有绘制过 */
+            int[] firstPrevHV = new int[2] { D.Halfedges[D.Halfedges[firstHalfedge].PrevHalfedge].StartVertex, D.Halfedges[firstHalfedge].StartVertex };
+            bool prevHasDrawnFlag = false;
+            int drawnIndex = -1;
+            for (int i = 0; i < drawnDHV.Count; i++)
+            {
+                if (drawnDHV[i].Except(firstPrevHV).ToList().Count == 0)
+                {
+                    prevHasDrawnFlag = true;
+                    drawnIndex = i;
+                }
+            }
+
             fIndex_SplitedIndex = new SortedDictionary<int, List<int>>();
             PlanktonMesh newD = new PlanktonMesh();
 
@@ -1148,8 +1161,41 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                  out preStartVertex, 
                                                  out nextMidVertex);
 
-            List<string> debug1 = UtilityFunctions.PrintFacesHalfedges(newD);
-            List<string> debug2 = UtilityFunctions.PrintHalfedgeStartAndEnd(newD);
+
+            double t = firstH_Segment.Line.Length / (firstH_Segment.Line.Length + secondH_Segment.Line.Length);
+            // 注意，segment方向与半边方向是反的，所以t的分子是firstH_Segment.Line.Length，而不是secondH_Segment.Line.Length
+            Point3d PointOnNextHalfedge = firstNextH_Segment.Line.PointAt(t);
+
+            Vector3d moveVector = new Vector3d(PointOnNextHalfedge - firstH_Segment.From);
+
+            Point3d pointOnPrevHalfedge;
+            if (prevHasDrawnFlag)
+            {
+                FaceEdgeSegment alreadyExistFE = feHasH[drawnIndex];
+
+                Line lineToMove = firstH_Segment.Line;
+                Transform move = Transform.Translation(moveVector);
+                Line newLine = new Line(lineToMove.From, lineToMove.To);
+                newLine.Transform(move);
+
+                double tolerance = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+                double t1;
+                double t2;
+                // 求交点
+                if (Intersection.LineLine(alreadyExistFE.Line, newLine, out t1, out t2, tolerance,false))
+                {
+                    pointOnPrevHalfedge = alreadyExistFE.Line.PointAt(t1);
+                }
+                else
+                {
+                    pointOnPrevHalfedge = firstH_Segment.To + moveVector;
+                }
+            }
+            else
+            {
+                pointOnPrevHalfedge = firstH_Segment.To + moveVector;
+            }
+            
 
             #region 构造和更新relatedVertice和relatedPoints列表
             // 注意，此时的relatedVertice和relatedPoints并不是最终的结果
@@ -1161,19 +1207,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             relatedPoints.Add(firstH_Segment.To);
             relatedPoints.Add(firstH_Segment.From);
 
-            // 修改替换正确的realisticSiteFaceVertice和realisticSiteFacePoints
-            double t = firstH_Segment.Line.Length / (firstH_Segment.Line.Length + secondH_Segment.Line.Length);
-            // 注意，segment方向与半边方向是反的，所以t的分子是firstH_Segment.Line.Length，而不是secondH_Segment.Line.Length
-            Point3d PointOnNextHalfedge = firstNextH_Segment.Line.PointAt(t);
-
-            /* 这里需要进行判断，prevFE有没有绘制过 */
-
-            Vector3d move = new Vector3d(PointOnNextHalfedge - firstH_Segment.From);
-            Point3d PointOnPrevHalfedge = firstH_Segment.To + move;
-
-            relatedPoints.Insert(0, PointOnPrevHalfedge);
+            relatedPoints.Insert(0, pointOnPrevHalfedge);
             relatedPoints.Add(PointOnNextHalfedge);
             #endregion
+
 
             #region 生成正确的realistcSiteFaceVertice和realisticSiteFacePoints
             realisticSiteFaceVertice = new List<int>();
@@ -1192,7 +1229,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             FaceEdgeSegment nextFE = new FaceEdgeSegment(nextLine, label1, includedDV1, -1);
 
             // 注意，segment方向与半边方向是反的
-            Line prevLine = new Line(firstH_Segment.From, PointOnPrevHalfedge);
+            Line prevLine = new Line(firstH_Segment.From, pointOnPrevHalfedge);
             string label2 = string.Format("h:{0},v:{1},{2}", -1, prevMidVertex, firstH_Segment.IncludedDVertice[0]);
             List<int> includedDV2 = new List<int>();
             includedDV2.Add(prevMidVertex);
@@ -1200,7 +1237,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             FaceEdgeSegment prevFE = new FaceEdgeSegment(prevLine, label2, includedDV2, -1);
 
             // 注意，segment方向与半边方向是反的
-            Line nextNextLine = new Line(PointOnPrevHalfedge, PointOnNextHalfedge);
+            Line nextNextLine = new Line(pointOnPrevHalfedge, PointOnNextHalfedge);
             string label3 = string.Format("h:{0},v:{1},{2}", -1, nextMidVertex, prevMidVertex);
             List<int> includedDV3 = new List<int>();
             includedDV3.Add(nextMidVertex);
@@ -1225,6 +1262,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
             /* 输出最终正确的feHasH */
             feHasH.AddRange(realisticSiteFaceEdgeSegments);
+
+
             #endregion
 
             return newD;
