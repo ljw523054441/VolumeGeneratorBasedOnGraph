@@ -722,6 +722,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 Line segment = currentBoundarySegment.Line;
                 string label = currentBoundarySegment.Label;
                 List<int> includedDVertice = verticeOnCurrentBoundary;
+                // includedDVertice中的顺序（即includedDVertex的顺序），应该跟halfedge一样，是逆时针的
+                // 而Line中From，To的顺序，跟boundarySegment一样，是顺时针的
+                includedDVertice.Reverse();
                 
                 FaceEdgeSegment subSegment = new FaceEdgeSegment(segment, label, includedDVertice, hIndex);
 
@@ -749,6 +752,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             for (int i = 0; i < pairIndex.Count; i++)
             {
                 List<int> subList = verticeOnCurrentBoundary.Skip(pairIndex[i][0]).Take(pairIndex[i][1] - pairIndex[i][0] + 1).ToList();
+                // dVerticesForEachSubSegment中的顺序（即includedDVertex的顺序），应该跟halfedge一样，是逆时针的
+                // 而Line中From，To的顺序，跟boundarySegment一样，是顺时针的
+                subList.Reverse();
                 dVerticesForEachSubSegment.Add(subList);
             }
             #endregion
