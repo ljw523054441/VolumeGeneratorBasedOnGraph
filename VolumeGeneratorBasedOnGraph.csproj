@@ -79,6 +79,7 @@
     <Compile Include="GraphAndMeshAlgorithm\GhcDebugGraph.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcLaplaceSmooth.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision2.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcSplitTest.cs" />
     <Compile Include="Temporary\CellGraph.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />

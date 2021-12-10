@@ -69,9 +69,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // pManager.AddIntegerParameter("HalfedgeIndexOfSubBoundarySegment", "hI", "分割过后形成的子BoundarySegment对象所对应的Halfedge的序号", GH_ParamAccess.list);
 
             // pManager.AddPointParameter("BoundaryVerticesPoints", "BVP", "", GH_ParamAccess.list);
-            
+
             // pManager.AddPointParameter("BoundaryCorner", "BC", "在边界上的角点", GH_ParamAccess.list);
             // pManager.AddIntegerParameter("ReorganizedCornerIndex", "RCIndex", "经过重新组织的边界polyline的角点对应的对偶图中角点的index", GH_ParamAccess.list);
+            pManager.AddPointParameter("DivisionPoints", "DP", "要生成分割线的边界点", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -206,6 +207,29 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     faceIndexsAroundVertex[i].Remove(0);
                 }
 
+
+                #region 区分出每个Segment上的volumeJunction
+                List<List<int>> volumeJunctionForEachBoundarySegment = new List<List<int>>();
+
+                for (int i = 0; i < sortedBoundarySegments.Count; i++)
+                {
+                    volumeJunctionForEachBoundarySegment.Add(new List<int>());
+
+                    for (int j = 0; j < verticesIndexForEachBoundarySegment[i].Count; j++)
+                    {
+                        if (dualGraphWithHMDP.DVertice_Inner[verticesIndexForEachBoundarySegment[i][j]].Count > 1
+                            && dualGraphWithHMDP.DualPlanktonMesh.Vertices.GetVertexFaces(verticesIndexForEachBoundarySegment[i][j]).Contains(-1))
+                        {
+                            if (dualGraphWithHMDP.DVertice_Volume[verticesIndexForEachBoundarySegment[i][j]].Count != 1)
+                            {
+                                volumeJunctionForEachBoundarySegment[i].Add(verticesIndexForEachBoundarySegment[i][j]);
+                            }
+                        }
+                    }
+                }
+                #endregion
+
+
                 #region 每个segment上的junction列表
                 // 每个segment上，除去首尾两点，剩下的都是junction
                 List<List<int>> juntionsIndexForEachBoundarySegment = new List<List<int>>();
@@ -301,6 +325,38 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // DataTree<BoundarySegment> sortedSubBoundarySegmentDT = UtilityFunctions.LoLToDataTree<BoundarySegment>(sortedSubBoundarySegment);
                 DA.SetDataList("SubBoundarySegments", sortedSubBoundarySegment);
                 // DA.SetDataList("HalfedgeIndexOfSubBoundarySegment", hIndexForAllSegment);
+
+                Dictionary<int, Point3d> index_JunctionPoint = new Dictionary<int, Point3d>();
+                for (int i = 0; i < sortedSubBoundarySegment.Count; i++)
+                {
+                    for (int j = 0; j < sortedSubBoundarySegment[i].Count; j++)
+                    {
+                        index_JunctionPoint.TryAdd(sortedSubBoundarySegment[i][j].IncludedDVertice[0], sortedSubBoundarySegment[i][j].To);
+                        index_JunctionPoint.TryAdd(sortedSubBoundarySegment[i][j].IncludedDVertice[1], sortedSubBoundarySegment[i][j].From);
+                    }
+                }
+
+                List<List<Point3d>> volumeJunctionPointLoL = new List<List<Point3d>>();
+                for (int i = 0; i < volumeJunctionForEachBoundarySegment.Count; i++)
+                {
+                    volumeJunctionPointLoL.Add(new List<Point3d>());
+                    if (volumeJunctionForEachBoundarySegment[i].Count != 0)
+                    {
+                        for (int j = 0; j < volumeJunctionForEachBoundarySegment[i].Count; j++)
+                        {
+                            volumeJunctionPointLoL[i].Add(index_JunctionPoint[volumeJunctionForEachBoundarySegment[i][j]]);
+                        }
+                    }
+                    else
+                    {
+                        Point3d point = Point3d.Unset;
+                        volumeJunctionPointLoL[i].Add(point);
+                    }
+                }
+
+                DataTree<Point3d> volumeJunctionPointDT = UtilityFunctions.LoLToDataTree<Point3d>(volumeJunctionPointLoL);
+                DA.SetDataTree(3, volumeJunctionPointDT);
+
 
                 #region 可视化部分
                 BoundaryPolylinePoints.Clear();
