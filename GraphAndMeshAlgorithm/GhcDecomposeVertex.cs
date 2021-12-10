@@ -161,7 +161,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<int> currentInnerNodesNeedToSplit = new List<int>();
                 for (int i = 0; i < graphWithHMDeepCopy.GraphNodes.Count; i++)
                 {
-                    if (graphWithHMDeepCopy.GraphNodes[i].IsInner)
+                    if (graphWithHMDeepCopy.GraphNodes[i].IsInner
+                        && graphWithHMDeepCopy.PlanktonMesh.Vertices.GetValence(i) > 4)
                     {
                         currentInnerNodesNeedToSplit.Add(i);
                     }
@@ -182,6 +183,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
 
                 #region 电池结果输出
+
+                // -1 是消除Root节点的影响
+                CountOfAllLeafNodes = allLeafNodes.Count - 1;
+                CurrentLeafNodeIndex = indexOfLeafNodes;
 
                 INode<GraphWithHM> selectedINode = allLeafNodes[indexOfLeafNodes];
 
@@ -224,9 +229,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DA.SetDataList("VolumeContainsWhichInnerNode", selectedVolumeContainsWhichInnerNode);
 
 
-                // -1 是消除Root节点的影响
-                CountOfAllLeafNodes = allLeafNodes.Count - 1;
-                CurrentLeafNodeIndex = indexOfLeafNodes;
+                
 
                 #region 保存并传递原来未分裂之前的GraphNodes和GraphTables
                 embededGraphWithHM.UndividedGraphNodes = new List<GraphNode>();
@@ -658,11 +661,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     break;
 
                 default:
+                    // 分裂下一个节点
+                    Decompose(INodeToSplit, verticesToSplit);
                     break;
             }
 
             // 结束执行当前递归，递归深度--
             RecursionDepth--;
+            return;
         }
 
 

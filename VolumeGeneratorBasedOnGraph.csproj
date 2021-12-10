@@ -70,6 +70,7 @@
     <Compile Include="Class\DualGraphNode.cs" />
     <Compile Include="Class\DualGraphNodeAttribute.cs" />
     <Compile Include="Class\DualGraphWithHM.cs" />
+    <Compile Include="Class\ExtensionMethod.cs" />
     <Compile Include="Class\GraphWithHM.cs" />
     <Compile Include="Class\Graph.cs" />
     <Compile Include="Class\Node.cs" />
@@ -118,6 +119,9 @@
     <Content Include="image\Snipaste_2021-11-08_17-29-33.png" />
     <Content Include="lib\Plankton.dll" />
     <Content Include="lib\PlanktonGh.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ForSchool\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
