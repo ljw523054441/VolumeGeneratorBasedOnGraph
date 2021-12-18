@@ -80,16 +80,23 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // 深拷贝PlanktonMesh
             this.DualPlanktonMesh = new PlanktonMesh(source.DualPlanktonMesh);
             // 深拷贝IntegratePlanktonMesh
-            this.IntegrateDualPlanktonMesh = new PlanktonMesh(source.IntegrateDualPlanktonMesh);
-
-            this.UndividedGraphNodes = new List<GraphNode>();
-            this.UndividedGraphNodes.AddRange(source.UndividedGraphNodes);
-            this.UndividedGraphTable = new List<List<int>>();
-            for (int i = 0; i < source.UndividedGraphTable.Count; i++)
+            if (source.IntegrateDualPlanktonMesh != null)
             {
-                this.UndividedGraphTable.Add(new List<int>());
-                this.UndividedGraphTable[i].AddRange(source.UndividedGraphTable[i]);
+                this.IntegrateDualPlanktonMesh = new PlanktonMesh(source.IntegrateDualPlanktonMesh);
             }
+
+            if (source.UndividedGraphNodes != null && source.UndividedGraphTable != null)
+            {
+                this.UndividedGraphNodes = new List<GraphNode>();
+                this.UndividedGraphNodes.AddRange(source.UndividedGraphNodes);
+                this.UndividedGraphTable = new List<List<int>>();
+                for (int i = 0; i < source.UndividedGraphTable.Count; i++)
+                {
+                    this.UndividedGraphTable.Add(new List<int>());
+                    this.UndividedGraphTable[i].AddRange(source.UndividedGraphTable[i]);
+                }
+            }
+            
 
             if (source.Volume_VolumeNode != null)
             {
@@ -182,11 +189,63 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
 
             // 深拷贝FaceIndexsAroundOuterNodes
+            if (source.DFaceIndexsAroundOuterNodes != null)
+            {
+                this.DFaceIndexsAroundOuterNodes = new List<List<int>>();
+                for (int i = 0; i < source.DFaceIndexsAroundOuterNodes.Count; i++)
+                {
+                    this.DFaceIndexsAroundOuterNodes.Add(new List<int>());
+                    this.DFaceIndexsAroundOuterNodes[i].AddRange(source.DFaceIndexsAroundOuterNodes[i]);
+                }
+            }
+        }
+
+        public DualGraphWithHM(PlanktonMesh dualPlanktonMesh,
+                               List<GraphNode> graphNodes,
+                               List<List<int>> graphTables,
+                               List<List<int>> faceIndexsAroundOuterNodes)
+        {
+            #region 父类属性
+            this.GraphTables = new List<List<int>>();
+            for (int i = 0; i < graphTables.Count; i++)
+            {
+                this.GraphTables.Add(new List<int>());
+                this.GraphTables[i].AddRange(graphTables[i]);
+            }
+            this.GraphNodes = new List<GraphNode>();
+            for (int i = 0; i < graphNodes.Count; i++)
+            {
+                this.GraphNodes.Add(new GraphNode(graphNodes[i]));
+            }
+            this.InnerNodeCount = 0;
+            this.OuterNodeCount = 0;
+            this.InnerNodeIndexList = new List<int>();
+            this.OuterNodeIndexList = new List<int>();
+            this.Inner_InnerNode = new SortedDictionary<int, GraphNode>();
+            for (int i = 0; i < graphNodes.Count; i++)
+            {
+                if (graphNodes[i].IsInner)
+                {
+                    this.InnerNodeCount++;
+                    this.InnerNodeIndexList.Add(i);
+                    this.Inner_InnerNode.Add(i, graphNodes[i]);
+                }
+                else
+                {
+                    this.OuterNodeCount++;
+                    this.OuterNodeIndexList.Add(i);
+                }
+            }
+            #endregion
+
+            // 深拷贝PlanktonMesh
+            this.DualPlanktonMesh = new PlanktonMesh(dualPlanktonMesh);
+
             this.DFaceIndexsAroundOuterNodes = new List<List<int>>();
-            for (int i = 0; i < source.DFaceIndexsAroundOuterNodes.Count; i++)
+            for (int i = 0; i < faceIndexsAroundOuterNodes.Count; i++)
             {
                 this.DFaceIndexsAroundOuterNodes.Add(new List<int>());
-                this.DFaceIndexsAroundOuterNodes[i].AddRange(source.DFaceIndexsAroundOuterNodes[i]);
+                this.DFaceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNodes[i]);
             }
         }
 
