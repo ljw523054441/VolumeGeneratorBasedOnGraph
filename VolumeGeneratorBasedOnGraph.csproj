@@ -82,6 +82,7 @@
     <Compile Include="GraphAndMeshAlgorithm\GhcReorganizeBoundary2.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision2.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision3.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcSplitTest.cs" />
     <Compile Include="Temporary\CellGraph.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />
@@ -117,6 +118,8 @@
     <None Include="测试文件夹\1024Test.csv" />
     <None Include="测试文件夹\1024_test.gh" />
     <None Include="测试文件夹\1111_test.gh" />
+    <None Include="测试文件夹\1221.gh" />
+    <None Include="测试文件夹\1221Test.csv" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="image\Snipaste_2021-11-08_17-29-33.png" />
