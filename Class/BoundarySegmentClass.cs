@@ -2,18 +2,27 @@
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class BoundarySegment
     {
-        public Line Line { get; set; }
+        //public Line Line { get; set; }
+
+        public Polyline Polyline { get; set; }
 
         public string Label { get; set; }
 
         public Point3d From { get; set; }
         public Point3d To { get; set; }
+
+        public List<Point3d> Points { get; set; }
+
+        public List<Line> Lines { get; set; }
+
+        public List<double> TurningTs { get; set; }
 
         public BoundarySegment()
         {
@@ -27,14 +36,75 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="label"></param>
         public BoundarySegment(Line segment, string label)
         {
-            this.Line = segment;
+            this.Points = new List<Point3d>();
+            this.Points.Add(segment.From);
+            this.Points.Add(segment.To);
+            this.Polyline = new Polyline(this.Points);
             this.Label = label;
 
-            this.From = segment.From;
-            this.To = segment.To;
+            this.From = Points[0];
+            this.To = Points.Last();
 
-            //this.IncludedDVertice = null;
-            //this.HIndex = -1;
+            this.Lines.Add(new Line(segment.From, segment.To));
+
+            this.TurningTs = null;
+        }
+
+        public BoundarySegment(List<Line> segments, string label)
+        {
+            if (segments.Count == 0)
+            {
+                throw new Exception("必须有至少一段线来构成BoundarySegment");
+            }
+            if (segments.Count == 1)
+            {
+                this.Points = new List<Point3d>();
+                this.Points.Add(segments[0].From);
+                this.Points.Add(segments[0].To);
+                this.Polyline = new Polyline(this.Points);
+                this.Label = label;
+
+                this.From = Points[0];
+                this.To = Points.Last();
+
+                //this.IncludedDVertice = null;
+                //this.HIndex = -1;
+                this.Lines.Add(new Line(segments[0].From, segments[0].To));
+
+                this.TurningTs = null;
+            }
+            
+            this.Points = new List<Point3d>();
+            this.Points.Add(segments[0].From);
+            for (int i = 0; i < segments.Count; i++)
+            {
+                this.Points.Add(segments[i].To);
+            }
+            this.Polyline = new Polyline(this.Points);
+            this.Label = label;
+
+            this.From = Points[0];
+            this.To = Points.Last();
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                this.Lines.Add(new Line(segments[i].From, segments[i].To));
+            }
+
+            List<double> lengths = new List<double>();
+            double sum = 0;
+            for (int i = 0; i < segments.Count; i++)
+            {
+                double current = sum + segments[i].Length;
+                lengths.Add(current);
+                sum += segments[i].Length;
+            }
+
+            for (int i = 0; i < lengths.Count - 1; i++)
+            {
+                double t = lengths[i] / sum;
+                this.TurningTs.Add(t);
+            }
         }
 
         /// <summary>
@@ -43,34 +113,45 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="source"></param>
         public BoundarySegment(BoundarySegment source)
         {
-            
+            this.Points = new List<Point3d>();
+            for (int i = 0; i < source.Points.Count; i++)
+            {
+                this.Points.Add(new Point3d(source.Points[i]));
+            }
+            this.Polyline = new Polyline(source.Polyline);
             this.Label = source.Label;
+
             this.From = new Point3d(source.From);
             this.To = new Point3d(source.To);
-            this.Line = new Line(this.From, this.To);
 
-            //if (source.IncludedDVertice == null)
-            //{
-            //    this.IncludedDVertice = null;
-            //}
-            //else
-            //{
-            //    this.IncludedDVertice = new List<int>();
-            //    this.IncludedDVertice.AddRange(source.IncludedDVertice);
-            //}
+            this.Lines = new List<Line>();
+            for (int i = 0; i < source.Lines.Count; i++)
+            {
+                this.Lines.Add(new Line(source.Lines[i].From, source.Lines[i].To));
+            }
 
-            //this.HIndex = source.HIndex;
+            this.TurningTs = new List<double>();
+            this.TurningTs.AddRange(source.TurningTs);
         }
 
         public virtual void Reverse()
         {
+            this.Points.Reverse();
+            this.Polyline.Reverse();
+
             Point3d tmp = this.From;
             this.From = this.To;
             this.To = tmp;
 
-            this.Line = new Line(this.From, this.To);
-
-            //this.IncludedDVertice.Reverse();
+            List<Line> newLines = new List<Line>();
+            for (int i = 0; i < this.Lines.Count; i++)
+            {
+                Line newLine = new Line(this.Lines[i].To, this.Lines[i].From);
+                newLines.Add(newLine);
+            }
+            newLines.Reverse();
+            this.Lines = new List<Line>();
+            this.Lines.AddRange(newLines);
         }
 
         /// <summary>

@@ -138,7 +138,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<Point3d> boundaryCorner = new List<Point3d>();
 
                 // 利用叉积来判断第一个Segment的方向时候需要反转
-                if (IsFirstSegmentOpppsite(sortedBoundarySegments[0].Line.Direction,
+                if (IsFirstSegmentOpppsite(sortedBoundarySegments[0].Lines[0].Direction,
                                            new Vector3d((sortedBoundarySegments[1].From + sortedBoundarySegments[1].To) / 2 - sortedBoundarySegments[0].From)))
                 {
                     sortedBoundarySegments[0].Reverse();
@@ -398,7 +398,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<Point3d> boundarySegmentTextDotLocations = new List<Point3d>();
                 for (int i = 0; i < boundarySegments.Count; i++)
                 {
-                    Vector3d verticalVector = Vector3d.CrossProduct(boundarySegments[i].Line.Direction, Vector3d.ZAxis);
+                    Vector3d verticalVector = Vector3d.CrossProduct(boundarySegments[i].Lines[0].Direction, Vector3d.ZAxis);
                     verticalVector.Unitize();
                     Point3d boundarySegmentTextDotLocation = new Point3d((boundarySegments[i].From + boundarySegments[i].To) / 2);
                     boundarySegmentTextDotLocation += verticalVector * 2;
