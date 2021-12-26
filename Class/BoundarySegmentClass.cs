@@ -100,11 +100,13 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 sum += segments[i].Length;
             }
 
+            this.TurningTs.Add(0);
             for (int i = 0; i < lengths.Count - 1; i++)
             {
                 double t = lengths[i] / sum;
                 this.TurningTs.Add(t);
             }
+            
         }
 
         /// <summary>
