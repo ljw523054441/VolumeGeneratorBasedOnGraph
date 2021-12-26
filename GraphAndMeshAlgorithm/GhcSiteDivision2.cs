@@ -72,14 +72,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             List<double> additionalTXList = new List<double>();
             List<double> additionalTYList = new List<double>();
 
-            if (DA.GetDataList("SortedBoundarySegments", sortedBoundarySegments) 
+            if (DA.GetDataList("SortedBoundarySegments", sortedBoundarySegments)
                 && DA.GetDataList("BSIndexContainVolumeJunctions", bSIndexContainVolumeJunctions)
                 && DA.GetDataList("VolumeJunctionsTexts", volumeJunctionsTexts)
                 // && DA.GetDataList("PairVolumeJunctionsIndex", pairVolumeJunctionsIndex)
                 && DA.GetDataList("NeedToConnect", needToConnect)
                 && DA.GetDataList("tList", tList)
-                && DA.GetDataList("AdditionalTXList",additionalTXList)
-                && DA.GetDataList("AdditionalTYList",additionalTYList))
+                && DA.GetDataList("AdditionalTXList", additionalTXList)
+                && DA.GetDataList("AdditionalTYList", additionalTYList))
             {
                 //// 对输入的Curve类型的reorganizedBoundary进行类型转换，转换成Curve类的子类Polyline
                 //Polyline reorganizedBoundary = null;
@@ -104,7 +104,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
 
                 BoundingBox boundingBox = new BoundingBox(cornerPoints);
-                
+
 
                 List<BoundarySegment> bsContainVolumeJunctions = new List<BoundarySegment>();
                 for (int i = 0; i < bSIndexContainVolumeJunctions.Count; i++)
@@ -125,11 +125,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     iter++;
                 }
 
-                // 全局的addtionalTX的使用量
-                int additionalTXCount = 0;
-                // 全局的addtionalTY的使用量
-                int additionalTYCount = 0;
-
                 List<Point3d> volumeJunctions = new List<Point3d>();
                 for (int i = 0; i < bsContainVolumeJunctions.Count; i++)
                 {
@@ -138,14 +133,22 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
                 #region 构造折线，先做正X正Y
+                //List<Point3d> VolumeJunctionPair = new List<Point3d>();
+                //sortedBoundarySegments[bSIndexPair[i][0]].Line.PointAt()
                 // 相邻的两个volumeJunction所在的BS的序号
                 List<int[]> bSIndexPair = new List<int[]>();
+                List<Point3d[]> volumeJunctionPair = new List<Point3d[]>();
                 for (int i = 0; i < bSIndexContainVolumeJunctions.Count; i++)
                 {
                     int[] pair = new int[2] { bSIndexContainVolumeJunctions[i], bSIndexContainVolumeJunctions[(i + 1) % bSIndexContainVolumeJunctions.Count] };
                     bSIndexPair.Add(pair);
+
+                    Point3d[] pair2 = new Point3d[2] {sortedBoundarySegments[bSIndexContainVolumeJunctions[i]].Line.PointAt(tForBSLine[i]),
+                                                      sortedBoundarySegments[bSIndexContainVolumeJunctions[(i + 1) % bSIndexContainVolumeJunctions.Count]].Line.PointAt(tForBSLine[(i + 1) % bSIndexContainVolumeJunctions.Count])};
+                    volumeJunctionPair.Add(pair2);
                 }
 
+                // 先来计算需要t的数量
                 // 对于每个bsIndexPair，进行连接线的绘制，后面的会在绘制时，参照前面已经绘制过的轨迹
                 bool isFirstDrawn = true;
                 for (int i = 0; i < bSIndexPair.Count; i++)
@@ -155,7 +158,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     {
                         continue;
                     }
-                    
+
                     int interval = CalInterval(bSIndexPair[i], sortedBoundarySegments.Count);
                     // 如果相邻的两个volumeJunction属于同一个volume，那么不用做折线
                     if (interval == 0)
@@ -163,10 +166,48 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         continue;
                     }
 
+                    // 先来计算需要t的数量
+
+
+                    if (interval % 2 == 1)
+                    {
+                        // 如果转折数是奇数
+                        if (isFirstDrawn)
+                        {
+                            
+                        }
+                        else
+                        {
+
+                        }
+                    }
+                    else
+                    {
+                        // 如果转折数是偶数
+                        if (isFirstDrawn)
+                        {
+
+                        }
+                        else
+                        {
+
+                        }
+                    }
+
+                    isFirstDrawn = false;
+                }
+
+
+                
+
+                for (int i = 0; i < bSIndexPair.Count; i++)
+                {
+                    int interval = CalInterval(bSIndexPair[i], sortedBoundarySegments.Count);
+
                     // 如果间隔是1，那么直接求交点，构成折线
                     if (interval == 1)
                     {
-                        
+
                         Point3d point1 = new Point3d(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])].X, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])].Y, 0);
                         Point3d point2 = new Point3d(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])].X, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])].Y, 0);
 
@@ -198,28 +239,27 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         {
                             // 如果之前有其他线被绘制过
                         }
-                        
                     }
-
                 }
 
                 #endregion
 
                 #region 可视化
-                VolumeJunctionTextDot.Clear();
+                    VolumeJunctionTextDot.Clear();
 
-                for (int i = 0; i < volumeJunctions.Count; i++)
-                {
-                    TextDot textDot = new TextDot(volumeJunctionsTexts[i], volumeJunctions[i]);
-                    VolumeJunctionTextDot.Add(textDot);
-                }
-                #endregion
+                    for (int i = 0; i < volumeJunctions.Count; i++)
+                    {
+                        TextDot textDot = new TextDot(volumeJunctionsTexts[i], volumeJunctions[i]);
+                        VolumeJunctionTextDot.Add(textDot);
+                    }
+                    #endregion
 
 
                 volumeJunctions.Add(volumeJunctions[0]);
                 Polyline debugPolyline = new Polyline(volumeJunctions);
 
                 DA.SetData("DeBug Polyline", debugPolyline);
+                
             }
         }
 
@@ -259,6 +299,277 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
         }
 
+        private int[] CalTCount(Point3d point1,
+                                Point3d point2,
+                                int interval,
+                                BoundarySegment bsForPoint1,
+                                BoundarySegment bsForPoint2,
+                                List<Point3d[]> linesPassingThroughPoint1,
+                                BoundingBox boundingBox)
+        {
+            // 计算需要t的数量
+            //int xCount = 0;
+            //int yCount = 0;
+
+            int[] tCount;
+
+            if (interval % 2 == 1)
+            {
+                #region 基础计算
+                int quadrant = WhichQuadrant(point1, point2);
+
+                #region 求point1和point2所对应的BS的法线（逆时针90度）
+                // 这里不能用bsForPoint，必须用bsForPoint所对应的x轴方向或者y轴方向
+                Vector3d vectorForBS1 = new Vector3d(bsForPoint1.To - bsForPoint1.From);
+                Vector3d vectorForBS2 = new Vector3d(bsForPoint2.To - bsForPoint2.From);
+                Vector3d projectVectorBS1 = CalProjectVector(bsForPoint1.From, bsForPoint1.To);
+                Vector3d projectVectorBS2 = CalProjectVector(bsForPoint2.From, bsForPoint2.To);
+
+                // 求在x轴正方向或y轴正方向的投影
+                Vector3d vectorForBS1OnProjectVectorBS1 = vectorForBS1 * projectVectorBS1 * projectVectorBS1 / Math.Sqrt(projectVectorBS1.Length);
+                Vector3d vectorForBS2OnProjectVectorBS2 = vectorForBS2 * projectVectorBS2 * projectVectorBS2 / Math.Sqrt(projectVectorBS2.Length);
+                // 投影后向量的normal，为正X正Y方向
+                Vector3d nVectorForBS1 = Normal(vectorForBS1OnProjectVectorBS1);
+                Vector3d nVectorForBS2 = Normal(vectorForBS2OnProjectVectorBS2);
+                #endregion
+
+                #region 判断两个法向量的交点，是否都在两个向量的正方向上
+                bool isIntersectOnPositiveDirection = true;
+                // 即由交点到向量原点所构成的向量是否与原来的法向量方向相同
+                // 1.求交点
+                Point3d intersectPoint = GetLineIntersection(point1, nVectorForBS1, point2, nVectorForBS2);
+                if (intersectPoint == Point3d.Unset)
+                {
+                    throw new Exception("interval为奇数时划线，point1和point2的法向量平行");
+                }
+                // 2.构造新向量
+                Vector3d newVector1 = new Vector3d(point1 - intersectPoint);
+                Vector3d newVector2 = new Vector3d(point2 - intersectPoint);
+                // 3.判断新向量与原向量是否同向
+                if (newVector1 * nVectorForBS1 > 0 && newVector2 * nVectorForBS2 > 0)
+                {
+                    isIntersectOnPositiveDirection = true;
+                }
+                else
+                {
+                    isIntersectOnPositiveDirection = false;
+                }
+                #endregion
+
+                #region 判断由nVectorForBS1到nVectorForBS2是顺时针还是逆时针
+                bool isCounterClockwise = true;
+                Vector3d crossProduct = Vector3d.CrossProduct(nVectorForBS1, nVectorForBS2);
+                if (crossProduct.Z < 0)
+                {
+                    // 逆时针
+                    isCounterClockwise = true;
+                }
+                else
+                {
+                    // 顺时针
+                    isCounterClockwise = false;
+                }
+                #endregion
+                #endregion
+
+                // 如果转折数是奇数
+                if (linesPassingThroughPoint1 != null)
+                {
+                    // 如果point1已经被绘制过
+                    if (isIntersectOnPositiveDirection)
+                    {
+                        // 如果两个法向量的交点，在两个向量的正方向上
+                        if (interval == 1)
+                        {
+                            // 如果interv = 1
+                            tCount = new int[2] { 0, 0 };
+                        }
+                        else
+                        {
+                            // 如果interv != 1
+                            if (nVectorForBS1.X == 0)
+                            {
+                                // 法向量为y轴
+                                tCount = new int[2] { (interval - 1) / 2, (interval - 1) / 2 - 1 };
+                            }
+                            else
+                            {
+                                // 法向量为x轴
+                                tCount = new int[2] { (interval - 1) / 2 - 1, (interval - 1) / 2 };
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 如果两个法向量的交点，没有在两个向量的正方向上
+                        if (interval == 1)
+                        {
+                            // 如果interv = 1
+                            if (nVectorForBS1.X == 0)
+                            {
+                                // 法向量为y轴
+                                tCount = new int[2] { 1, 0 };
+                            }
+                            else
+                            {
+                                // 法向量为x轴
+                                tCount = new int[2] { 0, 1 };
+                            }
+                        }
+                        else
+                        {
+                            // 如果interv != 1
+                            if (isCounterClockwise)
+                            {
+                                // 由nVectorForBS1到nVectorForBS2是逆时针
+                                if (nVectorForBS1.X == 0)
+                                {
+                                    // 法向量为y轴
+                                    tCount = new int[2] { (interval - 1) / 2 + 1, (interval - 1) / 2 };
+                                }
+                                else
+                                {
+                                    // 法向量为x轴
+                                    tCount = new int[2] { (interval - 1) / 2, (interval - 1) / 2 + 1 };
+                                }
+                            }
+                            else
+                            {
+                                // 由nVectorForBS1到nVectorForBS2是顺时针
+                                if (nVectorForBS1.X == 0)
+                                {
+                                    // 法向量为y轴
+                                    tCount = new int[2] { (interval - 1) / 2 + 1, (interval - 1) / 2 };
+                                }
+                                else
+                                {
+                                    // 法向量为x轴
+                                    tCount = new int[2] { (interval - 1) / 2, (interval - 1) / 2 + 1 };
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // 如果point1没有被绘制过，即这是全局的第一次绘制
+                    if (isIntersectOnPositiveDirection)
+                    {
+                        // 如果两个法向量的交点，在两个向量的正方向上
+                        if (interval == 1)
+                        {
+                            // 如果interv = 1
+                            tCount = new int[2] { 0, 0 };
+                        }
+                        else
+                        {
+                            // 如果interv != 1
+                            if (nVectorForBS1.X == 0)
+                            {
+                                // 法向量为y轴
+                                tCount = new int[2] { (interval - 1) / 2, (interval - 1) / 2 };
+                            }
+                            else
+                            {
+                                // 法向量为x轴
+                                tCount = new int[2] { (interval - 1) / 2, (interval - 1) / 2 };
+                            }
+                        }
+
+                        // 如果两个法向量的交点，在两个向量的正方向上
+                        tCount = new int[2] { (interval - 1) / 2 + 1, (interval - 1) / 2 + 1 };
+                    }
+                    else
+                    {
+                        // 如果两个法向量的交点，没有在两个向量的正方向上
+                        if (interval == 1)
+                        {
+                            // 如果interv = 1
+                            if (nVectorForBS1.X == 0)
+                            {
+                                // 法向量为y轴
+                                tCount = new int[2] { 1, 1 };
+                            }
+                            else
+                            {
+                                // 法向量为x轴
+                                tCount = new int[2] { 1, 1 };
+                            }
+                        }
+                        else
+                        {
+                            // 如果interv != 1
+                            if (isCounterClockwise)
+                            {
+                                // 由nVectorForBS1到nVectorForBS2是逆时针
+                                if (nVectorForBS1.X == 0)
+                                {
+                                    // 法向量为y轴，yCount+1
+                                    tCount = new int[2] { (interval - 1) / 2 + 1, (interval - 1) / 2 + 1 };
+                                }
+                                else
+                                {
+                                    // 法向量为x轴，xCount+1
+                                    tCount = new int[2] { (interval - 1) / 2 + 1, (interval - 1) / 2 + 1 };
+                                }
+                            }
+                            else
+                            {
+                                // 由nVectorForBS1到nVectorForBS2是顺时针
+                                if (nVectorForBS1.X == 0)
+                                {
+                                    // 法向量为y轴，yCount+1
+                                    tCount = new int[2] { (interval - 1) / 2 + 1, (interval - 1) / 2 + 1 };
+                                }
+                                else
+                                {
+                                    // 法向量为x轴，xCount+1
+                                    tCount = new int[2] { (interval - 1) / 2 + 1, (interval - 1) / 2 + 1 };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // 如果转折数是偶数
+                #region 基础计算
+                int quadrant = WhichQuadrant(point1, point2);
+
+                #region 求point1和point2所对应的BS的法线（逆时针90度）
+                // 这里不能用bsForPoint，必须用bsForPoint所对应的x轴方向或者y轴方向
+                Vector3d vectorForBS1 = new Vector3d(bsForPoint1.To - bsForPoint1.From);
+                Vector3d vectorForBS2 = new Vector3d(bsForPoint2.To - bsForPoint2.From);
+                Vector3d projectVectorBS1 = CalProjectVector(bsForPoint1.From, bsForPoint1.To);
+                Vector3d projectVectorBS2 = CalProjectVector(bsForPoint2.From, bsForPoint2.To);
+
+                // 求在x轴正方向或y轴正方向的投影
+                Vector3d vectorForBS1OnProjectVectorBS1 = vectorForBS1 * projectVectorBS1 * projectVectorBS1 / Math.Sqrt(projectVectorBS1.Length);
+                Vector3d vectorForBS2OnProjectVectorBS2 = vectorForBS2 * projectVectorBS2 * projectVectorBS2 / Math.Sqrt(projectVectorBS2.Length);
+                // 投影后向量的normal，为正X正Y方向
+                Vector3d nVectorForBS1 = Normal(vectorForBS1OnProjectVectorBS1);
+                Vector3d nVectorForBS2 = Normal(vectorForBS2OnProjectVectorBS2);
+                #endregion
+                #endregion
+                if (linesPassingThroughPoint1 != null)
+                {
+                    // 如果point1已经被绘制过
+                    //if ()
+                    //{
+
+                    //}
+                    return null;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            return tCount;
+        }
+
         private List<Point3d> MakeStepLine(Point3d point1,
                                            Point3d point2,
                                            int interval,
@@ -271,9 +582,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                            ref int additionalTXCount,
                                            ref int additionalTYCount)
         {
-            double totalDX = point2.X - point1.X;
-            double totalDY = point2.Y - point1.Y;
-
             if (interval % 2 == 1)
             {
                 // 如果转折数是奇数

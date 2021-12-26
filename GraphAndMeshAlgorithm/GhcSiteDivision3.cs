@@ -42,7 +42,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             pManager.AddGenericParameter("DualGraphWithHM", "DGHM", "生成的对偶图", GH_ParamAccess.item);
 
-            
+            // pManager.AddGenericParameter("SubDualGraphWithHM", "SubDGHM", "对偶图中心的子图", GH_ParamAccess.list);
 
             pManager.AddGenericParameter("SortedBoundarySegments", "SBS", "经过排序后的BoundarySegment", GH_ParamAccess.list);
             // pManager.AddIntegerParameter("BSIndexContainVolumeJunctions", "BSI", "包含边界分裂点的BoundarySegment序号", GH_ParamAccess.list);
@@ -54,8 +54,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddTextParameter("VolumeJunctionsTexts", "VTD", "表示边界分裂点的Text", GH_ParamAccess.list);
             // pManager.AddGenericParameter("PairVolumeJunctionsIndex", "PJI", "作为分界线的一对分裂点的序号", GH_ParamAccess.list);
             // pManager.AddBooleanParameter("NeedToConnect", "NTC", "的这一对分裂点是否作为分界线", GH_ParamAccess.list);
+
             pManager.AddGenericParameter("NeedToConnectVolumeJunctionsIndex", "N_VJI", "需要构成分界线的两个volumeJunction的Index", GH_ParamAccess.list);
-            
+            pManager.AddGenericParameter("VerticeIndexOnNeedToConnectDividingLine", "VI_OnDL", "在分界线上的点的index列表", GH_ParamAccess.list);
+
+            pManager.AddGenericParameter("NeedToConnectVolumeJunctionsIndexCorrespondingFaceIndex", "N_VJCFI", "需要构成分界线的两个volumeJunction所属于的Face的Index", GH_ParamAccess.list);
+
             pManager.AddGenericParameter("NeedToConnectBSIndex", "N_BSI", "这两个volumeJunction所对应的bsIndex", GH_ParamAccess.list);
 
             pManager.AddIntegerParameter("tXCount", "tXCount", "tX的数量", GH_ParamAccess.item);
@@ -102,9 +106,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
             //List<bool> needToConnect = new List<bool>();
-            List<int[]> vertexIndexPairs = new List<int[]>();
+            //List<int[]> vertexIndexPairs = new List<int[]>();
+            //List<int[]> vertexIndexOnDividingLine = new List<int[]>();
 
-            
+            List<List<int[]>> vertexIndexPairs = new List<List<int[]>>();
+            List<List<int[]>> vertexIndexsOnDividingLine = new List<List<int[]>>();
+
+            List<List<int>> vertexIndexPairsCorrespondingFaceIndex = new List<List<int>>();
 
             List<int[]> bsIndexPairs = new List<int[]>();
 
@@ -125,10 +133,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 && DA.GetDataTree(3, out gh_structure2)
 
                 && DA.GetDataList("VolumeJunctionsTexts", volumeJunctionsTexts)
+
                 // && DA.GetDataList("PairVolumeJunctionsIndex", pairVolumeJunctionsIndex)
                 //&& DA.GetDataList("NeedToConnect", needToConnect)
                 && DA.GetDataList("NeedToConnectVolumeJunctionsIndex", vertexIndexPairs)
+                && DA.GetDataList("VerticeIndexOnNeedToConnectDividingLine", vertexIndexsOnDividingLine)
+
+                && DA.GetDataList("NeedToConnectVolumeJunctionsIndexCorrespondingFaceIndex", vertexIndexPairsCorrespondingFaceIndex)
+
                 && DA.GetDataList("NeedToConnectBSIndex", bsIndexPairs)
+
                 && DA.GetData("tXCount", ref tXCount)
                 && DA.GetData("tYCount", ref tYCount)
 
@@ -147,6 +161,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 BoundingBox boundingBox = new BoundingBox(cornerPoints);
                 #endregion
 
+                List<DataTree<int>> allLayerIndexOnEachBS = new List<DataTree<int>>();
+
                 DataTree<int> verticesIndexForEachBSDT = new DataTree<int>();
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_structure1, ref verticesIndexForEachBSDT);
 
@@ -157,6 +173,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 UtilityFunctions.GH_StructureToDataTree_Int(gh_structure2, ref indexOnEachBS);
                 #endregion
 
+
+
+
+
+
+
                 #region DataTree<double> tOnEachBS
                 // 每个包含volumeJunction的bs为了确定volumeJunction位置所需要的t的datatree
                 if (indexOnEachBS.DataCount > tList.Count)
@@ -165,26 +187,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
 
                 DataTree<double> tOnEachBS = new DataTree<double>();
-                //int pathCount = 0;
-                //GH_Path path = new GH_Path(pathCount);
-                //tOnEachBS.EnsurePath(path);
-                //tOnEachBS.Branch(path).Add(tList[0]);
-                //for (int i = 1; i < indexOnEachBS.DataCount; i++)
-                //{
-                //    if (bSIndexContainVolumeJunctions[i - 1] == bSIndexContainVolumeJunctions[i])
-                //    {
-                //        // 还继续使用刚才的path
-                //        tOnEachBS.Branch(path).Add(tList[i]);
-                //    }
-                //    else
-                //    {
-                //        // 构造新的path
-                //        pathCount++;
-                //        path = new GH_Path(pathCount);
-                //        tOnEachBS.EnsurePath(path);
-                //        tOnEachBS.Branch(path).Add(tList[i]);
-                //    }
-                //}
                 int index = 0;
                 for (int i = 0; i < indexOnEachBS.BranchCount; i++)
                 {
@@ -226,154 +228,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #endregion
 
-                #region 构造originP
-                List<PlanktonXYZ> planktonXYZs = new List<PlanktonXYZ>();
-                for (int i = 0; i < sortedBoundarySegments.Count; i++)
-                {
-                    Point3d cornerPoint = sortedBoundarySegments[i].From;
-                    PlanktonXYZ cornerXYZ = new PlanktonXYZ((float)cornerPoint.X, (float)cornerPoint.Y, (float)cornerPoint.Z);
-                    planktonXYZs.Add(cornerXYZ);
-
-                    if (indexOnEachBS.Branch(i).Count > 0)
-                    {
-                        for (int j = 0; j < indexOnEachBS.Branch(i).Count; j++)
-                        {
-                            Point3d point = pointOnEachBS.Branch(i)[j];
-                            PlanktonXYZ planktonXYZ = new PlanktonXYZ((float)point.X, (float)point.Y, (float)point.Z);
-                            planktonXYZs.Add(planktonXYZ);
-                        }
-                    }
-                    
-                }
-
-                #region 获取dualPlanktonMesh边界上的点的index
-                List<int> order = new List<int>();
-                //int first = -1;
-                //for (int i = 0; i < dualGraphWithHM.DualPlanktonMesh.Vertices.Count; i++)
-                //{
-                //    if (dualGraphWithHM.DualPlanktonMesh.Vertices.IsBoundary(i))
-                //    {
-                //        first = i;
-                //        break;
-                //    }
-                //}
-
-                //order.Add(first);
-
-                //int nextH = -1;
-                //for (int i = 0; i < dualGraphWithHM.DualPlanktonMesh.Vertices.GetHalfedges(first).Length; i++)
-                //{
-                //    int h = dualGraphWithHM.DualPlanktonMesh.Vertices.GetHalfedges(first)[i];
-                //    if (dualGraphWithHM.DualPlanktonMesh.Halfedges[h].AdjacentFace == -1)
-                //    {
-                //        nextH = h;
-                //    }
-                //}
-
-                //int next = dualGraphWithHM.DualPlanktonMesh.Halfedges.EndVertex(nextH);
-                //bool flag = true;
-                //while (flag)
-                //{
-                //    if (next == first)
-                //    {
-                //        flag = false;
-                //    }
-                //    else
-                //    {
-                //        order.Add(next);
-                //        nextH = dualGraphWithHM.DualPlanktonMesh.Halfedges[nextH].NextHalfedge;
-                //        next = dualGraphWithHM.DualPlanktonMesh.Halfedges.EndVertex(nextH);
-                //    }
-                //}
-
-                for (int i = 0; i < verticesIndexForEachBSDT.BranchCount; i++)
-                {
-                    List<int> verticesIndex = verticesIndexForEachBSDT.Branch(i);
-                    verticesIndex.RemoveAt(verticesIndex.Count - 1);
-                    order.AddRange(verticesIndex);
-                }
-                #endregion
-
-                // order 与 newVertexIndexOrder之间存在映射关系
-                List<int> newVertexIndexOrder = new List<int>();
-                for (int i = 0; i < planktonXYZs.Count; i++)
-                {
-                    newVertexIndexOrder.Add(i);
-                }
-
-                //int orderMax = order.Max();
-                //newVertexIndexOrder = new List<int>();
-                //for (int i = 0; i < planktonXYZs.Count; i++)
-                //{
-                //    newVertexIndexOrder.Add(i);
-                //}
-
-                List<List<int>> faceVertexOrder = new List<List<int>>();
-                faceVertexOrder.Add(new List<int>());
-                faceVertexOrder[0].AddRange(newVertexIndexOrder);
-
-                PlanktonMesh divisionP = new PlanktonMesh();
-                divisionP.Vertices.AddVertices(planktonXYZs);
-                divisionP.Faces.AddFaces(faceVertexOrder);
-                #endregion
-
-
-                #region 构造vertexIndexPair
-                //List<int[]> vertexIndexPairs = new List<int[]>();
-                //List<int[]> bsIndexPairs = new List<int[]>();
-                ////List<Point3d[]> pointPairs = new List<Point3d[]>();
-                //int count = 0;
-                //bool flagflag = false;
-                //int[] vertexIndexPair0 = new int[2] { 0, 0 };
-                //int[] vertexIndexPair1 = new int[2] { 0, 0 };
-                //int[] bsIndexPair0 = new int[2] { 0, 0 };
-                //int[] bsIndexPair1 = new int[2] { 0, 0 };
-                //for (int i = 0; i < indexOnEachBS.BranchCount; i++)
-                //{
-                //    for (int j = 0; j < indexOnEachBS.Branch(i).Count; j++)
-                //    {
-                //        if (count%2 == 0)
-                //        {
-                //            vertexIndexPair0[0] = indexOnEachBS.Branch(i)[j];
-                //            vertexIndexPair1[1] = indexOnEachBS.Branch(i)[j];
-
-                //            bsIndexPair0[0] = i;
-                //            bsIndexPair1[1] = i;
-
-                //            count++;
-
-                //            flagflag = false;
-                //        }
-                //        else
-                //        {
-                //            vertexIndexPair0[1] = indexOnEachBS.Branch(i)[j];
-                //            vertexIndexPair1[0] = indexOnEachBS.Branch(i)[j];
-
-                //            bsIndexPair0[1] = i;
-                //            bsIndexPair1[0] = i;
-
-                //            count++;
-
-                //            flagflag = true;
-                //        }
-
-                //        if (flagflag)
-                //        {
-                //            vertexIndexPairs.Add(new int[2] { vertexIndexPair0[0], vertexIndexPair0[1] });
-                //            bsIndexPairs.Add(new int[2] { bsIndexPair0[0], bsIndexPair0[1] });
-                //        }
-                //        else
-                //        {
-                //            vertexIndexPairs.Add(new int[2] { vertexIndexPair1[0], vertexIndexPair1[1] });
-                //            bsIndexPairs.Add(new int[2] { bsIndexPair1[0], bsIndexPair1[1] });
-                //        }
-                //    }
-                //}
-
-                //vertexIndexPairs.RemoveAt(0);
-                //bsIndexPairs.RemoveAt(0);
-                #endregion
-
                 #region 计算tXDT和tYDT的数量
                 if (tXCount != tXList.Count)
                 {
@@ -387,7 +241,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DataTree<double> tXDT = new DataTree<double>();
                 DataTree<double> tYDT = new DataTree<double>();
 
-                /* todo */
                 int txCount = 0;
                 int tyCount = 0;
                 for (int i = 0; i < vertexIndexPairs.Count; i++)
@@ -410,44 +263,163 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DA.SetDataTree(1, tYDT);
                 #endregion
 
-                #region 重新找到对应的P中的vertexIndex
-                // vertexIndexPairs中是每个vertex点在Dual图中的Index，我们需要把它们转换成在divisionP中的Index
-                List<int[]> vertexIndexPairsInDivisionP = new List<int[]>();
-                for (int i = 0; i < vertexIndexPairs.Count; i++)
+                #region 构造最开始的初始originP
+                List<PlanktonXYZ> planktonXYZs = new List<PlanktonXYZ>();
+                for (int i = 0; i < sortedBoundarySegments.Count; i++)
                 {
-                    int[] vertexIndexPairInDivisionP = new int[2] { 0, 0 };
-                    for (int j = 0; j < vertexIndexPairs[i].Length; j++)
+                    Point3d cornerPoint = sortedBoundarySegments[i].From;
+                    PlanktonXYZ cornerXYZ = new PlanktonXYZ((float)cornerPoint.X, (float)cornerPoint.Y, (float)cornerPoint.Z);
+                    planktonXYZs.Add(cornerXYZ);
+
+                    if (indexOnEachBS.Branch(i).Count > 0)
                     {
-                        vertexIndexPairInDivisionP[j] = order.IndexOf(vertexIndexPairs[i][j]);
+                        for (int j = 0; j < indexOnEachBS.Branch(i).Count; j++)
+                        {
+                            Point3d point = pointOnEachBS.Branch(i)[j];
+                            PlanktonXYZ planktonXYZ = new PlanktonXYZ((float)point.X, (float)point.Y, (float)point.Z);
+                            planktonXYZs.Add(planktonXYZ);
+                        }
                     }
-                    vertexIndexPairsInDivisionP.Add(vertexIndexPairInDivisionP);
+                }
+
+                #region 获取dualPlanktonMesh边界上的点的index，即初始最外圈的一圈点的列表order
+                List<int> order = new List<int>();
+
+                for (int i = 0; i < verticesIndexForEachBSDT.BranchCount; i++)
+                {
+                    List<int> verticesIndex = verticesIndexForEachBSDT.Branch(i);
+                    verticesIndex.RemoveAt(verticesIndex.Count - 1);
+                    order.AddRange(verticesIndex);
                 }
                 #endregion
 
-                #region 划分
+                // order 与 newVertexIndexOrder之间存在映射关系
+                List<int> newVertexIndexOrder = new List<int>();
+                for (int i = 0; i < planktonXYZs.Count; i++)
+                {
+                    newVertexIndexOrder.Add(i);
+                }
+
+                List<List<int>> faceVertexOrder = new List<List<int>>();
+                faceVertexOrder.Add(new List<int>());
+                faceVertexOrder[0].AddRange(newVertexIndexOrder);
+
+                PlanktonMesh divisionP = new PlanktonMesh();
+                divisionP.Vertices.AddVertices(planktonXYZs);
+                divisionP.Faces.AddFaces(faceVertexOrder);
+                #endregion
                 PlanktonMesh P = new PlanktonMesh(divisionP);
 
-                List<string> debugString1 = UtilityFunctions.PrintFacesVertices(P);
 
-                // 注意这里 vertexIndexPairsInDivisionP.Count - 1，是为了不计算最后一个pair
-                for (int i = 0; i < vertexIndexPairsInDivisionP.Count; i++)
+                #region 重新找到对应的P中的vertexIndex
+                for (int i = 0; i < vertexIndexPairs.Count; i++)
                 {
-                    int interval = CalInterval(bsIndexPairs[i], 4);
-                    P = MakeStepLine(P,
-                                     interval,
-                                     vertexIndexPairsInDivisionP[i][0],
-                                     vertexIndexPairsInDivisionP[i][1],
-                                     sortedBoundarySegments[bsIndexPairs[i][0]],
-                                     sortedBoundarySegments[bsIndexPairs[i][1]],
-                                     boundingBox,
-                                     tXDT,
-                                     tYDT,
-                                     i);
+                    // 对每一层的vertexIndexPair
+                    List<int[]> vertexIndexPairsInDivisionP = new List<int[]>();
+                    for (int j = 0; j < vertexIndexPairs[i].Count; j++)
+                    {
+                        int[] vertexIndexPairInDivisionP = new int[2] { 0, 0 };
+                        for (int k = 0; k < vertexIndexPairs[i][j].Length; k++)
+                        {
+                            vertexIndexPairInDivisionP[k] = order.IndexOf(vertexIndexPairs[i][j][k]);
+                        }
+                        vertexIndexPairsInDivisionP.Add(vertexIndexPairInDivisionP);
+                    }
 
-                    List<string> debugString2 = UtilityFunctions.PrintFacesVertices(P);
-                    List<string> debugString3 = UtilityFunctions.PrintHalfedges(P);
-                    List<string> debugString4 = UtilityFunctions.PrintHalfedgeStartAndEnd(P);
+                    #region 控制循环次数
+                    int iterCount = 0;
+                    bool needToCalNextLayer = false;
+                    if (i == vertexIndexPairs.Count - 1)
+                    {
+                        // 注意这里 vertexIndexPairsInDivisionP.Count - 1，是为了不计算最后一个pair
+                        iterCount = vertexIndexPairsInDivisionP.Count - 1;
+                        needToCalNextLayer = false;
+                    }
+                    else
+                    {
+                        iterCount = vertexIndexPairsInDivisionP.Count;
+                        needToCalNextLayer = true;
+                    }
+                    #endregion
+
+                    List<string> debugString1 = UtilityFunctions.PrintFacesVertices(P);
+                    #region 划分
+                    for (int j = 0; j < vertexIndexPairsInDivisionP.Count; j++)
+                    {
+                        int interval = CalInterval(bsIndexPairs[j], 4);
+                        P = MakeStepLine(P,
+                                         interval,
+                                         vertexIndexPairsInDivisionP[j][0],
+                                         vertexIndexPairsInDivisionP[j][1],
+                                         sortedBoundarySegments[bsIndexPairs[j][0]],
+                                         sortedBoundarySegments[bsIndexPairs[j][1]],
+                                         boundingBox,
+                                         tXDT,
+                                         tYDT,
+                                         j);
+
+                        List<string> debugString2 = UtilityFunctions.PrintFacesVertices(P);
+                        List<string> debugString3 = UtilityFunctions.PrintHalfedges(P);
+                        List<string> debugString4 = UtilityFunctions.PrintHalfedgeStartAndEnd(P);
+                    }
+
+                    #region 重新计算order列表
+
+                    #region 重新找到对应的P中的vertexIndex
+
+                    #endregion
+                    if (needToCalNextLayer)
+                    {
+                        
+                        for (int j = 0; j < vertexIndexsOnDividingLine[i].Count; j++)
+                        {
+                            int[] vertexIndexOnDivingLine = vertexIndexsOnDividingLine[i][j];
+                            for (int k = 0; k < vertexIndexsOnDividingLine[i][j].Length; k++)
+                            {
+                                vertexIndexOnDivingLine[k] = order.IndexOf(vertexIndexsOnDividingLine[i][j][k]);
+                            }
+                        }
+                    }
+                    
+                    
+                    #endregion
+                    #endregion
                 }
+
+
+                // vertexIndexPairs中是每个vertex点在Dual图中的Index，我们需要把它们转换成在divisionP中的Index
+                //List<int[]> vertexIndexPairsInDivisionP = new List<int[]>();
+                //for (int i = 0; i < vertexIndexPairs.Count; i++)
+                //{
+                //    int[] vertexIndexPairInDivisionP = new int[2] { 0, 0 };
+                //    for (int j = 0; j < vertexIndexPairs[i].Length; j++)
+                //    {
+                //        vertexIndexPairInDivisionP[j] = order.IndexOf(vertexIndexPairs[i][j]);
+                //    }
+                //    vertexIndexPairsInDivisionP.Add(vertexIndexPairInDivisionP);
+                //}
+                #endregion
+
+                #region 划分
+                // 注意这里 vertexIndexPairsInDivisionP.Count - 1，是为了不计算最后一个pair
+                //for (int i = 0; i < vertexIndexPairsInDivisionP.Count; i++)
+                //{
+                //    int interval = CalInterval(bsIndexPairs[i], 4);
+                //    P = MakeStepLine(P,
+                //                     interval,
+                //                     vertexIndexPairsInDivisionP[i][0],
+                //                     vertexIndexPairsInDivisionP[i][1],
+                //                     sortedBoundarySegments[bsIndexPairs[i][0]],
+                //                     sortedBoundarySegments[bsIndexPairs[i][1]],
+                //                     boundingBox,
+                //                     tXDT,
+                //                     tYDT,
+                //                     i);
+
+                //    List<string> debugString2 = UtilityFunctions.PrintFacesVertices(P);
+                //    List<string> debugString3 = UtilityFunctions.PrintHalfedges(P);
+                //    List<string> debugString4 = UtilityFunctions.PrintHalfedgeStartAndEnd(P);
+                //}
                 #endregion
 
                 #region 可视化部分
@@ -490,6 +462,291 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
             }
         }
+
+        private PlanktonMesh GenerateOriginP(PlanktonMesh originP,
+                                             DataTree<int> indexOnEachBS,
+                                             List<double> tList,
+                                             List<BoundarySegment> sortedBoundarySegments)
+        {
+            #region DataTree<double> tOnEachBS
+            // 每个包含volumeJunction的bs为了确定volumeJunction位置所需要的t的datatree
+            if (indexOnEachBS.DataCount > tList.Count)
+            {
+                throw new Exception("tList的数量不足");
+            }
+
+            DataTree<double> tOnEachBS = new DataTree<double>();
+            int index = 0;
+            for (int i = 0; i < indexOnEachBS.BranchCount; i++)
+            {
+                tOnEachBS.EnsurePath(i);
+                for (int j = 0; j < indexOnEachBS.Branch(i).Count; j++)
+                {
+                    tOnEachBS.Branch(i).Add(tList[index]);
+                    index++;
+                }
+            }
+
+
+            for (int i = 0; i < tOnEachBS.BranchCount; i++)
+            {
+                List<double> ts = tOnEachBS.Branch(i);
+                for (int j = 0; j < ts.Count - 1; j++)
+                {
+                    if (ts[j] > ts[j + 1])
+                    {
+                        // 后一个t不能大于前一个t
+                        return null;
+                    }
+                }
+            }
+            #endregion
+
+            #region DataTree<Point3d> pointOnEachBS
+            DataTree<Point3d> pointOnEachBS = new DataTree<Point3d>();
+            for (int i = 0; i < tOnEachBS.BranchCount; i++)
+            {
+                pointOnEachBS.EnsurePath(i);
+                for (int j = 0; j < tOnEachBS.Branch(i).Count; j++)
+                {
+                    double t = tOnEachBS.Branch(i)[j];
+                    if (sortedBoundarySegments[i].TurningTs != null)
+                    {
+                        int iter = 0;
+                        for (int k = 0; k < sortedBoundarySegments[i].TurningTs.Count - 1; k++)
+                        {
+                            if (t > sortedBoundarySegments[i].TurningTs[k] && t < sortedBoundarySegments[i].TurningTs[k + 1])
+                            {
+                                iter = k;
+                                break;
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+
+                        // 注意这里一定要添加PointOnWhichSegments信息，即这个点是在BS的哪一段上
+                        sortedBoundarySegments[i].PointOnWhichSegments = iter;
+
+                        pointOnEachBS.Branch(i).Add(sortedBoundarySegments[i].Polyline.PointAt(t));
+                    }
+                    else
+                    {
+                        pointOnEachBS.Branch(i).Add(sortedBoundarySegments[i].Lines[0].PointAt(t));
+                    }
+                }
+            }
+            #endregion
+
+            #region 修正OriginP
+
+            #region 拿到P中已有的PlanktonXYZ和vertexIndex
+            List<PlanktonXYZ> originPPlanktonXYZ = new List<PlanktonXYZ>();
+            for (int i = 0; i < originP.Vertices.Count; i++)
+            {
+                originPPlanktonXYZ.Add(originP.Vertices[i].ToXYZ());
+            }
+
+            List<List<int>> originPFaceVertexOrder = new List<List<int>>();
+            for (int i = 0; i < originP.Faces.Count; i++)
+            {
+                originPFaceVertexOrder.Add(new List<int>());
+                originPFaceVertexOrder[i].AddRange(originP.Faces.GetFaceVertices(i));
+            }
+            #endregion
+
+            #region 需要新增的PlanktonXYZ和vertexIndex
+            List<Point3d> additionalPoint3ds = new List<Point3d>();
+            for (int i = 0; i < sortedBoundarySegments.Count; i++)
+            {
+                for (int j = 0; j < sortedBoundarySegments[i].Lines.Count; j++)
+                {
+                    additionalPoint3ds.Add(sortedBoundarySegments[i].Lines[j].From);
+                    if (sortedBoundarySegments)
+                    {
+
+                    }
+                }
+            }
+
+
+
+            List<PlanktonXYZ> additionalPlanktonXYZ = new List<PlanktonXYZ>();
+            for (int i = 0; i < length; i++)
+            {
+
+            }
+            #endregion
+
+            #endregion
+        }
+
+        private PlanktonMesh Divide(PlanktonMesh P,
+                                    PlanktonMesh Dual,
+                                    List<int> onP_vertexIndexListFromFirstVertexToDraw,
+                                    List<int[]> onD_vertexIndexPairs,
+                                    List<int[]> onD_vertexOnDividingLine,
+
+                                    List<int> onD_vertexIndexPairsCorrespondingFaceIndex,
+
+                                    List<int[]> outer_bsIndexPairs,
+                                    List<BoundarySegment> outer_bs,
+
+                                    bool needToCalNextLayer,
+                                    BoundingBox currentBoundingBox,
+                                    DataTree<double> tXDT,
+                                    DataTree<double> tYDT)
+        {
+            // 注意P的PlanktonXYZ的顺序，是从FirstVertexToDraw开始的
+            List<int[]> onP_vertexIndexPairs = new List<int[]>();
+            for (int i = 0; i < onD_vertexIndexPairs.Count; i++)
+            {
+                int[] onP_vertexIndexPair = onD_vertexIndexPairs[i];
+                for (int j = 0; j < onD_vertexIndexPairs[i].Length; j++)
+                {
+                    onP_vertexIndexPair[j] = onP_vertexIndexListFromFirstVertexToDraw.IndexOf(onP_vertexIndexPairs[i][j]);
+                }
+                onP_vertexIndexPairs.Add(onP_vertexIndexPair);
+            }
+
+            // 控制循环次数
+            int drawCount = 0;
+            if (needToCalNextLayer)
+            {
+                drawCount = onP_vertexIndexPairs.Count;
+            }
+            else
+            {
+                drawCount = onP_vertexIndexPairs.Count - 1;
+            }
+
+            #region 划分
+            List<int> commonVertexIndexList = new List<int>();
+            for (int i = 0; i < drawCount; i++)
+            {
+                int interval = CalInterval(outer_bsIndexPairs[i], outer_bs.Count);
+                int commonVertexIndex;
+                P = MakeStepLine(P,
+                                 interval,
+                                 onP_vertexIndexPairs[i][0],
+                                 onP_vertexIndexPairs[i][1],
+                                 outer_bs[outer_bsIndexPairs[i][0]],
+                                 outer_bs[outer_bsIndexPairs[i][1]],
+                                 currentBoundingBox,
+                                 tXDT,
+                                 tYDT,
+                                 i,
+                                 out commonVertexIndex);
+
+                commonVertexIndexList.Add(commonVertexIndex);
+            }
+
+
+            if (needToCalNextLayer)
+            {
+                // onP_vertexIndexPairsCorrespondingFaceIndex与onD_vertexIndexPairsCorrespondingFaceIndex存在映射关系
+                List<int> onP_vertexIndexPairsCorrespondingFaceIndex = new List<int>();
+                for (int i = 0; i < onP_vertexIndexPairs.Count; i++)
+                {
+                    for (int j = 0; j < P.Faces.Count; j++)
+                    {
+                        int[] faceVertice = P.Faces.GetFaceVertices(j);
+                        int[] intersectResult = faceVertice.Intersect(onP_vertexIndexPairs[i]).ToArray();
+                        if (intersectResult.Length == onP_vertexIndexPairs[i].Length)
+                        {
+                            onP_vertexIndexPairsCorrespondingFaceIndex.Add(j);
+                        }
+                    }
+                }
+
+                // 每个边缘面和中心面的公共边的列表
+                List<List<int>> onP_publicHsList = new List<List<int>>();
+                for (int i = 0; i < onP_vertexIndexPairsCorrespondingFaceIndex.Count; i++)
+                {
+                    List<int> publicHs = FindPublicHalfEdges(P, P.Faces.Count - 1, onP_vertexIndexPairsCorrespondingFaceIndex[i]);
+                    onP_publicHsList.Add(publicHs);
+                }
+
+                // 获得每个边缘面的公共边所对应的一对start和end点的Index（这个Index是新绘制的P中的Index，不是原来dual图中的Index，需要进行映射）
+                List<int[]> onP_publicHStartAndEndVertexIndexs = new List<int[]>();
+                for (int i = 0; i < onP_publicHsList.Count; i++)
+                {
+                    if (onP_publicHsList[i].Count > 1)
+                    {
+                        int start = P.Halfedges[onP_publicHsList[i][0]].StartVertex;
+                        int end = P.Halfedges.EndVertex(onP_publicHsList[i].Last());
+                        int[] pair = new int[2] { start, end };
+                        onP_publicHStartAndEndVertexIndexs.Add(pair);
+                    }
+                    else
+                    {
+                        int start = P.Halfedges[onP_publicHsList[i][0]].StartVertex;
+                        int end = P.Halfedges.EndVertex(onP_publicHsList[i][0]);
+                        int[] pair = new int[2] { start, end };
+                        onP_publicHStartAndEndVertexIndexs.Add(pair);
+                    }
+                }
+
+                // 将上面得到的一对Start和End点的Index进行映射
+                List<int> onP_vertexOnInnerBoundary = new List<int>();
+                List<int> onD_vertexOnInnerBoundary = new List<int>();
+                for (int i = 0; i < onP_publicHStartAndEndVertexIndexs.Count; i++)
+                {
+                    // 添加每个的EndVertex
+                    onP_vertexOnInnerBoundary.Add(onP_publicHStartAndEndVertexIndexs[i].Last());
+                }
+                for (int i = 0; i < onD_vertexOnDividingLine.Count; i++)
+                {
+                    // 添加每个的EndVertex
+                    onD_vertexOnInnerBoundary.Add(onD_vertexOnDividingLine[i].Last());
+                }
+
+                
+
+
+                List<List<BoundarySegment>> newBSs = new List<List<BoundarySegment>>();
+
+            }
+            #endregion
+        }
+
+        private List<int> FindPublicHalfEdges(PlanktonMesh P, int face1,int face2)
+        {
+            List<int> face1Hs = P.Faces.GetHalfedges(face1).ToList();
+            List<int> face1PairHs = new List<int>();
+            for (int i = 0; i < face1Hs.Count; i++)
+            {
+                face1PairHs.Add(P.Halfedges.GetPairHalfedge(face1Hs[i]));
+            }
+
+            List<int> face2Hs = P.Faces.GetHalfedges(face2).ToList();
+            List<int> publicHs = face1PairHs.Intersect(face2Hs).ToList();
+
+            List<int> publicHsIndexInFace1Hs = new List<int>();
+            for (int i = 0; i < publicHs.Count; i++)
+            {
+                publicHsIndexInFace1Hs.Add(face1PairHs.IndexOf(publicHs[i]));
+            }
+
+            // 冒泡排序
+            for (int i = 0; i < publicHs.Count; i++)
+            {
+                for (int j = 0; j < publicHs.Count - i - 1; j++)
+                {
+                    if (publicHsIndexInFace1Hs[j] > publicHsIndexInFace1Hs[j+1])
+                    {
+                        int temp = publicHs[j];
+                        publicHs[j] = publicHs[j + 1];
+                        publicHs[j + 1] = temp;
+                    }
+                }
+            }
+
+            // 生成的publicH是属于边缘面的
+            return publicHs;
+        }
+
 
         /// <summary>
         /// 计算两个相邻的volumeJunction点之间间隔了几个转角
@@ -594,7 +851,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                            BoundingBox boundingBox,
                                            DataTree<double> tXDT,
                                            DataTree<double> tYDT,
-                                           int branchIndex)
+                                           int branchIndex,
+                                           out int commonVertexIndex)
                                            //out List<Line> lineList,
                                            //out PlanktonMesh P)
         {
@@ -744,6 +1002,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     originPDeepCopy.Vertices.Add(turningPoints[1]);
                     int turningPoint1Index = originPDeepCopy.Vertices.Count - 1;
 
+                    // 输出commonVertexIndex
+                    commonVertexIndex = turningPoint0Index;
+
                     #region 找到viAroundOriginFace的两个切片
                     int viFaceIndex = GetViFaceIndex(interval, vertex1Index, vertex2Index, originPDeepCopy);
 
@@ -813,6 +1074,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     originPDeepCopy.Vertices.Add(turningPoints[1]);
                     int turningPoint1Index = originPDeepCopy.Vertices.Count - 1;
 
+                    // 输出commonVertexIndex
+                    commonVertexIndex = -1;
+
                     #region 找到viAroundOriginFace的两个切片
                     int viFaceIndex = GetViFaceIndex(interval, vertex1Index, vertex2Index, originPDeepCopy);
 
@@ -861,6 +1125,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     originPDeepCopy.Vertices.Add(intersectPoint);
                     int turningPoint0Index = originPDeepCopy.Vertices.Count - 1;
 
+                    // 输出commonVertexIndex
+                    commonVertexIndex = turningPoint0Index;
+
                     #region 找到viAroundOriginFace的两个切片
                     int viFaceIndex = GetViFaceIndex(interval, vertex1Index, vertex2Index, originPDeepCopy);
 
@@ -904,6 +1171,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                     originPDeepCopy.Vertices.Add(turningPoints[0]);
                     int turningPoint0Index = originPDeepCopy.Vertices.Count - 1;
+
+                    // 输出commonVertexIndex
+                    commonVertexIndex = -1;
 
                     #region 找到viAroundOriginFace的两个切片
                     int viFaceIndex = GetViFaceIndex(interval, vertex1Index, vertex2Index, originPDeepCopy);
@@ -991,6 +1261,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     int turningPoint0Index = originPDeepCopy.Vertices.Count - 1;
                     originPDeepCopy.Vertices.Add(turningPoints[1]);
                     int turningPoint1Index = originPDeepCopy.Vertices.Count - 1;
+
+                    // 输出commonVertexIndex
+                    commonVertexIndex = turningPoint0Index;
 
                     #region 找到viAroundOriginFace的两个切片
                     int viFaceIndex = GetViFaceIndex(interval, vertex1Index, vertex2Index, originPDeepCopy);
@@ -1083,6 +1356,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     int turningPoint0Index = originPDeepCopy.Vertices.Count - 1;
                     originPDeepCopy.Vertices.Add(turningPoints[1]);
                     int turningPoint1Index = originPDeepCopy.Vertices.Count - 1;
+
+                    // 输出commonVertexIndex
+                    commonVertexIndex = -1;
 
                     #region 找到viAroundOriginFace的两个切片
                     int viFaceIndex = GetViFaceIndex(interval, vertex1Index, vertex2Index, originPDeepCopy);

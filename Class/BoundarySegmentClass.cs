@@ -51,7 +51,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.TurningTs = null;
 
-            this.PointOnWhichSegments = 0;
+            this.PointOnWhichSegments = -1;
         }
 
         public BoundarySegment(List<Line> segments, string label)
@@ -76,6 +76,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.Lines.Add(new Line(segments[0].From, segments[0].To));
 
                 this.TurningTs = null;
+                this.PointOnWhichSegments = -1;
             }
             
             this.Points = new List<Point3d>();
