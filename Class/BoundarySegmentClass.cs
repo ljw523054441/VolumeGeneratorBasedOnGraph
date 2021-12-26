@@ -24,6 +24,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public List<double> TurningTs { get; set; }
 
+        public int PointOnWhichSegments { get; set; }
+
         public BoundarySegment()
         {
 
@@ -48,6 +50,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.Lines.Add(new Line(segment.From, segment.To));
 
             this.TurningTs = null;
+
+            this.PointOnWhichSegments = 0;
         }
 
         public BoundarySegment(List<Line> segments, string label)
@@ -106,7 +110,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 double t = lengths[i] / sum;
                 this.TurningTs.Add(t);
             }
-            
+
+            this.PointOnWhichSegments = -1;
         }
 
         /// <summary>
@@ -134,6 +139,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.TurningTs = new List<double>();
             this.TurningTs.AddRange(source.TurningTs);
+
+            this.PointOnWhichSegments = source.PointOnWhichSegments;
         }
 
         public virtual void Reverse()
