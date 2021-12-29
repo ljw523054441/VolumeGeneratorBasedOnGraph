@@ -39,6 +39,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public List<List<int>> DFaceIndexsAroundOuterNodes { get; }
 
 
+        public List<int> FaceCorrespondingGraphNodeIndex { get; set; }
+
 
         /// <summary>
         /// 构造空的DualGraphWithHM对象

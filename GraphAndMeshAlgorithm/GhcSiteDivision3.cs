@@ -27,6 +27,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             DualVertices = new List<Point3d>();
             DualPolylines = new List<List<Point3d>>();
             DualVertexTextDots = new List<TextDot>();
+
+            GraphNodePoints = new List<Point3d>();
+            GraphEdges = new List<Line>();
+            GraphNodeTextDots = new List<TextDot>();
         }
 
         private int Thickness;
@@ -34,6 +38,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<Point3d> DualVertices;
         private List<List<Point3d>> DualPolylines;
         private List<TextDot> DualVertexTextDots;
+
+        private List<Point3d> GraphNodePoints;
+        private List<Line> GraphEdges;
+        private List<TextDot> GraphNodeTextDots;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -540,6 +548,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DualVertices.Clear();
                 DualPolylines.Clear();
                 DualVertexTextDots.Clear();
+                // 原来的图
+                GraphNodePoints.Clear();
+                GraphEdges.Clear();
+                GraphNodeTextDots.Clear();
                 #endregion
 
                 #region 对偶图
@@ -577,6 +589,47 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), DualVertices[i]);
                     DualVertexTextDots.Add(textDot);
                 }
+                #endregion
+
+                #region 原来的图
+                #region 添加对偶图所有面的中心点作为GraphNodePoints的坐标位置
+                for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
+                {
+                    GraphNodePoints.Add(PlanktonGh.RhinoSupport.ToPoint3d(MeshForVisualize.Faces.GetFaceCenter(i)));
+                }
+                #endregion
+
+                #region 根据innerNode的序号，写入对应的GraphNodeTextDots
+                List<GraphNode> graphNodes = new List<GraphNode>();
+
+                for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
+                {
+                    int nodeIndex = allLayerPairCorrespondingFaceIndex[dualGraphWithHM.FaceCorrespondingGraphNodeIndex[i]];
+                    graphNodes.Add(dualGraphWithHM.GraphNodes[nodeIndex]);
+                }
+
+                for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
+                {
+                    GraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", allLayerPairCorrespondingFaceIndex[i], graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
+                }
+
+                //for (int i = 0; i < graphNodes.Count; i++)
+                //{
+                //    GraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
+                //}
+                #endregion
+
+                #region 代表innernode之间的连线
+                List<List<int>> faceAdjacency = UtilityFunctions.GetAdjacencyFaceIndexs(MeshForVisualize);
+                for (int i = 0; i < GraphNodePoints.Count; i++)
+                {
+                    for (int j = 0; j < faceAdjacency[i].Count; j++)
+                    {
+                        GraphEdges.Add(new Line(GraphNodePoints[i], GraphNodePoints[faceAdjacency[i][j]]));
+                    }
+                }
+                #endregion
+
                 #endregion
                 #endregion
             }
@@ -2237,6 +2290,41 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(DualVertexTextDots[i], Color.DarkOrange, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+
+            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+            for (int i = 0; i < GraphNodeTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+        }
+
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            // base.DrawViewportWires(args);
+
+            for (int i = 0; i < DualPolylines.Count; i++)
+            {
+                args.Display.DrawPolyline(DualPolylines[i], Color.DarkOrange, Thickness);
+            }
+
+            for (int i = 0; i < DualVertexTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(DualVertexTextDots[i], Color.DarkOrange, Color.White, Color.White);
+                args.Display.EnableDepthTesting(true);
+            }
+
+            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+            for (int i = 0; i < GraphNodeTextDots.Count; i++)
+            {
+                args.Display.EnableDepthTesting(false);
+                args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
             }
         }

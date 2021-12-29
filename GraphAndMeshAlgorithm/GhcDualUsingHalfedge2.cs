@@ -163,7 +163,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                                                       pGraphNodes,
                                                                       pGraphTables,
                                                                       faceIndexsAroundOuterNodes);
-                
+
+                List<int> faceCorrespondingGraphNodeIndex = new List<int>();
+                for (int i = 0; i < pGraphNodes.Count; i++)
+                {
+                    if (pGraphNodes[i].IsInner)
+                    {
+                        faceCorrespondingGraphNodeIndex.Add(i);
+                    }
+                }
+                dualGraphWithHM.FaceCorrespondingGraphNodeIndex = faceCorrespondingGraphNodeIndex;
 
                 DA.SetData("DualGraphWithHM", dualGraphWithHM);
 
@@ -223,6 +232,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     GraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
                 }
                 #endregion
+
+
 
                 #region 代表innernode之间的连线
                 List<List<int>> faceAdjacency = UtilityFunctions.GetAdjacencyFaceIndexs(MeshForVisualize);
