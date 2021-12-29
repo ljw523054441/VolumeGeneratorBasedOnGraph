@@ -32,10 +32,58 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 List<int> branchitems = new List<int>();
                 foreach (GH_Integer element in gh_Structure_GraphTree.get_Branch(gh_Path))
                 {
-                    branchitems.Add(Convert.ToInt32(element.Value));
+                    branchitems.Add(element.Value);
                 }
                 dataTree.AddRange(branchitems, gh_Path);
             }
+        }
+
+        internal static GH_Structure<GH_Integer> DataTreeToGH_Structure_Int(DataTree<int> dataTree)
+        {
+            GH_Structure<GH_Integer> gh_Structure_GraphTree = new GH_Structure<GH_Integer>();
+            foreach (GH_Path ghPath in dataTree.Paths)
+            {
+                List<GH_Integer> branchitems = new List<GH_Integer>();
+                foreach (int element in dataTree.Branch(ghPath))
+                {
+                    GH_Integer ghInteger = new GH_Integer(element);
+                    branchitems.Add(ghInteger);
+                }
+                gh_Structure_GraphTree.AppendRange(branchitems);
+            }
+            return gh_Structure_GraphTree;
+        }
+
+        internal static DataTree<double> GH_StructureToDataTree_Double(GH_Structure<GH_Number> gh_Structure)
+        {
+            DataTree<double> dataTree = new DataTree<double>();
+            foreach (GH_Path gh_Path in gh_Structure.Paths)
+            {
+                List<double> branchitems = new List<double>();
+                foreach (GH_Number element in gh_Structure.get_Branch(gh_Path))
+                {
+                    branchitems.Add(element.Value);
+                }
+                dataTree.AddRange(branchitems, gh_Path);
+            }
+
+            return dataTree;
+        }
+
+        internal static List<List<double>> GH_StructureToLoL_Double(GH_Structure<GH_Number> gh_Structure)
+        {
+            List<List<double>> lol = new List<List<double>>();
+            foreach (GH_Path gh_Path in gh_Structure.Paths)
+            {
+                lol.Add(new List<double>());
+                List<double> branchitems = new List<double>();
+                foreach (GH_Number element in gh_Structure.get_Branch(gh_Path))
+                {
+                    branchitems.Add(element.Value);
+                }
+                lol.Last().AddRange(branchitems);
+            }
+            return lol;
         }
 
         /// <summary>

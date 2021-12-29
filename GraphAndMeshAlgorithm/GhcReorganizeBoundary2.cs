@@ -65,9 +65,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddGenericParameter("SortedBoundarySegments", "SBS", "经过排序后的BoundarySegment", GH_ParamAccess.list);
             // pManager.AddIntegerParameter("BSIndexContainVolumeJunctions", "BSI", "包含边界分裂点的BoundarySegment序号", GH_ParamAccess.list);
 
-            pManager.AddIntegerParameter("VerticesIndexForEachBS", "VIFBS", "每个BS上点对应的对偶图中的index", GH_ParamAccess.tree);
+            pManager.AddIntegerParameter("VerticesIndexForEachBS", "VIFBS", "每个BS上点对应的对偶图中的index", GH_ParamAccess.list);
 
-            pManager.AddIntegerParameter("indexOnEachBS", "IOBS", "每个BS上的VolumeJunctionIndex", GH_ParamAccess.tree);
+            pManager.AddIntegerParameter("indexOnEachBS", "IOBS", "每个BS上的VolumeJunctionIndex", GH_ParamAccess.list);
 
             pManager.AddTextParameter("VolumeJunctionsTexts", "VTD", "表示边界分裂点的Text", GH_ParamAccess.list);
 
@@ -102,6 +102,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 int innerNodeCount = dualGraphWithHMDP.InnerNodeCount;
                 int outerNodeCount = dualGraphWithHMDP.OuterNodeCount;
+
+                List<DataTree<int>> allLayerVerticesIndexForEachBS = new List<DataTree<int>>();
+                List<DataTree<int>> allLayerVolumeJunctionsIndexOnEachBS = new List<DataTree<int>>();
+                List<List<int[]>> allLayerVertexIndexPairs = new List<List<int[]>>();
+                List<List<int[]>> allLayerBsIndexPairs = new List<List<int[]>>();
 
                 /* 先对无序的boundarySegment进行排序
                  * 按照Label进行

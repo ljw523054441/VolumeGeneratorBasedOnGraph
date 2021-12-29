@@ -61,206 +61,206 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            List<BoundarySegment> sortedBoundarySegments = new List<BoundarySegment>(); 
-            List<int> bSIndexContainVolumeJunctions = new List<int>();
+            //List<BoundarySegment> sortedBoundarySegments = new List<BoundarySegment>(); 
+            //List<int> bSIndexContainVolumeJunctions = new List<int>();
 
-            List<string> volumeJunctionsTexts = new List<string>();
-            //List<int[]> pairVolumeJunctionsIndex = new List<int[]>();
-            List<bool> needToConnect = new List<bool>();
+            //List<string> volumeJunctionsTexts = new List<string>();
+            ////List<int[]> pairVolumeJunctionsIndex = new List<int[]>();
+            //List<bool> needToConnect = new List<bool>();
 
-            List<double> tList = new List<double>();
-            List<double> additionalTXList = new List<double>();
-            List<double> additionalTYList = new List<double>();
+            //List<double> tList = new List<double>();
+            //List<double> additionalTXList = new List<double>();
+            //List<double> additionalTYList = new List<double>();
 
-            if (DA.GetDataList("SortedBoundarySegments", sortedBoundarySegments)
-                && DA.GetDataList("BSIndexContainVolumeJunctions", bSIndexContainVolumeJunctions)
-                && DA.GetDataList("VolumeJunctionsTexts", volumeJunctionsTexts)
-                // && DA.GetDataList("PairVolumeJunctionsIndex", pairVolumeJunctionsIndex)
-                && DA.GetDataList("NeedToConnect", needToConnect)
-                && DA.GetDataList("tList", tList)
-                && DA.GetDataList("AdditionalTXList", additionalTXList)
-                && DA.GetDataList("AdditionalTYList", additionalTYList))
-            {
-                //// 对输入的Curve类型的reorganizedBoundary进行类型转换，转换成Curve类的子类Polyline
-                //Polyline reorganizedBoundary = null;
-                //reorganizedBoundaryCurve.TryGetPolyline(out reorganizedBoundary);
+            //if (DA.GetDataList("SortedBoundarySegments", sortedBoundarySegments)
+            //    && DA.GetDataList("BSIndexContainVolumeJunctions", bSIndexContainVolumeJunctions)
+            //    && DA.GetDataList("VolumeJunctionsTexts", volumeJunctionsTexts)
+            //    // && DA.GetDataList("PairVolumeJunctionsIndex", pairVolumeJunctionsIndex)
+            //    && DA.GetDataList("NeedToConnect", needToConnect)
+            //    && DA.GetDataList("tList", tList)
+            //    && DA.GetDataList("AdditionalTXList", additionalTXList)
+            //    && DA.GetDataList("AdditionalTYList", additionalTYList))
+            //{
+            //    //// 对输入的Curve类型的reorganizedBoundary进行类型转换，转换成Curve类的子类Polyline
+            //    //Polyline reorganizedBoundary = null;
+            //    //reorganizedBoundaryCurve.TryGetPolyline(out reorganizedBoundary);
 
-                //// gh_Structure转化为dataTree
-                //DataTree<Point3d> volumeJunctionPointsDT = new DataTree<Point3d>();
-                //foreach (GH_Path gh_Path in gh_Structure.Paths)
-                //{
-                //    List<Point3d> branchItems = new List<Point3d>();
-                //    foreach (GH_Point element in gh_Structure.get_Branch(gh_Path))
-                //    {
-                //        branchItems.Add(element.Value);
-                //    }
-                //    volumeJunctionPointsDT.AddRange(branchItems, gh_Path);
-                //}
+            //    //// gh_Structure转化为dataTree
+            //    //DataTree<Point3d> volumeJunctionPointsDT = new DataTree<Point3d>();
+            //    //foreach (GH_Path gh_Path in gh_Structure.Paths)
+            //    //{
+            //    //    List<Point3d> branchItems = new List<Point3d>();
+            //    //    foreach (GH_Point element in gh_Structure.get_Branch(gh_Path))
+            //    //    {
+            //    //        branchItems.Add(element.Value);
+            //    //    }
+            //    //    volumeJunctionPointsDT.AddRange(branchItems, gh_Path);
+            //    //}
 
-                List<Point3d> cornerPoints = new List<Point3d>();
-                for (int i = 0; i < sortedBoundarySegments.Count; i++)
-                {
-                    cornerPoints.Add(sortedBoundarySegments[i].From);
-                }
+            //    List<Point3d> cornerPoints = new List<Point3d>();
+            //    for (int i = 0; i < sortedBoundarySegments.Count; i++)
+            //    {
+            //        cornerPoints.Add(sortedBoundarySegments[i].From);
+            //    }
 
-                BoundingBox boundingBox = new BoundingBox(cornerPoints);
-
-
-                List<BoundarySegment> bsContainVolumeJunctions = new List<BoundarySegment>();
-                for (int i = 0; i < bSIndexContainVolumeJunctions.Count; i++)
-                {
-                    bsContainVolumeJunctions.Add(sortedBoundarySegments[bSIndexContainVolumeJunctions[i]]);
-                }
-
-                List<double> tForBSLine = new List<double>();
-                int iter = 0;
-                while (tForBSLine.Count < bsContainVolumeJunctions.Count)
-                {
-                    if (iter > tList.Count - 1)
-                    {
-                        throw new Exception("tList的数量不足");
-                    }
-
-                    tForBSLine.Add(tList[iter]);
-                    iter++;
-                }
-
-                List<Point3d> volumeJunctions = new List<Point3d>();
-                for (int i = 0; i < bsContainVolumeJunctions.Count; i++)
-                {
-                    volumeJunctions.Add(bsContainVolumeJunctions[i].Line.PointAt(tForBSLine[i]));
-                }
+            //    BoundingBox boundingBox = new BoundingBox(cornerPoints);
 
 
-                #region 构造折线，先做正X正Y
-                //List<Point3d> VolumeJunctionPair = new List<Point3d>();
-                //sortedBoundarySegments[bSIndexPair[i][0]].Line.PointAt()
-                // 相邻的两个volumeJunction所在的BS的序号
-                List<int[]> bSIndexPair = new List<int[]>();
-                List<Point3d[]> volumeJunctionPair = new List<Point3d[]>();
-                for (int i = 0; i < bSIndexContainVolumeJunctions.Count; i++)
-                {
-                    int[] pair = new int[2] { bSIndexContainVolumeJunctions[i], bSIndexContainVolumeJunctions[(i + 1) % bSIndexContainVolumeJunctions.Count] };
-                    bSIndexPair.Add(pair);
+            //    List<BoundarySegment> bsContainVolumeJunctions = new List<BoundarySegment>();
+            //    for (int i = 0; i < bSIndexContainVolumeJunctions.Count; i++)
+            //    {
+            //        bsContainVolumeJunctions.Add(sortedBoundarySegments[bSIndexContainVolumeJunctions[i]]);
+            //    }
 
-                    Point3d[] pair2 = new Point3d[2] {sortedBoundarySegments[bSIndexContainVolumeJunctions[i]].Line.PointAt(tForBSLine[i]),
-                                                      sortedBoundarySegments[bSIndexContainVolumeJunctions[(i + 1) % bSIndexContainVolumeJunctions.Count]].Line.PointAt(tForBSLine[(i + 1) % bSIndexContainVolumeJunctions.Count])};
-                    volumeJunctionPair.Add(pair2);
-                }
+            //    List<double> tForBSLine = new List<double>();
+            //    int iter = 0;
+            //    while (tForBSLine.Count < bsContainVolumeJunctions.Count)
+            //    {
+            //        if (iter > tList.Count - 1)
+            //        {
+            //            throw new Exception("tList的数量不足");
+            //        }
 
-                // 先来计算需要t的数量
-                // 对于每个bsIndexPair，进行连接线的绘制，后面的会在绘制时，参照前面已经绘制过的轨迹
-                bool isFirstDrawn = true;
-                for (int i = 0; i < bSIndexPair.Count; i++)
-                {
-                    // 如果不需要作为分界线，直接当前的计算
-                    if (!needToConnect[i])
-                    {
-                        continue;
-                    }
+            //        tForBSLine.Add(tList[iter]);
+            //        iter++;
+            //    }
 
-                    int interval = CalInterval(bSIndexPair[i], sortedBoundarySegments.Count);
-                    // 如果相邻的两个volumeJunction属于同一个volume，那么不用做折线
-                    if (interval == 0)
-                    {
-                        continue;
-                    }
-
-                    // 先来计算需要t的数量
+            //    List<Point3d> volumeJunctions = new List<Point3d>();
+            //    for (int i = 0; i < bsContainVolumeJunctions.Count; i++)
+            //    {
+            //        volumeJunctions.Add(bsContainVolumeJunctions[i].Line.PointAt(tForBSLine[i]));
+            //    }
 
 
-                    if (interval % 2 == 1)
-                    {
-                        // 如果转折数是奇数
-                        if (isFirstDrawn)
-                        {
+            //    #region 构造折线，先做正X正Y
+            //    //List<Point3d> VolumeJunctionPair = new List<Point3d>();
+            //    //sortedBoundarySegments[bSIndexPair[i][0]].Line.PointAt()
+            //    // 相邻的两个volumeJunction所在的BS的序号
+            //    List<int[]> bSIndexPair = new List<int[]>();
+            //    List<Point3d[]> volumeJunctionPair = new List<Point3d[]>();
+            //    for (int i = 0; i < bSIndexContainVolumeJunctions.Count; i++)
+            //    {
+            //        int[] pair = new int[2] { bSIndexContainVolumeJunctions[i], bSIndexContainVolumeJunctions[(i + 1) % bSIndexContainVolumeJunctions.Count] };
+            //        bSIndexPair.Add(pair);
+
+            //        Point3d[] pair2 = new Point3d[2] {sortedBoundarySegments[bSIndexContainVolumeJunctions[i]].Line.PointAt(tForBSLine[i]),
+            //                                          sortedBoundarySegments[bSIndexContainVolumeJunctions[(i + 1) % bSIndexContainVolumeJunctions.Count]].Line.PointAt(tForBSLine[(i + 1) % bSIndexContainVolumeJunctions.Count])};
+            //        volumeJunctionPair.Add(pair2);
+            //    }
+
+            //    // 先来计算需要t的数量
+            //    // 对于每个bsIndexPair，进行连接线的绘制，后面的会在绘制时，参照前面已经绘制过的轨迹
+            //    bool isFirstDrawn = true;
+            //    for (int i = 0; i < bSIndexPair.Count; i++)
+            //    {
+            //        // 如果不需要作为分界线，直接当前的计算
+            //        if (!needToConnect[i])
+            //        {
+            //            continue;
+            //        }
+
+            //        int interval = CalInterval(bSIndexPair[i], sortedBoundarySegments.Count);
+            //        // 如果相邻的两个volumeJunction属于同一个volume，那么不用做折线
+            //        if (interval == 0)
+            //        {
+            //            continue;
+            //        }
+
+            //        // 先来计算需要t的数量
+
+
+            //        if (interval % 2 == 1)
+            //        {
+            //            // 如果转折数是奇数
+            //            if (isFirstDrawn)
+            //            {
                             
-                        }
-                        else
-                        {
+            //            }
+            //            else
+            //            {
 
-                        }
-                    }
-                    else
-                    {
-                        // 如果转折数是偶数
-                        if (isFirstDrawn)
-                        {
+            //            }
+            //        }
+            //        else
+            //        {
+            //            // 如果转折数是偶数
+            //            if (isFirstDrawn)
+            //            {
 
-                        }
-                        else
-                        {
+            //            }
+            //            else
+            //            {
 
-                        }
-                    }
+            //            }
+            //        }
 
-                    isFirstDrawn = false;
-                }
+            //        isFirstDrawn = false;
+            //    }
 
 
                 
 
-                for (int i = 0; i < bSIndexPair.Count; i++)
-                {
-                    int interval = CalInterval(bSIndexPair[i], sortedBoundarySegments.Count);
+            //    for (int i = 0; i < bSIndexPair.Count; i++)
+            //    {
+            //        int interval = CalInterval(bSIndexPair[i], sortedBoundarySegments.Count);
 
-                    // 如果间隔是1，那么直接求交点，构成折线
-                    if (interval == 1)
-                    {
+            //        // 如果间隔是1，那么直接求交点，构成折线
+            //        if (interval == 1)
+            //        {
 
-                        Point3d point1 = new Point3d(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])].X, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])].Y, 0);
-                        Point3d point2 = new Point3d(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])].X, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])].Y, 0);
+            //            Point3d point1 = new Point3d(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])].X, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])].Y, 0);
+            //            Point3d point2 = new Point3d(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])].X, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])].Y, 0);
 
-                        Point3d corner = bsContainVolumeJunctions[bSIndexPair[i][0]].To;
+            //            Point3d corner = bsContainVolumeJunctions[bSIndexPair[i][0]].To;
 
-                        if (isFirstDrawn)
-                        {
-                            // 如果之前没有其他线被绘制过
-                            List<Point3d> pointList = new List<Point3d>();
-                            pointList.Add(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])]);
-                            pointList.Add(corner);
-                            pointList.Add(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])]);
-                            pointList.Add(point1);
+            //            if (isFirstDrawn)
+            //            {
+            //                // 如果之前没有其他线被绘制过
+            //                List<Point3d> pointList = new List<Point3d>();
+            //                pointList.Add(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])]);
+            //                pointList.Add(corner);
+            //                pointList.Add(volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])]);
+            //                pointList.Add(point1);
 
-                            if (IsConvex(pointList))
-                            {
-                                // 选point1
-                                Point3d[] line1 = new Point3d[2] { volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])], point1 };
-                                Point3d[] line2 = new Point3d[2] { point1, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])] };
-                            }
-                            else
-                            {
-                                // 选point2
-                                Point3d[] line1 = new Point3d[2] { volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])], point2 };
-                                Point3d[] line2 = new Point3d[2] { point2, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])] };
-                            }
-                        }
-                        else
-                        {
-                            // 如果之前有其他线被绘制过
-                        }
-                    }
-                }
+            //                if (IsConvex(pointList))
+            //                {
+            //                    // 选point1
+            //                    Point3d[] line1 = new Point3d[2] { volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])], point1 };
+            //                    Point3d[] line2 = new Point3d[2] { point1, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])] };
+            //                }
+            //                else
+            //                {
+            //                    // 选point2
+            //                    Point3d[] line1 = new Point3d[2] { volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][0])], point2 };
+            //                    Point3d[] line2 = new Point3d[2] { point2, volumeJunctions[bSIndexContainVolumeJunctions.IndexOf(bSIndexPair[i][1])] };
+            //                }
+            //            }
+            //            else
+            //            {
+            //                // 如果之前有其他线被绘制过
+            //            }
+            //        }
+            //    }
 
-                #endregion
+            //    #endregion
 
-                #region 可视化
-                    VolumeJunctionTextDot.Clear();
+            //    #region 可视化
+            //        VolumeJunctionTextDot.Clear();
 
-                    for (int i = 0; i < volumeJunctions.Count; i++)
-                    {
-                        TextDot textDot = new TextDot(volumeJunctionsTexts[i], volumeJunctions[i]);
-                        VolumeJunctionTextDot.Add(textDot);
-                    }
-                    #endregion
+            //        for (int i = 0; i < volumeJunctions.Count; i++)
+            //        {
+            //            TextDot textDot = new TextDot(volumeJunctionsTexts[i], volumeJunctions[i]);
+            //            VolumeJunctionTextDot.Add(textDot);
+            //        }
+            //        #endregion
 
 
-                volumeJunctions.Add(volumeJunctions[0]);
-                Polyline debugPolyline = new Polyline(volumeJunctions);
+            //    volumeJunctions.Add(volumeJunctions[0]);
+            //    Polyline debugPolyline = new Polyline(volumeJunctions);
 
-                DA.SetData("DeBug Polyline", debugPolyline);
+            //    DA.SetData("DeBug Polyline", debugPolyline);
                 
-            }
+            //}
         }
 
         /// <summary>

@@ -24,7 +24,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public List<double> TurningTs { get; set; }
 
-        public int PointOnWhichSegments { get; set; }
+        public List<int> PointOnWhichSegments { get; set; }
 
         public BoundarySegment()
         {
@@ -47,11 +47,13 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.From = Points[0];
             this.To = Points.Last();
 
+            this.Lines = new List<Line>();
             this.Lines.Add(new Line(segment.From, segment.To));
 
             this.TurningTs = null;
 
-            this.PointOnWhichSegments = -1;
+            this.PointOnWhichSegments = new List<int>();
+            this.PointOnWhichSegments.Add(0);
         }
 
         public BoundarySegment(List<Line> segments, string label)
@@ -73,10 +75,12 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                 //this.IncludedDVertice = null;
                 //this.HIndex = -1;
+                this.Lines = new List<Line>();
                 this.Lines.Add(new Line(segments[0].From, segments[0].To));
 
                 this.TurningTs = null;
-                this.PointOnWhichSegments = -1;
+                this.PointOnWhichSegments = new List<int>();
+                this.PointOnWhichSegments.Add(0);
             }
             
             this.Points = new List<Point3d>();
@@ -112,7 +116,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.TurningTs.Add(t);
             }
 
-            this.PointOnWhichSegments = -1;
+            this.PointOnWhichSegments = null;
         }
 
         /// <summary>
@@ -141,7 +145,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.TurningTs = new List<double>();
             this.TurningTs.AddRange(source.TurningTs);
 
-            this.PointOnWhichSegments = source.PointOnWhichSegments;
+            this.PointOnWhichSegments = new List<int>();
+            this.PointOnWhichSegments.AddRange(source.PointOnWhichSegments);
         }
 
         public virtual void Reverse()
