@@ -192,7 +192,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 CountOfAllGraphWithHM = result.Count;
-                CurrentIndex = index;
+                CurrentIndex = index + 1;
                 // DA.SetDataList("AllTriangularMeshes", result);
 
                 #region 选择生成的三角剖分
