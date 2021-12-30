@@ -1,0 +1,6 @@
+name,area,connectivity,adjacency,spanNumX,spanNumY,floorNumZ,spanSizeX,spanSizeY,floorHeightZ
+VolumeA,10,1-3,3,3,2,3,5,5,3
+VolumeB,20,0-2,0-3,3,2,4,5,5,3
+VolumeC,40,1-3,0-1,3,2,5,5,5,3
+VolumeD,30,0-2,1-2-3,3,2,3,5,5,3
+VolumeE,30,0-1-2-3,,3,2,3,5,5,3

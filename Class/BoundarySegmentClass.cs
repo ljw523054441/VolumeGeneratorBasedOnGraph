@@ -52,8 +52,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.TurningTs = null;
 
+            //this.PointOnWhichSegments = new List<int>();
+            //this.PointOnWhichSegments.Add(0);
             this.PointOnWhichSegments = new List<int>();
-            this.PointOnWhichSegments.Add(0);
         }
 
         public BoundarySegment(List<Line> segments, string label)
@@ -79,8 +80,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.Lines.Add(new Line(segments[0].From, segments[0].To));
 
                 this.TurningTs = null;
+                //this.PointOnWhichSegments = new List<int>();
+                //this.PointOnWhichSegments.Add(0);
                 this.PointOnWhichSegments = new List<int>();
-                this.PointOnWhichSegments.Add(0);
             }
             
             this.Points = new List<Point3d>();
@@ -95,6 +97,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.From = Points[0];
             this.To = Points.Last();
 
+            this.Lines = new List<Line>();
             for (int i = 0; i < segments.Count; i++)
             {
                 this.Lines.Add(new Line(segments[i].From, segments[i].To));
@@ -109,6 +112,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 sum += segments[i].Length;
             }
 
+            this.TurningTs = new List<double>();
             this.TurningTs.Add(0);
             for (int i = 0; i < lengths.Count - 1; i++)
             {
@@ -116,7 +120,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.TurningTs.Add(t);
             }
 
-            this.PointOnWhichSegments = null;
+            this.PointOnWhichSegments = new List<int>();
         }
 
         /// <summary>
@@ -142,8 +146,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.Lines.Add(new Line(source.Lines[i].From, source.Lines[i].To));
             }
 
-            this.TurningTs = new List<double>();
-            this.TurningTs.AddRange(source.TurningTs);
+            
+            if (source.TurningTs == null)
+            {
+                this.TurningTs = null;
+            }
+            else
+            {
+                this.TurningTs = new List<double>();
+                this.TurningTs.AddRange(source.TurningTs);
+            }
 
             this.PointOnWhichSegments = new List<int>();
             this.PointOnWhichSegments.AddRange(source.PointOnWhichSegments);

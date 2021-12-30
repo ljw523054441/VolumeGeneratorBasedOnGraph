@@ -81,6 +81,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             pManager.AddIntegerParameter("BoundaryTCounts", "boundaryTCounts", "在BS上的点所需要的t值的数量", GH_ParamAccess.list);
             pManager.AddIntegerParameter("InnerTMaxCounts", "InnerTMaxCounts", "由BS上的点生成的转折所需要的t值的最大数量", GH_ParamAccess.list);
+
+            pManager.AddIntegerParameter("TotalLayerCount", "TLC", "对于D进行拆解的总层数", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -425,6 +427,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     needToCalNextLayer = true;
                 }
 
+                int totalLayerCount = 1;
+
                 while (needToCalNextLayer)
                 {
                     DataTree<int> innerVerticesIndexForEachBS;
@@ -433,14 +437,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     List<int[]> innerNeedToConnectBSIndex;
                     List<int> innerIndexPairCorrespondingFaceIndexs;
 
-                    GetInnerPart(dualGraphWithHMDP.DualPlanktonMesh,
-                                 pairsCorrespondingFaceIndexs,
-                                 needToConnectVolumeJunctionsIndex,
-                                 out innerVerticesIndexForEachBS,
-                                 out innerVolumeJunctionsIndexOnEachBS,
-                                 out innerNeedToConnectVolumeJunctionsIndex,
-                                 out innerNeedToConnectBSIndex,
-                                 out innerIndexPairCorrespondingFaceIndexs);
+                    bool isSuccessful = GetInnerPart(dualGraphWithHMDP.DualPlanktonMesh,
+                                                     pairsCorrespondingFaceIndexs,
+                                                     needToConnectVolumeJunctionsIndex,
+                                                     out innerVerticesIndexForEachBS,
+                                                     out innerVolumeJunctionsIndexOnEachBS,
+                                                     out innerNeedToConnectVolumeJunctionsIndex,
+                                                     out innerNeedToConnectBSIndex,
+                                                     out innerIndexPairCorrespondingFaceIndexs);
 
                     int currentLayerInnerBoundaryTCount = innerVolumeJunctionsIndexOnEachBS.DataCount;
                     allLayerBoundaryTCounts.Add(currentLayerInnerBoundaryTCount);
@@ -451,16 +455,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     allLayerBsIndexPairs.Add(innerNeedToConnectBSIndex);
                     allLayerPairCorrespondingFaceIndex.Add(innerIndexPairCorrespondingFaceIndexs);
 
-                    #region 计算这一层的tXDT和tYDT的数量
-                    //int innerTXCount = 0;
-                    //int innerTYCount = 0;
-                    //for (int i = 0; i < innerNeedToConnectVolumeJunctionsIndex.Count; i++)
-                    //{
-                    //    int interval = CalInterval(innerNeedToConnectBSIndex[i], indexPairsCorrespondingFaceIndexs.Count);
-
-                    //    int[] tCount = CalTCount(interval,)
-                    //}
-                    #endregion
                     #region 原来的tXDT和tYDT合并为innerTForEachBS
                     // 其他内部层不能够确定有几个InnerT的，所以变量名叫TMax
                     //List<int> currentLayerInnerTMaxCountForEachBS = new List<int>();
@@ -475,48 +469,29 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     allLayerInnerTMaxCounts.Add(currentLayerInnerTMaxCount);
                     #endregion
 
-                    correspondingFaceIndexs.AddRange(innerIndexPairCorrespondingFaceIndexs);
-                    except = allFaceIndexs.Except(correspondingFaceIndexs).ToList();
-                    // 判断是否要计算下一层
-                    if (except.Count == 0)
+                    if (isSuccessful)
                     {
-                        // 不需要计算下一层
-                        needToCalNextLayer = false;
+                        correspondingFaceIndexs.AddRange(innerIndexPairCorrespondingFaceIndexs);
+                        except = allFaceIndexs.Except(correspondingFaceIndexs).ToList();
+                        // 判断是否要计算下一层
+                        if (except.Count == 0)
+                        {
+                            // 不需要计算下一层
+                            needToCalNextLayer = false;
+                        }
+                        else
+                        {
+                            // 需要计算下一层
+                            needToCalNextLayer = true;
+                        }
                     }
                     else
                     {
-                        // 需要计算下一层
-                        needToCalNextLayer = true;
+                        needToCalNextLayer = false;
                     }
+
+                    totalLayerCount++;
                 }
-
-                //// List<DataTree<int>> 转换为 List<List<List<int>>>
-                //List<List<List<int>>> allLayerVerticesIndexForEachBSLoL = new List<List<List<int>>>();
-                //for (int i = 0; i < allLayerVerticesIndexForEachBS.Count; i++)
-                //{
-                //    List<List<int>> currentVerticesIndexForEachBSLoL = UtilityFunctions.DataTreeToLoL<int>(allLayerVerticesIndexForEachBS[i]);
-                //    allLayerVerticesIndexForEachBSLoL.Add(currentVerticesIndexForEachBSLoL);
-                //}
-                //List<List<List<int>>> allLayerVolumeJunctionsIndexOnEachBSLoL = new List<List<List<int>>>();
-                //for (int i = 0; i < allLayerVolumeJunctionsIndexOnEachBS.Count; i++)
-                //{
-                //    List<List<int>> currentVolumeJunctionsIndexOnEachBS = UtilityFunctions.DataTreeToLoL<int>(allLayerVolumeJunctionsIndexOnEachBS[i]);
-                //    allLayerVolumeJunctionsIndexOnEachBSLoL.Add(currentVolumeJunctionsIndexOnEachBS);
-                //}
-
-                //List<int> abc = allLayerVolumeJunctionsIndexOnEachBS[0].Branch(1);
-
-
-                //List<GH_Structure<GH_Integer>> allLayerVerticesIndexForEachBS_GHS = new List<GH_Structure<GH_Integer>>();
-                //for (int i = 0; i < allLayerVerticesIndexForEachBS.Count; i++)
-                //{
-                //    GH_Structure<GH_Integer> ghstructure = UtilityFunctions.DataTreeToGH_Structure_Int(allLayerVerticesIndexForEachBS[i]);
-                //    allLayerVerticesIndexForEachBS_GHS.Add(ghstructure);
-                //}
-
-                //DataTree<DataTree<int>> dt = new DataTree<DataTree<int>>();
-                //dt.Add(allLayerVerticesIndexForEachBS[0]);
-
 
                 //DA.SetData("VerticesIndexForEachBS", dt);
                 DA.SetDataList("VerticesIndexForEachBS", allLayerVerticesIndexForEachBS);
@@ -527,11 +502,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 DA.SetDataList("BoundaryTCounts", allLayerBoundaryTCounts);
                 DA.SetDataList("InnerTMaxCounts", allLayerInnerTMaxCounts);
 
+                DA.SetData("TotalLayerCount", totalLayerCount);
+
                 string string1 = string.Join(";", allLayerBoundaryTCounts);
                 string string2 = string.Join(";", allLayerInnerTMaxCounts);
                 AllLayerBoundaryTCountsString = string1;
                 AllLayerInnerTMaxCountString = string2;
-
 
                 #region 可视化部分
                 BoundaryPolylinePoints.Clear();
@@ -603,11 +579,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             return newList;
         }
 
-        private void GetInnerPart(PlanktonMesh D,
+        private bool GetInnerPart(PlanktonMesh D,
                                   List<int> indexPairCorrespondingFaceIndexs,
                                   List<int[]> indexPairs,
                                   //out PlanktonMesh subD,
-                                  out DataTree<int> innerVerticesIndexForEachBS,
+                                  out DataTree<int> innerVerticesIndexForEachBSDT,
                                   out DataTree<int> innerVolumeJunctionsIndexOnEachBS,
                                   out List<int[]> innerNeedToConnectVolumeJunctionsIndex,
                                   out List<int[]> innerNeedToConnectBSIndex,
@@ -616,21 +592,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             PlanktonMesh DDeepCopy = new PlanktonMesh(D);
 
             #region 找到每个vertex所对应的FaceIndex
-            List<List<int>> faceIndexsAroundVertex = new List<List<int>>();
+            List<List<int>> faceIndexsAroundInnerVertex = new List<List<int>>();
             for (int i = 0; i < DDeepCopy.Vertices.Count; i++)
             {
-                faceIndexsAroundVertex.Add(new List<int>());
-                faceIndexsAroundVertex[i].AddRange(DDeepCopy.Vertices.GetVertexFaces(i));
+                faceIndexsAroundInnerVertex.Add(new List<int>());
+                faceIndexsAroundInnerVertex[i].AddRange(DDeepCopy.Vertices.GetVertexFaces(i));
                 // 去除-1
-                faceIndexsAroundVertex[i].Remove(-1);
+                faceIndexsAroundInnerVertex[i].Remove(-1);
             }
             #endregion
 
             #region 求verticesIndexForEachBS
-            innerVerticesIndexForEachBS = new DataTree<int>();
+            innerVerticesIndexForEachBSDT = new DataTree<int>();
             for (int i = 0; i < indexPairCorrespondingFaceIndexs.Count; i++)
             {
-                innerVerticesIndexForEachBS.EnsurePath(i);
+                innerVerticesIndexForEachBSDT.EnsurePath(i);
 
                 List<int> faceVertices = DDeepCopy.Faces.GetFaceVertices(indexPairCorrespondingFaceIndexs[i]).ToList();
 
@@ -641,13 +617,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 int iter1 = vertex1InFaceVertices;
                 while (faceVertices[(iter1 + faceVertices.Count) % faceVertices.Count] != indexPairs[i][0])
                 {
-                    iter1++;
+                    iter1--;
                     slice.Add(faceVertices[(iter1 + faceVertices.Count) % faceVertices.Count]);
                 }
                 // 移除indexPairs[i][0]
                 slice.RemoveAt(slice.Count - 1);
+                slice.Reverse();
 
-                innerVerticesIndexForEachBS.Branch(i).AddRange(slice);
+                innerVerticesIndexForEachBSDT.Branch(i).AddRange(slice);
             }
             #endregion
 
@@ -658,18 +635,33 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 innerVolumeJunctionsIndexOnEachBS.EnsurePath(i);
 
                 List<int> volumeJunctions = new List<int>();
-                for (int j = 0; j < innerVerticesIndexForEachBS.Branch(i).Count; j++)
+                for (int j = 0; j < innerVerticesIndexForEachBSDT.Branch(i).Count; j++)
                 {
-                    if (faceIndexsAroundVertex[innerVerticesIndexForEachBS.Branch(i)[j]].Count > 1
-                        && DDeepCopy.Vertices.GetVertexFaces(innerVerticesIndexForEachBS.Branch(i)[j]).Contains(indexPairCorrespondingFaceIndexs[i]))
+                    List<int> innerVertexFaces = DDeepCopy.Vertices.GetVertexFaces(innerVerticesIndexForEachBSDT.Branch(i)[j]).ToList();
+                    List<int> innerVertexFacesRemoveOuter = innerVertexFaces.Except(indexPairCorrespondingFaceIndexs).ToList();
+
+                    if (innerVertexFacesRemoveOuter.Count > 1)
                     {
-                        volumeJunctions.Add(innerVerticesIndexForEachBS.Branch(i)[j]);
+                        volumeJunctions.Add(innerVerticesIndexForEachBSDT.Branch(i)[j]);
                     }
                 }
 
                 innerVolumeJunctionsIndexOnEachBS.Branch(i).AddRange(volumeJunctions);
             }
             #endregion
+
+            // 如果没有innerVolumeJunctions，就直接跳出
+            if (innerVolumeJunctionsIndexOnEachBS.DataCount == 0)
+            {
+                innerVerticesIndexForEachBSDT = new DataTree<int>();
+                innerVolumeJunctionsIndexOnEachBS = new DataTree<int>();
+                innerNeedToConnectVolumeJunctionsIndex = new List<int[]>();
+                innerNeedToConnectBSIndex = new List<int[]>();
+                innerIndexPairCorrespondingFaceIndexs = new List<int>();
+
+                return false;
+            }
+
 
             #region 找到包含边界分裂点的BoundarySegment序号
             List<int> bsIndexContainVolumeJunctions = new List<int>();
@@ -755,6 +747,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     innerNeedToConnectBSIndex.Add(innerBSIndexPairs[i]);
                 }
             }
+
+            return true;
             #endregion
         }
 
