@@ -107,7 +107,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             List<List<int[]>> allLayerVertexIndexPairs = new List<List<int[]>>();
             List<List<int[]>> allLayerBsIndexPairs = new List<List<int[]>>();
 
-            List<List<int>> allLayerPairCorrespondingFaceIndexLoL = new List<List<int>>();
+            List<List<int>> allLayerPairCorrespondingFaceIndexLoL_OnD = new List<List<int>>();
 
             List<int> allLayerBoundaryTCounts = new List<int>();
             List<int> allLayerInnerTMaxCounts = new List<int>();
@@ -134,19 +134,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 && DA.GetDataList("NeedToConnectVolumeJunctionsIndex", allLayerVertexIndexPairs)
                 && DA.GetDataList("NeedToConnectBSIndex", allLayerBsIndexPairs)
 
-                && DA.GetDataList("NeedToConnectPairCorrespondingFaceIndex", allLayerPairCorrespondingFaceIndexLoL)
+                && DA.GetDataList("NeedToConnectPairCorrespondingFaceIndex", allLayerPairCorrespondingFaceIndexLoL_OnD)
 
                 && DA.GetDataList("BoundaryTCounts", allLayerBoundaryTCounts))
             {
-                //DA.GetDataList("BoundaryTList", allLayerBoundaryTLoL);
-                //DA.GetDataList("tXList", tXList);
-                //DA.GetDataList("tYList", tYList);
-                //DA.GetDataList("InnerTMaxList", allLayerInnerTMaxLoL);
-
                 DA.GetDataTree<GH_Number>("BoundaryTDT", out allLayerBoundaryT_GHS);
                 DA.GetDataTree<GH_Number>("InnerTMaxDT", out allLayerInnerTMax_GHS);
-                //allLayerBoundaryTDT = UtilityFunctions.GH_StructureToDataTree_Double(allLayerBoundaryT_GHS);
-                //allLayerInnerTMaxDT = UtilityFunctions.GH_StructureToDataTree_Double(allLayerInnerTMax_GHS);
                 allLayerBoundaryTLoL = UtilityFunctions.GH_StructureToLoL_Double(allLayerBoundaryT_GHS);
                 allLayerInnerTMaxLoL = UtilityFunctions.GH_StructureToLoL_Double(allLayerInnerTMax_GHS);
 
@@ -159,9 +152,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 BoundingBox boundingBox = new BoundingBox(cornerPoints);
                 #endregion
-
-                //DataTree<int> verticesIndexForEachBSDT = new DataTree<int>();
-                //UtilityFunctions.GH_StructureToDataTree_Int(gh_structure1, ref verticesIndexForEachBSDT);
 
                 #region 最外层
                 int currentLayer = 0;
@@ -564,27 +554,30 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     DualPolylines[i].AddRange(dualPolylines[i]);
                 }
 
-                List<int> allLayerPairCorrespondingFaceIndex = new List<int>();
-                for (int i = 0; i < allLayerPairCorrespondingFaceIndexLoL.Count; i++)
+                #region 把LOL形式的allLayerPairCorrespondingFaceIndexLoL转换为list形式
+                List<int> allLayerPairCorrespondingFaceIndex_OnD = new List<int>();
+                for (int i = 0; i < allLayerPairCorrespondingFaceIndexLoL_OnD.Count; i++)
                 {
-                    allLayerPairCorrespondingFaceIndex.AddRange(allLayerPairCorrespondingFaceIndexLoL[i]);
+                    allLayerPairCorrespondingFaceIndex_OnD.AddRange(allLayerPairCorrespondingFaceIndexLoL_OnD[i]);
                 }
+                #endregion
+
                 for (int i = 0; i < MeshForVisualize.Vertices.Count; i++)
                 {
                     List<int> facesAroundVertex = MeshForVisualize.Vertices.GetVertexFaces(i).ToList();
-                    if (facesAroundVertex.Contains(-1))
+                    while (facesAroundVertex.Contains(-1))
                     {
                         facesAroundVertex.Remove(-1);
                     }
 
-                    List<int> correspondingDFaceIndice = new List<int>();
+                    List<int> VertexCorrespondingFaceIndice_OnP = new List<int>();
                     for (int j = 0; j < facesAroundVertex.Count; j++)
                     {
-                        int correspondingDFaceIndex = allLayerPairCorrespondingFaceIndex[facesAroundVertex[j]];
-                        correspondingDFaceIndice.Add(correspondingDFaceIndex);
+                        int correspondingDFaceIndex = allLayerPairCorrespondingFaceIndex_OnD[facesAroundVertex[j]];
+                        VertexCorrespondingFaceIndice_OnP.Add(correspondingDFaceIndex);
                     }
 
-                    string arg = string.Join(";", correspondingDFaceIndice);
+                    string arg = string.Join(";", VertexCorrespondingFaceIndice_OnP);
                     
                     TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), DualVertices[i]);
                     DualVertexTextDots.Add(textDot);
@@ -601,22 +594,17 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #region 根据innerNode的序号，写入对应的GraphNodeTextDots
                 List<GraphNode> graphNodes = new List<GraphNode>();
-
                 for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
                 {
-                    int nodeIndex = allLayerPairCorrespondingFaceIndex[dualGraphWithHM.FaceCorrespondingGraphNodeIndex[i]];
+                    // FaceCorrespondingGraphNodeIndex是OnD
+                    int nodeIndex = allLayerPairCorrespondingFaceIndex_OnD[dualGraphWithHM.FaceCorrespondingGraphNodeIndex[i]];
                     graphNodes.Add(dualGraphWithHM.GraphNodes[nodeIndex]);
                 }
 
                 for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
                 {
-                    GraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", allLayerPairCorrespondingFaceIndex[i], graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
+                    GraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", allLayerPairCorrespondingFaceIndex_OnD[i], graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
                 }
-
-                //for (int i = 0; i < graphNodes.Count; i++)
-                //{
-                //    GraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", i, graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
-                //}
                 #endregion
 
                 #region 代表innernode之间的连线
@@ -638,11 +626,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private PlanktonMesh GenerateInnerPart(DataTree<int> verticesIndexForEachInnerBSDT,
                                                DataTree<int> volumeJunctionsIndexOnEachInnerBS,
                                                List<double> boundaryTList,
-                                               //int tXCount,
-                                               //int tYCount,
-                                               
                                                List<double> innerTListCurrentLayer,
-                                               //List<double> tYList,
                                                List<int[]> onD_innerVertexIndexPairs,
                                                List<int[]> currentBSIndexPairs,
                                                PlanktonMesh P,
@@ -1548,6 +1532,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #region 输出point1是否被绘制过
             bool isPoint1Drawn = false;
             int h = -1;
+            int pairFaceIndex = -1;
             List<int> hStartAtPoint1 = PDeepCopy.Vertices.GetHalfedges(vertex1Index).ToList();
             for (int i = 0; i < hStartAtPoint1.Count; i++)
             {
@@ -1557,6 +1542,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     isPoint1Drawn = true;
                     h = hStartAtPoint1[i];
+                    pairFaceIndex = face1;
                     break;
                 }
             }
@@ -1650,7 +1636,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     #endregion
 
                     #region 生成新的PlanktonMesh
-                    GenerateNewPlanktonXYZAndNewFaceVertexOrder(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
+                    GenerateNewPlanktonXYZAndNewFaceVertexOrder1(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
                     #endregion
                 }
                 else
@@ -1720,7 +1706,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     #endregion
 
                     #region 生成新的PlanktonMesh
-                    GenerateNewPlanktonXYZAndNewFaceVertexOrder(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
+                    GenerateNewPlanktonXYZAndNewFaceVertexOrder1(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
                     #endregion
                 }
             }
@@ -1771,16 +1757,24 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         viFace.Add(turningPoint0Index);
                         viFace.Add(viNewFace.Last());
                         viNewFace.Add(turningPoint0Index);
+
+                        #region 生成新的PlanktonMesh
+                        GenerateNewPlanktonXYZAndNewFaceVertexOrder1(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
+                        #endregion
                     }
                     else
                     {
                         viFace.Add(turningPoint0Index);
                         viNewFace.Add(turningPoint0Index);
-                    }
-                    #endregion
 
-                    #region 生成新的PlanktonMesh
-                    GenerateNewPlanktonXYZAndNewFaceVertexOrder(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
+                        List<int> viPairFace = PDeepCopy.Faces.GetFaceVertices(pairFaceIndex).ToList();
+                        int index = viPairFace.IndexOf(vertex1Index);
+                        viPairFace.Insert((index + 1) % viPairFace.Count, turningPoint0Index);
+
+                        #region 生成新的PlanktonMesh
+                        GenerateNewPlanktonXYZAndNewFaceVertexOrder2(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, pairFaceIndex, viFace, viNewFace, viPairFace);
+                        #endregion
+                    }
                     #endregion
                 }
                 else
@@ -1820,7 +1814,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     #endregion
 
                     #region 生成新的PlanktonMesh
-                    GenerateNewPlanktonXYZAndNewFaceVertexOrder(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
+                    GenerateNewPlanktonXYZAndNewFaceVertexOrder1(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
                     #endregion
                 }
             }
@@ -1849,7 +1843,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             addY = -y * t2;
                         }
 
-                        turningPoints.Add(new Point3d(point1.X, point1.Y + addY, point1.Z));
+                        turningPoints.Add(new Point3d(point1.X, endPoint1.Y + addY, point1.Z));
                         turningPoints.Add(new Point3d(point2.X, turningPoints.Last().Y, point2.Z));
                     }
                     else
@@ -1868,26 +1862,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             addX = -x * t2;
                         }
 
-                        turningPoints.Add(new Point3d(point1.X + addX, point1.Y, point1.Z));
+                        turningPoints.Add(new Point3d(endPoint1.X + addX, point1.Y, point1.Z));
                         turningPoints.Add(new Point3d(turningPoints.Last().X, point2.Y, point2.Z));
                     }
-
-                    //branchIndex++;
-
-                    //#region 判断交点是否在经过point1的边的内部
-                    //Vector3d vector1 = new Vector3d(endPoint1 - point1);
-                    //Vector3d vector2 = new Vector3d(turningPoints[0] - point1);
-                    //double t = vector2.Length / vector1.Length;
-                    //bool isOutOfRange = false;
-                    //if (t > 1)
-                    //{
-                    //    isOutOfRange = true;
-                    //}
-                    //else
-                    //{
-                    //    isOutOfRange = false;
-                    //}
-                    //#endregion
 
                     PDeepCopy.Vertices.Add(turningPoints[0]);
                     int turningPoint0Index = PDeepCopy.Vertices.Count - 1;
@@ -1905,39 +1882,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     #endregion
 
                     #region 处理生成最后的viFace和viNewFace
-                    //if (isOutOfRange)
-                    //{
-                    //    viNewFace.Remove(vertex1Index);
-
-                    //    viFace.Add(viNewFace[0]);
-                    //    viFace.Add(turningPoint0Index);
-                    //    viFace.Add(turningPoint1Index);
-
-                    //    viNewFace.Add(turningPoint1Index);
-                    //    viNewFace.Add(turningPoint0Index);
-                    //}
-                    //else
-                    //{
-                    //    viFace.Add(turningPoint0Index);
-                    //    viFace.Add(turningPoint1Index);
-
-                    //    viNewFace.Remove(vertex1Index);
-                    //    viNewFace.Insert(0, turningPoint0Index);
-                    //    viNewFace.Add(turningPoint1Index);
-                    //}
                     viNewFace.Remove(vertex1Index);
-                    viNewFace.RemoveAt(0);
+
+                    int currentEnd = viNewFace.Last();
 
                     //viFace.Add(viNewFace[0]);
                     viFace.Add(turningPoint1Index);
                     viFace.Add(turningPoint0Index);
+                    viFace.Add(currentEnd);
 
                     viNewFace.Add(turningPoint0Index);
                     viNewFace.Add(turningPoint1Index);
                     #endregion
 
                     #region 生成新的PlanktonMesh
-                    GenerateNewPlanktonXYZAndNewFaceVertexOrder(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
+                    GenerateNewPlanktonXYZAndNewFaceVertexOrder1(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
                     #endregion
                 }
                 else
@@ -2000,14 +1959,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     #endregion
 
                     #region 处理生成最后的viFace和viNewFace
-                    viFace.Add(turningPoint0Index);
                     viFace.Add(turningPoint1Index);
-                    viNewFace.Add(turningPoint1Index);
+                    viFace.Add(turningPoint0Index);
                     viNewFace.Add(turningPoint0Index);
+                    viNewFace.Add(turningPoint1Index);
                     #endregion
 
                     #region 生成新的PlanktonMesh
-                    GenerateNewPlanktonXYZAndNewFaceVertexOrder(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
+                    GenerateNewPlanktonXYZAndNewFaceVertexOrder1(PDeepCopy, out newPlanktonXYZ, out newFaceVertexOrder, viFaceIndex, viFace, viNewFace);
                     #endregion
                 }
             }
@@ -2070,7 +2029,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             viNewFace.Reverse();
         }
 
-        private void GenerateNewPlanktonXYZAndNewFaceVertexOrder(PlanktonMesh P, out List<PlanktonXYZ> newPlanktonXYZ, out List<List<int>> newFaceVertexOrder, int viFaceIndex, List<int> viFace, List<int> viNewFace)
+        private void GenerateNewPlanktonXYZAndNewFaceVertexOrder1(PlanktonMesh P, 
+                                                                  out List<PlanktonXYZ> newPlanktonXYZ, 
+                                                                  out List<List<int>> newFaceVertexOrder, 
+                                                                  int viFaceIndex, 
+                                                                  List<int> viFace, 
+                                                                  List<int> viNewFace)
         {
             // 转移原来originPDeepCopy的属性
             newPlanktonXYZ = new List<PlanktonXYZ>();
@@ -2097,6 +2061,44 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             newFaceVertexOrder.Add(viNewFace);
         }
 
+        private void GenerateNewPlanktonXYZAndNewFaceVertexOrder2(PlanktonMesh P, 
+                                                                  out List<PlanktonXYZ> newPlanktonXYZ, 
+                                                                  out List<List<int>> newFaceVertexOrder, 
+                                                                  int viFaceIndex,
+                                                                  int viPairFaceIndex, 
+                                                                  List<int> viFace, 
+                                                                  List<int> viNewFace, 
+                                                                  List<int> viPairFace)
+        {
+            // 转移原来originPDeepCopy的属性
+            newPlanktonXYZ = new List<PlanktonXYZ>();
+            for (int i = 0; i < P.Vertices.Count; i++)
+            {
+                newPlanktonXYZ.Add(P.Vertices[i].ToXYZ());
+            }
+            //
+            newFaceVertexOrder = new List<List<int>>();
+            for (int i = 0; i < P.Faces.Count; i++)
+            {
+                if (i == viFaceIndex)
+                {
+                    newFaceVertexOrder.Add(new List<int>());
+                    newFaceVertexOrder[i].AddRange(viFace);
+                }
+                else if (i == viPairFaceIndex)
+                {
+                    newFaceVertexOrder.Add(new List<int>());
+                    newFaceVertexOrder[i].AddRange(viPairFace);
+                }
+                else
+                {
+                    newFaceVertexOrder.Add(new List<int>());
+                    int[] faceVertexOrder = P.Faces.GetFaceVertices(i);
+                    newFaceVertexOrder[i].AddRange(faceVertexOrder);
+                }
+            }
+            newFaceVertexOrder.Add(viNewFace);
+        }
         private int WhichQuadrant(Point3d point1, Point3d point2)
         {
             double dx = point2.X - point1.X;

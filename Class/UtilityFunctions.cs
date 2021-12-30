@@ -553,6 +553,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             for (int i = 0; i < D.Faces.Count; i++)
             {
                 faceAdjacency.Add(new List<int>());
+
+                HashSet<int> adjacentFace = new HashSet<int>();
                 int[] halfedges = D.Faces.GetHalfedges(i);
                 // length = halfedges.Length;
                 for (int j = 0; j < halfedges.Length; j++)
@@ -565,9 +567,12 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     }
                     else
                     {
-                        faceAdjacency[i].Add(index);
+                        adjacentFace.Add(index);
                     }
                 }
+
+                List<int> list = adjacentFace.ToList();
+                faceAdjacency[i].AddRange(list);
             }
             return faceAdjacency;
         }
