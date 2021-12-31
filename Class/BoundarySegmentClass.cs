@@ -50,7 +50,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.Lines = new List<Line>();
             this.Lines.Add(new Line(segment.From, segment.To));
 
-            this.TurningTs = null;
+            this.TurningTs = new List<double>();
 
             //this.PointOnWhichSegments = new List<int>();
             //this.PointOnWhichSegments.Add(0);
@@ -79,7 +79,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.Lines = new List<Line>();
                 this.Lines.Add(new Line(segments[0].From, segments[0].To));
 
-                this.TurningTs = null;
+                this.TurningTs = new List<double>();
                 //this.PointOnWhichSegments = new List<int>();
                 //this.PointOnWhichSegments.Add(0);
                 this.PointOnWhichSegments = new List<int>();
@@ -113,12 +113,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
 
             this.TurningTs = new List<double>();
-            this.TurningTs.Add(0);
-            for (int i = 0; i < lengths.Count - 1; i++)
+            if (lengths.Count > 1)
             {
-                double t = lengths[i] / sum;
-                this.TurningTs.Add(t);
+                this.TurningTs.Add(0);
+                for (int i = 0; i < lengths.Count - 1; i++)
+                {
+                    double t = lengths[i] / sum;
+                    this.TurningTs.Add(t);
+                }
             }
+            
 
             this.PointOnWhichSegments = new List<int>();
         }

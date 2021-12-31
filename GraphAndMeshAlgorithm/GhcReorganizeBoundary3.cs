@@ -401,11 +401,11 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     //// 不论interval为0,1,2哪个值，tCount要么是0，要么是1，取最大值tMaxCount
                     //int tMaxCount = 1;
                     //currentLayerInnerTMaxCountForEachBS.Add(tMaxCount);
-                    int tCount = CalTCount(interval,
-                                           sortedBS[allLayerBsIndexPairs[currentLayer][i][0]],
-                                           sortedBS[allLayerBsIndexPairs[currentLayer][i][1]],
-                                           0,
-                                           0);
+                    int tCount = CalTCount(interval);
+                                           //sortedBS[allLayerBsIndexPairs[currentLayer][i][0]],
+                                           //sortedBS[allLayerBsIndexPairs[currentLayer][i][1]],
+                                           //0,
+                                           //0);
                     //currentLayerInnerTCountForEachBS.Add(tCount);
                     currentLayerInnerTCount += tCount;
                 }
@@ -851,28 +851,28 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
         }
 
-        private int CalTCount(int interval,
-                              BoundarySegment bsForPoint1,
-                              BoundarySegment bsForPoint2,
-                              int point1OnWhichSegment,
-                              int point2OnWhichSegment)
+        private int CalTCount(int interval)
+                              //BoundarySegment bsForPoint1,
+                              //BoundarySegment bsForPoint2,
+                              //int point1OnWhichSegment,
+                              //int point2OnWhichSegment)
         {
-            #region 基础计算
-            #region 求point1和point2所对应的BS的法线（逆时针90度）
-            // 这里不能用bsForPoint，必须用bsForPoint所对应的x轴方向或者y轴方向
-            Vector3d vectorForBS1 = new Vector3d(bsForPoint1.Lines[point1OnWhichSegment].To - bsForPoint1.Lines[point1OnWhichSegment].From);
-            Vector3d vectorForBS2 = new Vector3d(bsForPoint2.Lines[point2OnWhichSegment].To - bsForPoint2.Lines[point2OnWhichSegment].From);
-            Vector3d projectVectorBS1 = CalProjectVector(bsForPoint1.Lines[point1OnWhichSegment].From, bsForPoint1.Lines[point1OnWhichSegment].To);
-            Vector3d projectVectorBS2 = CalProjectVector(bsForPoint2.Lines[point2OnWhichSegment].From, bsForPoint2.Lines[point2OnWhichSegment].To);
+            //#region 基础计算
+            //#region 求point1和point2所对应的BS的法线（逆时针90度）
+            //// 这里不能用bsForPoint，必须用bsForPoint所对应的x轴方向或者y轴方向
+            //Vector3d vectorForBS1 = new Vector3d(bsForPoint1.Lines[point1OnWhichSegment].To - bsForPoint1.Lines[point1OnWhichSegment].From);
+            //Vector3d vectorForBS2 = new Vector3d(bsForPoint2.Lines[point2OnWhichSegment].To - bsForPoint2.Lines[point2OnWhichSegment].From);
+            //Vector3d projectVectorBS1 = CalProjectVector(bsForPoint1.Lines[point1OnWhichSegment].From, bsForPoint1.Lines[point1OnWhichSegment].To);
+            //Vector3d projectVectorBS2 = CalProjectVector(bsForPoint2.Lines[point2OnWhichSegment].From, bsForPoint2.Lines[point2OnWhichSegment].To);
 
-            // 求在x轴正方向或y轴正方向的投影
-            Vector3d vectorForBS1OnProjectVectorBS1 = vectorForBS1 * projectVectorBS1 * projectVectorBS1 / Math.Sqrt(projectVectorBS1.Length);
-            Vector3d vectorForBS2OnProjectVectorBS2 = vectorForBS2 * projectVectorBS2 * projectVectorBS2 / Math.Sqrt(projectVectorBS2.Length);
-            // 投影后向量的normal，为正X正Y方向
-            Vector3d nVectorForBS1 = Normal(vectorForBS1OnProjectVectorBS1);
-            Vector3d nVectorForBS2 = Normal(vectorForBS2OnProjectVectorBS2);
-            #endregion
-            #endregion
+            //// 求在x轴正方向或y轴正方向的投影
+            //Vector3d vectorForBS1OnProjectVectorBS1 = vectorForBS1 * projectVectorBS1 * projectVectorBS1 / Math.Sqrt(projectVectorBS1.Length);
+            //Vector3d vectorForBS2OnProjectVectorBS2 = vectorForBS2 * projectVectorBS2 * projectVectorBS2 / Math.Sqrt(projectVectorBS2.Length);
+            //// 投影后向量的normal，为正X正Y方向
+            //Vector3d nVectorForBS1 = Normal(vectorForBS1OnProjectVectorBS1);
+            //Vector3d nVectorForBS2 = Normal(vectorForBS2OnProjectVectorBS2);
+            //#endregion
+            //#endregion
 
             int tCount;
             if (interval == 0)
