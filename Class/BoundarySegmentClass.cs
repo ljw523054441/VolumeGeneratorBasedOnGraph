@@ -11,7 +11,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
     {
         //public Line Line { get; set; }
 
-        public Polyline Polyline { get; set; }
+        public PolylineCurve PolylineCurve { get; set; }
 
         public string Label { get; set; }
 
@@ -41,7 +41,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.Points = new List<Point3d>();
             this.Points.Add(segment.From);
             this.Points.Add(segment.To);
-            this.Polyline = new Polyline(this.Points);
+            this.PolylineCurve = new PolylineCurve(this.Points);
+            this.PolylineCurve.Domain = new Interval(0, 1);
             this.Label = label;
 
             this.From = Points[0];
@@ -68,7 +69,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.Points = new List<Point3d>();
                 this.Points.Add(segments[0].From);
                 this.Points.Add(segments[0].To);
-                this.Polyline = new Polyline(this.Points);
+                this.PolylineCurve = new PolylineCurve(this.Points);
+                this.PolylineCurve.Domain = new Interval(0, 1);
                 this.Label = label;
 
                 this.From = Points[0];
@@ -91,7 +93,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 this.Points.Add(segments[i].To);
             }
-            this.Polyline = new Polyline(this.Points);
+            this.PolylineCurve = new PolylineCurve(this.Points);
+            this.PolylineCurve.Domain = new Interval(0, 1);
             this.Label = label;
 
             this.From = Points[0];
@@ -103,25 +106,31 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.Lines.Add(new Line(segments[i].From, segments[i].To));
             }
 
-            List<double> lengths = new List<double>();
-            double sum = 0;
-            for (int i = 0; i < segments.Count; i++)
-            {
-                double current = sum + segments[i].Length;
-                lengths.Add(current);
-                sum += segments[i].Length;
-            }
+            //List<double> lengths = new List<double>();
+            //double sum = 0;
+            //for (int i = 0; i < segments.Count; i++)
+            //{
+            //    double current = sum + segments[i].Length;
+            //    lengths.Add(current);
+            //    sum += segments[i].Length;
+            //}
 
             this.TurningTs = new List<double>();
-            if (lengths.Count > 1)
+            for (int i = 0; i < this.Points.Count; i++)
             {
-                this.TurningTs.Add(0);
-                for (int i = 0; i < lengths.Count - 1; i++)
-                {
-                    double t = lengths[i] / sum;
-                    this.TurningTs.Add(t);
-                }
+                double t;
+                PolylineCurve.ClosestPoint(this.Points[i], out t);
+                this.TurningTs.Add(t);
             }
+            //if (lengths.Count > 1)
+            //{
+            //    this.TurningTs.Add(0);
+            //    for (int i = 0; i < lengths.Count - 1; i++)
+            //    {
+            //        double t = lengths[i] / sum;
+            //        this.TurningTs.Add(t);
+            //    }
+            //}
             
 
             this.PointOnWhichSegments = new List<int>();
@@ -138,7 +147,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 this.Points.Add(new Point3d(source.Points[i]));
             }
-            this.Polyline = new Polyline(source.Polyline);
+            this.PolylineCurve = new PolylineCurve(source.PolylineCurve);
+            this.PolylineCurve.Domain = new Interval(0, 1);
             this.Label = source.Label;
 
             this.From = new Point3d(source.From);
@@ -168,7 +178,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public virtual void Reverse()
         {
             this.Points.Reverse();
-            this.Polyline.Reverse();
+            this.PolylineCurve.Reverse();
 
             Point3d tmp = this.From;
             this.From = this.To;

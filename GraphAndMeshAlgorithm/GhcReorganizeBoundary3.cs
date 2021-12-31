@@ -263,7 +263,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #endregion
 
-                int currentLayer = 0;
+                //int currentLayer = 0;
 
                 #region shift的部分
                 #region 找到包含边界分裂点的BoundarySegment序号
@@ -291,18 +291,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     bSIndexContainVolumeJunctions[i] = bSIndexContainVolumeJunctions[i] - shift;
                 }
                 // 对BS的列表进行Shift
-                List<BoundarySegment> sortedBS = Shift<BoundarySegment>(sortedBSFromW, shift);
+                List<BoundarySegment> sortedBS = LeftShift<BoundarySegment>(sortedBSFromW, shift);
                 #endregion
                 DA.SetDataList("SortedBoundarySegments", sortedBS);
 
                 #region 对verticesIndexForEachBS进行shift
-                List<List<int>> shiftedVerticesIndexForEachBSLoL = Shift<List<int>>(verticesIndexForEachBSLoL, shift);
+                List<List<int>> shiftedVerticesIndexForEachBSLoL = LeftShift<List<int>>(verticesIndexForEachBSLoL, shift);
                 DataTree<int> verticesIndexForEachBSDT = UtilityFunctions.LoLToDataTree<int>(shiftedVerticesIndexForEachBSLoL);
                 allLayerVerticesIndexForEachBS.Add(verticesIndexForEachBSDT);
                 #endregion
 
                 #region 对volumeJunctionsIndexOnEachBS进行shift
-                List<List<int>> shiftedVolumeJunctionsIndexOnEachBSLoL = Shift<List<int>>(volumeJunctionForEachBSLoL, shift);
+                List<List<int>> shiftedVolumeJunctionsIndexOnEachBSLoL = LeftShift<List<int>>(volumeJunctionForEachBSLoL, shift);
                 DataTree<int> volumeJunctionsIndexOnEachBS = UtilityFunctions.LoLToDataTree<int>(shiftedVolumeJunctionsIndexOnEachBSLoL);
                 allLayerVolumeJunctionsIndexOnEachBS.Add(volumeJunctionsIndexOnEachBS);
                 #endregion
@@ -561,7 +561,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             }
         }
 
-        private List<T> Shift<T>(List<T> originList, int shift)
+        private List<T> LeftShift<T>(List<T> originList, int shift)
         {
             // 深拷贝
             List<T> newList = new List<T>();

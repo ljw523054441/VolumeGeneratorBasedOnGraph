@@ -202,6 +202,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
                 #endregion
+
                 #region DataTree<Point3d> pointOnEachBS
                 DataTree<Point3d> pointOnEachBS = new DataTree<Point3d>();
                 for (int i = 0; i < boundaryTOnEachBS.BranchCount; i++)
@@ -212,6 +213,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         double t = boundaryTOnEachBS.Branch(i)[j];
                         if (sortedBoundarySegmentsDeepCopy[i].TurningTs.Count != 0)
                         {
+                            int lineIndex = 0;
                             for (int k = 0; k < sortedBoundarySegmentsDeepCopy[i].TurningTs.Count - 1; k++)
                             {
                                 if (t > sortedBoundarySegmentsDeepCopy[i].TurningTs[k] && t < sortedBoundarySegmentsDeepCopy[i].TurningTs[k + 1])
@@ -220,19 +222,26 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                     sortedBoundarySegmentsDeepCopy[i].PointOnWhichSegments.Add(k);
                                     break;
                                 }
+                                else if (t > sortedBoundarySegmentsDeepCopy[i].TurningTs.Last() && t < 1)
+                                {
+                                    // 大于sortedInnerBSDeepCopy[i].TurningTs.Last() 并且 小于 1
+                                    sortedBoundarySegmentsDeepCopy[i].PointOnWhichSegments.Add(sortedBoundarySegmentsDeepCopy[i].TurningTs.Count - 1);
+                                    lineIndex = sortedBoundarySegmentsDeepCopy[i].TurningTs.Count - 1;
+                                    break;
+                                }
                                 else
                                 {
                                     continue;
                                 }
                             }
 
-                            pointOnEachBS.Branch(i).Add(sortedBoundarySegmentsDeepCopy[i].Polyline.PointAt(t));
+                            pointOnEachBS.Branch(i).Add(sortedBoundarySegmentsDeepCopy[i].PolylineCurve.PointAt(t));
                         }
                         else
                         {
                             sortedBoundarySegmentsDeepCopy[i].PointOnWhichSegments.Add(0);
 
-                            pointOnEachBS.Branch(i).Add(sortedBoundarySegmentsDeepCopy[i].Lines[0].PointAt(t));
+                            pointOnEachBS.Branch(i).Add(sortedBoundarySegmentsDeepCopy[i].PolylineCurve.PointAt(t));
                         }
                     }
                 }
@@ -441,6 +450,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                      sortedBoundarySegmentsDeepCopy[allLayerBsIndexPairs[currentLayer][i][1]],
                                      0,
                                      0,
+                                     -1,
                                      boundingBox,
                                      innerTOnEachBSForCurrentLayer,
                                      i,
@@ -587,8 +597,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                           totalLayerCount,
                                           sortedInnerBS,
                                           ref needToCalNextLayer);
-
-
                 }
 
                 #region 可视化部分
@@ -779,12 +787,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     double t = boundaryTOnEachInnerBS.Branch(i)[j];
                     if (sortedInnerBSDeepCopy[i].TurningTs.Count != 0)
                     {
+                        int lineIndex = 0;
                         for (int k = 0; k < sortedInnerBSDeepCopy[i].TurningTs.Count - 1; k++)
                         {
                             if (t > sortedInnerBSDeepCopy[i].TurningTs[k] && t < sortedInnerBSDeepCopy[i].TurningTs[k + 1])
                             {
                                 // 注意这里一定要添加PointOnWhichSegments信息，即这个点是在BS的哪一段上
                                 sortedInnerBSDeepCopy[i].PointOnWhichSegments.Add(k);
+                                lineIndex = k;
+                                break;
+                            }
+                            else if (t > sortedInnerBSDeepCopy[i].TurningTs.Last() && t < 1)
+                            {
+                                // 大于sortedInnerBSDeepCopy[i].TurningTs.Last() 并且 小于 1
+                                sortedInnerBSDeepCopy[i].PointOnWhichSegments.Add(sortedInnerBSDeepCopy[i].TurningTs.Count - 1);
+                                lineIndex = sortedInnerBSDeepCopy[i].TurningTs.Count - 1;
                                 break;
                             }
                             else
@@ -793,7 +810,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                             }
                         }
 
-                        pointOnEachBS.Branch(i).Add(sortedInnerBSDeepCopy[i].Polyline.PointAt(t));
+                        pointOnEachBS.Branch(i).Add(sortedInnerBSDeepCopy[i].PolylineCurve.PointAt(t));
 
                         onP_newInnerVolumeJunctionVertexIndex.Add(currentLastVertexIndex);
                         currentLastVertexIndex++;
@@ -802,7 +819,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     {
                         sortedInnerBSDeepCopy[i].PointOnWhichSegments.Add(0);
 
-                        pointOnEachBS.Branch(i).Add(sortedInnerBSDeepCopy[i].Lines[0].PointAt(t));
+                        pointOnEachBS.Branch(i).Add(sortedInnerBSDeepCopy[i].PolylineCurve.PointAt(t));
 
                         onP_newInnerVolumeJunctionVertexIndex.Add(currentLastVertexIndex);
                         currentLastVertexIndex++;
@@ -810,6 +827,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
             }
             #endregion
+
+            List<int> shifted_onP_correspondingFaceIndex = new List<int>();
+            int shift = 0;
+            for (int i = 0; i < pointOnEachBS.BranchCount; i++)
+            {
+                if (pointOnEachBS.Branch(i).Count != 0)
+                {
+                    shift = i;
+                    break;
+                }
+            }
+            shifted_onP_correspondingFaceIndex = LeftShift<int>(onP_correspondingFaceIndex, shift);
+
 
             #region 改造一下sortedInnerBSDeepCopy
             List<Line> sortedInnerLines = new List<Line>();
@@ -878,16 +908,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #endregion
 
             #region 得到onP_vertexOrderFromInnerBS
-            //List<Point3d> positions = PDeepCopy.GetPositions().ToList();
-            //List<int> onP_vertexOrderFromInnerBS = new List<int>();
-            //for (int i = 0; i < sortedInnerBS.Count; i++)
-            //{
-            //    for (int j = 0; j < sortedInnerBS[i].Points.Count; j++)
-            //    {
-            //        onP_vertexOrderFromInnerBS.Add(positions.IndexOf(sortedInnerBS[i].Points[j]));
-            //    }
-            //}
-
             int currentInnerVolumeJunctionVertexIndex = 0;
             List<int> onP_vertexOrderFromInnerBS = new List<int>();
             for (int i = 0; i < sortedInnerBSDeepCopy.Count; i++)
@@ -980,6 +1000,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             #endregion
             #endregion
 
+            List<string> debugString8 = UtilityFunctions.PrintFacesVertices(PDeepCopy);
+            List<string> debugString9 = UtilityFunctions.PrintHalfedges(PDeepCopy);
+            List<string> debugString10 = UtilityFunctions.PrintHalfedgeStartAndEnd(PDeepCopy);
+
             #region 得到当前这层的onP_vertexIndexPairs
             //List<int[]> onD_innerVertexIndexPairs = currentVertexIndexPairs;
             List<int[]> onP_innerVertexIndexPairs = new List<int[]>();
@@ -988,15 +1012,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 int[] pair = new int[2] { onP_newInnerVolumeJunctionVertexIndex[i], onP_newInnerVolumeJunctionVertexIndex[(i + 1) % onP_newInnerVolumeJunctionVertexIndex.Count] };
                 onP_innerVertexIndexPairs.Add(pair);
             }
-            //for (int i = 0; i < onD_innerVertexIndexPairs.Count; i++)
-            //{
-            //    int[] onP_pair = new int[2] { 0, 0 };
-            //    for (int j = 0; j < onD_innerVertexIndexPairs[i].Length; j++)
-            //    {
-            //        onP_pair[j] = onD_vertexOrderFromInnerBS.IndexOf(onD_innerVertexIndexPairs[i][j]);
-            //    }
-            //    onP_innerVertexIndexPairs.Add(onP_pair);
-            //}
             #endregion
 
             #region 控制循环次数
@@ -1026,10 +1041,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 int interval = CalInnerBSInterval(pointOnWhichLineIndexPairs[i], turningIndex);
                 int innerTCount = CalTCount(interval);
-                                            //sortedInnerBSDeepCopy[currentBSIndexPairs[i][0]],
-                                            //sortedInnerBSDeepCopy[currentBSIndexPairs[i][1]],
-                                            //pointOnWhichSegmentIndexPairs[i][0],
-                                            //pointOnWhichSegmentIndexPairs[i][1]);
 
                 if (currentInnerTCount + innerTCount > innerTListCurrentLayer.Count)
                 {
@@ -1068,13 +1079,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                          pointOnWhichSegmentIndexPairs[i][0],
                                          pointOnWhichSegmentIndexPairs[i][1],
 
+                                         shifted_onP_correspondingFaceIndex[i],
                                          currentBoundingBox,
                                          innerTOnEachBSForCurrentLayer,
                                          i,
                                          isLastPair,
                                          thisLayerFirstFaceIndex_OnP);
+
+                List<string> debugString2 = UtilityFunctions.PrintFacesVertices(PDeepCopy);
+                List<string> debugString3 = UtilityFunctions.PrintHalfedges(PDeepCopy);
+                List<string> debugString4 = UtilityFunctions.PrintHalfedgeStartAndEnd(PDeepCopy);
             }
             #endregion
+            List<string> debugString5 = UtilityFunctions.PrintFacesVertices(PDeepCopy);
+            List<string> debugString6 = UtilityFunctions.PrintHalfedges(PDeepCopy);
+            List<string> debugString7 = UtilityFunctions.PrintHalfedgeStartAndEnd(PDeepCopy);
 
             return PDeepCopy;
         }
@@ -1249,6 +1268,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                            int point1OnWhichSegment,
                                            int point2OnWhichSegment,
                                            //List<Point3d[]> linesPassingThroughPoint1,
+
+                                           int outerFaceIndex,
+
                                            BoundingBox boundingBox,
                                            DataTree<double> innerTOnEachBS,
                                            //DataTree<double> tYDT,
@@ -1288,7 +1310,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 int face1 = PDeepCopy.Halfedges[hStartAtPoint1[i]].AdjacentFace;
                 int face2 = PDeepCopy.Halfedges[PDeepCopy.Halfedges.GetPairHalfedge(hStartAtPoint1[i])].AdjacentFace;
-                if (face1 != -1 && face2 != -1)
+                if (face1 != outerFaceIndex && face2 != outerFaceIndex)
                 {
                     isPoint1Drawn = true;
                     h = hStartAtPoint1[i];
@@ -1296,6 +1318,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     break;
                 }
             }
+
             #endregion
 
             Point3d point1 = PDeepCopy.Vertices[vertex1Index].ToPoint3d();
@@ -2001,6 +2024,24 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
             }
             newFaceVertexOrder.Add(viNewFace);
+        }
+
+        private List<T> LeftShift<T>(List<T> originList, int shift)
+        {
+            // 深拷贝
+            List<T> newList = new List<T>();
+            newList.AddRange(originList);
+
+            int iter = 0;
+            while (iter < shift)
+            {
+                T item = newList[0];
+                newList.RemoveAt(0);
+                newList.Add(item);
+                iter++;
+            }
+
+            return newList;
         }
 
         private int WhichQuadrant(Point3d point1, Point3d point2)
