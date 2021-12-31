@@ -47,6 +47,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<Line> GraphEdges;
         private List<TextDot> GraphNodeTextDots;
 
+        public enum ShowMode { ShowTopology, NotShowTopology };/* 定义一个enum类型 */
+        public ShowMode CompWorkMode { get; set; } = ShowMode.ShowTopology;/* 使用这个enum类型来定义一个代表电池工作状态的变量 */
+
+
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
@@ -112,52 +116,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     faceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNode);
                 }
                 #endregion
-
-                //#region 将每个outerNode相关的面的index的列表，分割成两个一组两个一组
-                //List<List<int[]>> pairFaceIndexsAroundOuterNodes = new List<List<int[]>>();
-                ///* 对于每个outerNode，找到跟它相关的面中，每两个相邻面的index，这个面的index就是Dual中顶点的index
-                // * int[2]中表示围绕顶点顺时针排列的两个相邻面的index，如[0][1],[1][2],[2][3]...
-                // */
-                //for (int i = 0; i < faceIndexsAroundOuterNodes.Count; i++)
-                //{
-                //    pairFaceIndexsAroundOuterNodes.Add(new List<int[]>());
-                //    for (int j = 0; j < faceIndexsAroundOuterNodes[i].Count - 1; j++)
-                //    {
-                //        int[] pairFaceIndexs = new int[2] { faceIndexsAroundOuterNodes[i][j], faceIndexsAroundOuterNodes[i][j + 1] };
-                //        pairFaceIndexsAroundOuterNodes[i].Add(pairFaceIndexs);
-                //    }
-                //}
-                //#endregion
-
-                //SortedDictionary<int, int> inner_dFace = new SortedDictionary<int, int>();
-                //#region 找到对偶图中的面所对应的InnerNode的序号，即NodePointIndex，NodePointIndex实际上是对偶图每个面所对应的原来图中的InnerNode的序号
-                //List<List<int>> pFaceIndexAroundInnerNode = new List<List<int>>();
-                //List<int> correspondingInnerNodeIndex = new List<int>();
-                //for (int i = 0; i < decomposedPGraphNodes.Count; i++)
-                //{
-                //    if (decomposedPGraphNodes[i].IsInner)
-                //    {
-                //        pFaceIndexAroundInnerNode.Add(pGraphWithHM.Vertices.GetVertexFaces(i).ToList<int>());
-                //        correspondingInnerNodeIndex.Add(i);
-                //    }
-                //}
-
-                //for (int i = 0; i < D.Faces.Count; i++)
-                //{
-                //    for (int j = 0; j < pFaceIndexAroundInnerNode.Count; j++)
-                //    {
-                //        /* D.Faces.GetFaceVertices(i):对偶图中，每个面的顶点集
-                //         * pFaceIndexAroundInnerNode[j]:原图中，每个inner顶点所邻接的面的index集
-                //         * 如果这两个集没有差集（即完全相同的时候），那么把这个inner顶点对应的序号给对偶图中对应的面
-                //         */
-                //        if (D.Faces.GetFaceVertices(i).Except(pFaceIndexAroundInnerNode[j]).ToArray().Length == 0)
-                //        {
-                //            inner_dFace.Add(correspondingInnerNodeIndex[j], i);
-                //        }
-                //    }
-                //}
-
-                //#endregion
 
                 DualGraphWithHM dualGraphWithHM = new DualGraphWithHM(D,
                                                                       pGraphNodes,
@@ -267,13 +225,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 args.Display.EnableDepthTesting(true);
             }
 
-            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
-
-            for (int i = 0; i < GraphNodeTextDots.Count; i++)
+            if (this.CompWorkMode == ShowMode.ShowTopology)
             {
-                args.Display.EnableDepthTesting(false);
-                args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
-                args.Display.EnableDepthTesting(true);
+                args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+                for (int i = 0; i < GraphNodeTextDots.Count; i++)
+                {
+                    args.Display.EnableDepthTesting(false);
+                    args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                    args.Display.EnableDepthTesting(true);
+                }
             }
         }
 
@@ -292,13 +253,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 args.Display.EnableDepthTesting(true);
             }
 
-            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
-
-            for (int i = 0; i < GraphNodeTextDots.Count; i++)
+            if (this.CompWorkMode == ShowMode.ShowTopology)
             {
-                args.Display.EnableDepthTesting(false);
-                args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
-                args.Display.EnableDepthTesting(true);
+                args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+                for (int i = 0; i < GraphNodeTextDots.Count; i++)
+                {
+                    args.Display.EnableDepthTesting(false);
+                    args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                    args.Display.EnableDepthTesting(true);
+                }
             }
         }
 
@@ -321,6 +285,80 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         public override Guid ComponentGuid
         {
             get { return new Guid("27b89768-b836-4b2d-aae8-39a6020ca8ae"); }
+        }
+
+        public override void CreateAttributes()/* 重写CreateAttribute方法以启用自定义电池外观 */
+        {
+            Attributes = new ShowAttribute(this);
+        }
+
+        public class ShowAttribute : GH_ComponentAttributes
+        {
+            public ShowAttribute(GhcDualUsingHalfedge2 component) : base(component) { }
+
+            protected override void Layout()
+            {
+                base.Layout();
+                /* 先执行base.Layout()，可以按GH电池默认方式计算电池的出/入口需要的高度，我们在下面基于这个高度进行更改 */
+                Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 20.0f);
+            }
+
+            protected override void Render(GH_Canvas canvas, Graphics graphics, GH_CanvasChannel channel)
+            {
+                base.Render(canvas, graphics, channel);/* 执行基本的电池渲染 */
+
+                /* 额外的电池渲染，仅在“Objects”这个渲染轨道绘制 */
+                if (channel == GH_CanvasChannel.Objects)
+                {
+                    RectangleF buttonRect = /* 按钮的位置 */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+
+                    /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
+                    buttonRect.Inflate(-2.0f, -2.0f);
+
+                    using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect, GH_Palette.Black))
+                    {
+                        /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
+                        /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
+                        /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
+                        capsule.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
+                    }
+
+                    graphics.DrawString(((GhcDualUsingHalfedge2)Owner).CompWorkMode.ToString(),
+                                        new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
+                                        Brushes.White,
+                                        buttonRect,
+                                        new StringFormat()
+                                        {
+                                            Alignment = StringAlignment.Center,
+                                            LineAlignment = StringAlignment.Center
+                                        });
+                }
+            }
+
+            public override GH_ObjectResponse RespondToMouseDown(GH_Canvas sender, GH_CanvasMouseEvent e)
+            {
+                RectangleF buttonRect = /* -重新计算按钮的区域大小- */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+
+                if (e.Button == MouseButtons.Left && buttonRect.Contains(e.CanvasLocation))
+                {
+                    GhcDualUsingHalfedge2 comp = (GhcDualUsingHalfedge2)Owner; /* 通过Owner属性来获得电池本身 */
+
+                    /* 依照电池当前工作状态来改变电池 */
+                    if (comp.CompWorkMode == GhcDualUsingHalfedge2.ShowMode.NotShowTopology)
+                        comp.CompWorkMode = GhcDualUsingHalfedge2.ShowMode.ShowTopology;
+                    else
+                        comp.CompWorkMode = GhcDualUsingHalfedge2.ShowMode.NotShowTopology;
+
+                    /* 改变完电池后，重启计算 */
+                    comp.ExpireSolution(true);
+
+                    /* 结束鼠标事件处理，通知GH已经处理完毕 */
+                    return GH_ObjectResponse.Handled;
+                }
+
+
+                return GH_ObjectResponse.Ignore;
+            }
         }
     }
 }

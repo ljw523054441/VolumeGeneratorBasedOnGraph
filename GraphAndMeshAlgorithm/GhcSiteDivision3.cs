@@ -2,15 +2,18 @@
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
+using Grasshopper.Kernel.Attributes;
 using Plankton;
 using PlanktonGh;
 using Rhino.Geometry;
-using Rhino.Geometry.Intersect;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Windows.Forms;
 using System.Linq;
 using VolumeGeneratorBasedOnGraph.Class;
+using Grasshopper.GUI.Canvas;
+using Grasshopper.GUI;
 
 namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 {
@@ -43,6 +46,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<Line> GraphEdges;
         private List<TextDot> GraphNodeTextDots;
 
+        public enum ShowMode { ShowTopology, NotShowTopology };/* 定义一个enum类型 */
+        public ShowMode CompWorkMode { get; set; } = ShowMode.ShowTopology;/* 使用这个enum类型来定义一个代表电池工作状态的变量 */
+
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
@@ -56,8 +62,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddGenericParameter("IndexOnEachBS", "IOBS", "每个BS上的VolumeJunctionIndex", GH_ParamAccess.list);
 
             pManager.AddTextParameter("VolumeJunctionsTexts", "VTD", "表示边界分裂点的Text", GH_ParamAccess.list);
-            // pManager.AddGenericParameter("PairVolumeJunctionsIndex", "PJI", "作为分界线的一对分裂点的序号", GH_ParamAccess.list);
-            // pManager.AddBooleanParameter("NeedToConnect", "NTC", "的这一对分裂点是否作为分界线", GH_ParamAccess.list);
 
             pManager.AddGenericParameter("NeedToConnectVolumeJunctionsIndex", "N_VJI", "需要构成分界线的两个volumeJunction的Index", GH_ParamAccess.list);
             pManager.AddGenericParameter("NeedToConnectBSIndex", "N_BSI", "这两个volumeJunction所对应的bsIndex", GH_ParamAccess.list);
@@ -70,7 +74,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddIntegerParameter("TotalLayerCount", "TLC", "对于D进行拆解的总层数", GH_ParamAccess.item);
 
             pManager.AddNumberParameter("BoundaryTDT", "BoundaryTDT", "每个边界分裂点对应的t值", GH_ParamAccess.tree);
-            //pManager.AddNumberParameter("InnerTMaxList", "InnerTMaxList", "", GH_ParamAccess.list);
             pManager.AddNumberParameter("InnerTMaxDT", "InnerTMaxDT", "", GH_ParamAccess.tree);
             //pManager[9].Optional = true;
             //pManager[10].Optional = true;
@@ -2265,13 +2268,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 args.Display.EnableDepthTesting(true);
             }
 
-            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
-
-            for (int i = 0; i < GraphNodeTextDots.Count; i++)
+            if (this.CompWorkMode == ShowMode.ShowTopology)
             {
-                args.Display.EnableDepthTesting(false);
-                args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
-                args.Display.EnableDepthTesting(true);
+                args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+                for (int i = 0; i < GraphNodeTextDots.Count; i++)
+                {
+                    args.Display.EnableDepthTesting(false);
+                    args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                    args.Display.EnableDepthTesting(true);
+                }
             }
         }
 
@@ -2291,13 +2297,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 args.Display.EnableDepthTesting(true);
             }
 
-            args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
-
-            for (int i = 0; i < GraphNodeTextDots.Count; i++)
+            if (this.CompWorkMode == ShowMode.ShowTopology)
             {
-                args.Display.EnableDepthTesting(false);
-                args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
-                args.Display.EnableDepthTesting(true);
+                args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+                for (int i = 0; i < GraphNodeTextDots.Count; i++)
+                {
+                    args.Display.EnableDepthTesting(false);
+                    args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                    args.Display.EnableDepthTesting(true);
+                }
             }
         }
 
@@ -2321,5 +2330,81 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             get { return new Guid("1dbd63ea-90a0-4055-8d77-c38df937343e"); }
         }
+
+        public override void CreateAttributes()/* 重写CreateAttribute方法以启用自定义电池外观 */
+        {
+            Attributes = new ShowAttribute(this);
+        }
+
+        public class ShowAttribute : GH_ComponentAttributes
+        {
+            public ShowAttribute(GhcSiteDivision3 component) : base(component) { }
+
+            protected override void Layout()
+            {
+                base.Layout();
+                /* 先执行base.Layout()，可以按GH电池默认方式计算电池的出/入口需要的高度，我们在下面基于这个高度进行更改 */
+                Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 20.0f);
+            }
+
+            protected override void Render(GH_Canvas canvas, Graphics graphics, GH_CanvasChannel channel)
+            {
+                base.Render(canvas, graphics, channel);/* 执行基本的电池渲染 */
+
+                /* 额外的电池渲染，仅在“Objects”这个渲染轨道绘制 */
+                if (channel == GH_CanvasChannel.Objects)
+                {
+                    RectangleF buttonRect = /* 按钮的位置 */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+
+                    /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
+                    buttonRect.Inflate(-2.0f, -2.0f);
+
+                    using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect, GH_Palette.Black))
+                    {
+                        /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
+                        /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
+                        /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
+                        capsule.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
+                    }
+
+                    graphics.DrawString(((GhcSiteDivision3)Owner).CompWorkMode.ToString(),
+                                        new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
+                                        Brushes.White,
+                                        buttonRect,
+                                        new StringFormat()
+                                        {
+                                            Alignment = StringAlignment.Center,
+                                            LineAlignment = StringAlignment.Center
+                                        });
+                }
+            }
+
+            public override GH_ObjectResponse RespondToMouseDown(GH_Canvas sender, GH_CanvasMouseEvent e)
+            {
+                RectangleF buttonRect = /* -重新计算按钮的区域大小- */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+
+                if (e.Button == MouseButtons.Left && buttonRect.Contains(e.CanvasLocation))
+                {
+                    GhcSiteDivision3 comp = (GhcSiteDivision3)Owner; /* 通过Owner属性来获得电池本身 */
+
+                    /* 依照电池当前工作状态来改变电池 */
+                    if (comp.CompWorkMode == GhcSiteDivision3.ShowMode.NotShowTopology)
+                        comp.CompWorkMode = GhcSiteDivision3.ShowMode.ShowTopology;
+                    else
+                        comp.CompWorkMode = GhcSiteDivision3.ShowMode.NotShowTopology;
+
+                    /* 改变完电池后，重启计算 */
+                    comp.ExpireSolution(true);
+
+                    /* 结束鼠标事件处理，通知GH已经处理完毕 */
+                    return GH_ObjectResponse.Handled;
+                }
+
+
+                return GH_ObjectResponse.Ignore;
+            }
+        }
     }
+
+    
 }
