@@ -1,6 +1,7 @@
 ﻿using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Attributes;
+using Grasshopper.GUI;
 using Grasshopper.GUI.Canvas;
 using Rhino.Collections;
 using Rhino.Geometry;
@@ -9,6 +10,7 @@ using Plankton;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Windows.Forms;
 using System.Linq;
 using VolumeGeneratorBasedOnGraph.Class;
 
@@ -51,6 +53,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private int CountOfAllGraphWithHM = 0;
         private int CurrentIndex = 0;
 
+        public enum ShowMode { ShowDottedLine, NotShowDottedLine };/* 定义一个enum类型 */
+        public ShowMode CompWorkMode { get; set; } = ShowMode.ShowDottedLine;/* 使用这个enum类型来定义一个代表电池工作状态的变量 */
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -75,16 +79,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // 0
-            // pManager.AddMeshParameter("AllTriangularMeshes", "AllTMesh", "所有可能的三角形剖分结果。All Computed triangulations; these triangulations describe all possible planar topologies for your plan diagram, the added links are those of adjacencies not connectivities", GH_ParamAccess.list);
-            // 1
-            // pManager.AddMeshParameter("TheChosenTriangularMesh", "TMesh", "所选择的那个三角形剖分结果。The one you have chosen with index I", GH_ParamAccess.item);
-            // 2
             pManager.AddGenericParameter("TheChosenGraphWithHM", "THFMesh", "所选择的那个三角形剖分结果(GraphWithHFMesh对象)", GH_ParamAccess.item);
-            // 3
-            // pManager.AddGenericParameter("DebugVerticesOutput", "DebugV", "Debug结果顶点", GH_ParamAccess.list);
-            // pManager.AddGenericParameter("DebugHalfedgesOutput", "DebugH", "Debug结果半边", GH_ParamAccess.list);
-            // pManager.AddGenericParameter("DebugFacesOutput", "DebugF", "Debug结果面", GH_ParamAccess.list);
-            // pManager.AddGenericParameter("DebugFacesHalfedges", "DebugFH", "Debug结果面的半边", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -104,9 +99,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 && DA.GetDataList<Curve>("ConvexFaceBorders", convexFaceBorderCurves))
             {
                 int innerNodeCount = graph.InnerNodeCount;
-                // int outerNodeCount = graph.OuterNodeCount;
-                // List<int> innerNodeIndexList = graph.InnerNodeIndexList;
-                // List<int> outerNodeIndexList = graph.OuterNodeIndexList;
 
                 ConvexPolylinesPoints.Clear();
 
@@ -136,8 +128,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
                 #endregion
                 #endregion
-
-
 
                 #region 获取Node的坐标和构造Point3d
 
@@ -228,34 +218,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 GraphWithHM theChosenOne = new GraphWithHM(planktonMesh, graph.GraphNodes, graph.GraphTables);
 
                 DA.SetData("TheChosenGraphWithHM", theChosenOne);
-
-                //#region Debug显示
-
-                //#region HalfedgeMesh的顶点数据
-                //List<string> printVertices = new List<string>();
-                //printVertices = UtilityFunctions.PrintVertices(planktonMesh);
-                //DA.SetDataList("DebugVerticesOutput", printVertices);
-                //#endregion
-
-                //#region HalfedgeMesh的半边数据
-                //List<string> printHalfedges = new List<string>();
-                //printHalfedges = UtilityFunctions.PrintHalfedges(planktonMesh);
-                //DA.SetDataList("DebugHalfedgesOutput", printHalfedges);
-                //#endregion
-
-                //#region HalfedgeMesh的每个面由哪些顶点构成
-                //List<string> printFaces = new List<string>();
-                //printFaces = UtilityFunctions.PrintFacesVertices(planktonMesh);
-                //DA.SetDataList("DebugFacesOutput", printFaces);
-                //#endregion
-
-                //#region HalfedgeMesh的每个面由哪些半边构成
-                //List<string> printFacesHalfedge = new List<string>();
-                //printFacesHalfedge = UtilityFunctions.PrintFacesHalfedges(planktonMesh);
-                //DA.SetDataList("DebugFacesHalfedges", printFacesHalfedge);
-                //#endregion
-
-                //#endregion
 
                 #region 可视化部分
                 // ConvexPolylinesPoints.Clear();
@@ -587,13 +549,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 屏蔽掉电池原本的预览
             // base.DrawViewportWires(args);
 
-            // args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0));
-
-            for (int i = 0; i < DottedCurve.Count; i++)
+            if (this.CompWorkMode == ShowMode.ShowDottedLine)
             {
-                args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+                for (int i = 0; i < DottedCurve.Count; i++)
+                {
+                    args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+                }
             }
-            //args.Display.EnableDepthTesting(true);
 
             // 后画实线
             for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
@@ -624,13 +586,15 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // 屏蔽掉电池原本的预览
             // base.DrawViewportMeshes(args);
 
-            args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0));
-
-            for (int i = 0; i < DottedCurve.Count; i++)
+            if (this.CompWorkMode == ShowMode.ShowDottedLine)
             {
-                args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+                args.Display.DrawMeshShaded(SelectedIsomorphismTriangleMesh, new Rhino.Display.DisplayMaterial(Color.White, 0));
+
+                for (int i = 0; i < DottedCurve.Count; i++)
+                {
+                    args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+                }
             }
-            //args.Display.EnableDepthTesting(true);
 
             // 后画实线
             for (int i = 0; i < ConvexPolylinesPoints.Count; i++)
@@ -688,7 +652,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 base.Layout();
                 /* 先执行base.Layout()，可以按GH电池默认方式计算电池的出/入口需要的高度，我们在下面基于这个高度进行更改 */
-                Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 20.0f);
+                Bounds = new RectangleF(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + 42.0f);
             }
 
             protected override void Render(GH_Canvas canvas, Graphics graphics, GH_CanvasChannel channel)
@@ -698,29 +662,76 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 /* 额外的电池渲染，仅在“Objects”这个渲染轨道绘制 */
                 if (channel == GH_CanvasChannel.Objects)
                 {
-                    RectangleF buttonRect = /* 按钮的位置 */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+                    RectangleF buttonRect1 = /* 按钮的位置 */ new RectangleF(Bounds.X, Bounds.Bottom - 42, Bounds.Width, 20.0f);
 
                     /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
-                    buttonRect.Inflate(-2.0f, -2.0f);
+                    buttonRect1.Inflate(-2.0f, -2.0f);
 
-                    using (GH_Capsule capsule = GH_Capsule.CreateCapsule(buttonRect, GH_Palette.Normal))
+                    using (GH_Capsule capsule1 = GH_Capsule.CreateCapsule(buttonRect1, GH_Palette.Normal))
                     {
                         /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
                         /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
                         /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
-                        capsule.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
+                        capsule1.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
                     }
 
                     graphics.DrawString(string.Format("CurrentIndex:{0} / {1}", ((GhcTriangulate)Owner).CurrentIndex.ToString(), ((GhcTriangulate)Owner).CountOfAllGraphWithHM.ToString()),
                                         new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
                                         Brushes.Black,
-                                        buttonRect,
+                                        buttonRect1,
+                                        new StringFormat()
+                                        {
+                                            Alignment = StringAlignment.Center,
+                                            LineAlignment = StringAlignment.Center
+                                        });
+
+                    RectangleF buttonRect2 = new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+                    /* 在X、Y方向分别留出2px的空隙，以免button贴住电池边 */
+                    buttonRect2.Inflate(-2.0f, -2.0f);
+
+                    using (GH_Capsule capsule2 = GH_Capsule.CreateCapsule(buttonRect2, GH_Palette.Black))
+                    {
+                        /* 按照该电池的“是否被选中”、“是否被锁定”、“是否隐藏”三个属性来决定渲染的按钮样式 */
+                        /* 这样可以使得我们的按钮更加贴合GH原生的样式 */
+                        /* 也可以自己换用其他的capsule.Render()重载，渲染不同样式电池 */
+                        capsule2.Render(graphics, Selected, Owner.Locked, Owner.Hidden);
+                    }
+
+                    graphics.DrawString(((GhcTriangulate)Owner).CompWorkMode.ToString(),
+                                        new Font(GH_FontServer.ConsoleSmall, FontStyle.Bold),
+                                        Brushes.White,
+                                        buttonRect2,
                                         new StringFormat()
                                         {
                                             Alignment = StringAlignment.Center,
                                             LineAlignment = StringAlignment.Center
                                         });
                 }
+            }
+
+            public override GH_ObjectResponse RespondToMouseDown(GH_Canvas sender, GH_CanvasMouseEvent e)
+            {
+                RectangleF buttonRect = /* -重新计算按钮的区域大小- */ new RectangleF(Bounds.X, Bounds.Bottom - 20, Bounds.Width, 20.0f);
+
+                if (e.Button == MouseButtons.Left && buttonRect.Contains(e.CanvasLocation))
+                {
+                    GhcTriangulate comp = (GhcTriangulate)Owner; /* 通过Owner属性来获得电池本身 */
+
+                    /* 依照电池当前工作状态来改变电池 */
+                    if (comp.CompWorkMode == GhcTriangulate.ShowMode.NotShowDottedLine)
+                        comp.CompWorkMode = GhcTriangulate.ShowMode.ShowDottedLine;
+                    else
+                        comp.CompWorkMode = GhcTriangulate.ShowMode.NotShowDottedLine;
+
+                    /* 改变完电池后，重启计算 */
+                    comp.ExpireSolution(true);
+
+                    /* 结束鼠标事件处理，通知GH已经处理完毕 */
+                    return GH_ObjectResponse.Handled;
+                }
+
+
+                return GH_ObjectResponse.Ignore;
             }
         }
     }

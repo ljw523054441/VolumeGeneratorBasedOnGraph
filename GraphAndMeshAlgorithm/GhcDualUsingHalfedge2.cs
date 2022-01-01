@@ -229,6 +229,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
 
+                for (int i = 0; i < DualPolylines.Count; i++)
+                {
+                    Hatch[] hatchs = Hatch.Create(new PolylineCurve(DualPolylines[i]), 1, 1, 5, Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+                    args.Display.DrawHatch(hatchs[0], Color.DarkGreen, Color.Black);
+                }
+
                 for (int i = 0; i < GraphNodeTextDots.Count; i++)
                 {
                     args.Display.EnableDepthTesting(false);
@@ -256,6 +262,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             if (this.CompWorkMode == ShowMode.ShowTopology)
             {
                 args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+
+                for (int i = 0; i < DualPolylines.Count; i++)
+                {
+                    Hatch[] hatchs = Hatch.Create(new PolylineCurve(DualPolylines[i]), 1, 1, 5, Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+                    args.Display.DrawHatch(hatchs[0], Color.DarkGreen, Color.Black);
+                }
 
                 for (int i = 0; i < GraphNodeTextDots.Count; i++)
                 {
