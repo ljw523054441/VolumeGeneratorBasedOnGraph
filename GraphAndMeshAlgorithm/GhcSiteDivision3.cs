@@ -29,28 +29,27 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
               "进行场地划分",
               "VolumeGeneratorBasedOnGraph", "CreateVolume")
         {
-            DualVertices = new List<Point3d>();
+            //DualVertices = new List<Point3d>();
             DualPolylines = new List<List<Point3d>>();
             DualVertexTextDots = new List<TextDot>();
 
-            GraphNodePoints = new List<Point3d>();
+            //GraphNodePoints = new List<Point3d>();
             GraphEdges = new List<Line>();
-            GraphNodeTextDots = new List<TextDot>();
+            InnerNodeTextDots = new List<TextDot>();
 
-            BoundarySegmentTextDots = new List<TextDot>();
+            OuterNodeTextDots = new List<TextDot>();
         }
 
         private int Thickness;
 
-        private List<Point3d> DualVertices;
+        //private List<Point3d> DualVertices;
         private List<List<Point3d>> DualPolylines;
         private List<TextDot> DualVertexTextDots;
 
-        private List<Point3d> GraphNodePoints;
+        //private List<Point3d> GraphNodePoints;
         private List<Line> GraphEdges;
-        private List<TextDot> GraphNodeTextDots;
-
-        private List<TextDot> BoundarySegmentTextDots;
+        private List<TextDot> InnerNodeTextDots;
+        private List<TextDot> OuterNodeTextDots;
 
         public enum ShowMode { ShowTopology, NotShowTopology };/* 定义一个enum类型 */
         public ShowMode CompWorkMode { get; set; } = ShowMode.ShowTopology;/* 使用这个enum类型来定义一个代表电池工作状态的变量 */
@@ -93,7 +92,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             pManager.AddNumberParameter("tXDT", "tXDT", "", GH_ParamAccess.tree);
             pManager.AddNumberParameter("tYDT", "tYDT", "", GH_ParamAccess.tree);
 
-            pManager.AddGenericParameter("Graph", "Graph", "", GH_ParamAccess.item);
+            pManager.AddGenericParameter("DualGraphWithHM", "DualGraphWithHM", "", GH_ParamAccess.item);
 
             pManager.AddGenericParameter("DualPlanktonMesh", "DualPlanktonMesh", "", GH_ParamAccess.item);
             
@@ -612,14 +611,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                           ref needToCalNextLayer);
                 }
 
-                // 此时的P是对偶图
-                //List<Polyline> polylineList = P.ToPolylines().ToList();
-                //DA.SetDataList("DeBug Polyline", polylineList);
-
-
-                // todo：最后out一个GraphWithHM类
-
-                //GraphWithHM graphWithDual = new GraphWithHM(P, dualGraphWithHM.GraphNodes, dualGraphWithHM.GraphTables);
                 DA.SetData("DualPlanktonMesh", P);
 
                 List<GraphNode> pGraphNodes = dualGraphWithHM.GraphNodes;
@@ -636,7 +627,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     List<Point3d> points = polylines[i].ToList();
                     Point3d gravityPoint = GetCenterOfGravityPoint(points);
                     innerGraphNodePoints.Add(gravityPoint);
-                    GraphNodePoints.Add(gravityPoint);
+                    //GraphNodePoints.Add(gravityPoint);
                 }
                 #endregion
 
@@ -652,6 +643,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     point0 += verticalVector * 3 * sortedBoundarySegments[i].Lines[0].Length / 4;
                     outerGraphNodePoints.Add(point0);
                 }
+                outerGraphNodePoints.Insert(0, outerGraphNodePoints.Last());
+                outerGraphNodePoints.RemoveAt(outerGraphNodePoints.Count - 1);
                 #endregion
 
                 #region 把LOL形式的allLayerPairCorrespondingFaceIndexLoL转换为list形式
@@ -672,7 +665,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 {
                     if (pGraphNodes[i].IsInner)
                     {
-                        newNodePoints.Add(innerGraphNodePoints[allLayerPairCorrespondingFaceIndex_OnD[i]]);
+                        newNodePoints.Add(innerGraphNodePoints[allLayerPairCorrespondingFaceIndex_OnD.IndexOf(i)]);
                     }
                     else
                     {
@@ -686,7 +679,36 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 }
 
                 Graph newGraph = new Graph(pGraphNodes, pGraphTables);
-                DA.SetData("Graph", newGraph);
+                DataTree<int> newGraphDT = UtilityFunctions.LoLToDataTree<int>(newGraph.GraphTables);
+                List<Line> graphEdge = GraphEdgeList(newGraphDT, newNodePoints);
+                //List<Polyline> graphPolyline = GMeshFaceBoundaries(outerGraphNodePoints, graphEdge, Plane.WorldXY);
+
+                //List<List<int>> planktonMeshFaceVertexOrder = new List<List<int>>();
+                //for (int i = 0; i < graphPolyline.Count; i++)
+                //{
+                //    planktonMeshFaceVertexOrder.Add(new List<int>());
+                //    for (int j = 0; j < graphPolyline[i].Count; j++)
+                //    {
+                //        int vertexIndex = newNodePoints.IndexOf(graphPolyline[i][j]);
+                //        planktonMeshFaceVertexOrder[i].Add(vertexIndex);
+                //    }
+                //}
+                //PlanktonMesh planktonMeshForGraph = new PlanktonMesh();
+                //for (int i = 0; i < newNodePoints.Count; i++)
+                //{
+                //    planktonMeshForGraph.Vertices.Add(newNodePoints[i].X, newNodePoints[i].Y, newNodePoints[i].Z);
+                //}
+                //planktonMeshForGraph.Faces.AddFaces(planktonMeshFaceVertexOrder);
+
+                // 更新DualGraphWithHM对象中的PlanktonMesh属性
+                PlanktonMesh originPlanktonMesh = new PlanktonMesh(dualGraphWithHM.PlanktonMesh);
+                PlanktonMesh newPlanktonMesh = PlanktonGh.RhinoSupport.ReplaceVertices(originPlanktonMesh, newNodePoints);
+
+                DualGraphWithHM newDualGraphWithHM = new DualGraphWithHM(P, newPlanktonMesh, pGraphNodes, pGraphTables, dualGraphWithHM.DFaceIndexsAroundOuterNodes);
+
+
+                //GraphWithHM newGraphWithHM = new GraphWithHM(planktonMeshForGraph, newGraph.GraphNodes, newGraph.GraphTables);
+                DA.SetData("DualGraphWithHM", newDualGraphWithHM);
                 #endregion
 
 
@@ -695,17 +717,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 MeshForVisualize = P;
                 #region clear
                 // 对偶图
-                DualVertices.Clear();
+                //DualVertices.Clear();
                 DualPolylines.Clear();
                 DualVertexTextDots.Clear();
                 // 原来的图
-                GraphNodePoints.Clear();
+                //GraphNodePoints.Clear();
                 GraphEdges.Clear();
-                GraphNodeTextDots.Clear();
+                InnerNodeTextDots.Clear();
                 #endregion
 
                 #region 对偶图
-                DualVertices = PlanktonGh.RhinoSupport.GetPositions(MeshForVisualize).ToList();
+                //DualVertices = PlanktonGh.RhinoSupport.GetPositions(MeshForVisualize).ToList();
+                List<Point3d> dualVertices = PlanktonGh.RhinoSupport.GetPositions(MeshForVisualize).ToList();
 
                 Polyline[] dualPolylines = PlanktonGh.RhinoSupport.ToPolylines(MeshForVisualize);
                 for (int i = 0; i < dualPolylines.Length; i++)
@@ -734,18 +757,20 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                     string arg = string.Join(";", VertexCorrespondingFaceIndice_OnP);
                     
-                    TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), DualVertices[i]);
+                    TextDot textDot = new TextDot(string.Format("{0} | {1}", i, arg), dualVertices[i]);
                     DualVertexTextDots.Add(textDot);
                 }
+
+
+
                 #endregion
 
                 #region 原来的图
-                
+
                 #region 实线和虚线
                 // 实线
                 // 绘制Graph的Edge
-                DataTree<int> newGraphDT = UtilityFunctions.LoLToDataTree<int>(newGraph.GraphTables);
-                List<Line> graphEdge = GraphEdgeList(newGraphDT, newNodePoints);
+                GraphEdges = graphEdge;
                 // 绘制Graph形成的Convex
                 //List<Polyline> graphConvex = GMeshFaceBoundaries(outerGraphNodePoints, graphEdge, Plane.WorldXY);
 
@@ -755,38 +780,58 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
                 #endregion
 
-                GraphNodePoints = newNodePoints;
-                GraphEdges = graphEdge;
+                //GraphNodePoints = newNodePoints;
+
 
                 #region TextDot
                 // outer
-                List<string> outerNodeLabels = new List<string>();
-                for (int i = 0; i < pGraphNodes.Count; i++)
+                //List<string> outerNodeLabels = new List<string>();
+                //for (int i = 0; i < pGraphNodes.Count; i++)
+                //{
+                //    if (!pGraphNodes[i].IsInner)
+                //    {
+                //        outerNodeLabels.Add(pGraphNodes[i].NodeAttribute.NodeLabel);
+                //    }
+                //}
+                //for (int i = 0; i < sortedBoundarySegments.Count; i++)
+                //{
+                //    TextDot boundarySegmentTextDot = new TextDot(string.Format("{0} | {1}", i + innerNodeCount, outerNodeLabels[i]), outerGraphNodePoints[i]);
+                //    OuterNodeTextDots.Add(boundarySegmentTextDot);
+                //}
+
+                for (int i = 0; i < newGraph.GraphNodes.Count; i++)
                 {
-                    if (!pGraphNodes[i].IsInner)
+                    if (!newGraph.GraphNodes[i].IsInner)
                     {
-                        outerNodeLabels.Add(pGraphNodes[i].NodeAttribute.NodeLabel);
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, newGraph.GraphNodes[i].NodeAttribute.NodeLabel), newGraph.GraphNodes[i].NodeVertex);
+                        OuterNodeTextDots.Add(textDot);
                     }
-                }
-                for (int i = 0; i < sortedBoundarySegments.Count; i++)
-                {
-                    TextDot boundarySegmentTextDot = new TextDot(string.Format("{0} | {1}", i + innerNodeCount, outerNodeLabels[i]), outerGraphNodePoints[i]);
-                    BoundarySegmentTextDots.Add(boundarySegmentTextDot);
                 }
 
                 // inner
-                List<GraphNode> graphNodes = new List<GraphNode>();
-                for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
+                for (int i = 0; i < newGraph.GraphNodes.Count; i++)
                 {
-                    // FaceCorrespondingGraphNodeIndex是OnD
-                    int nodeIndex = allLayerPairCorrespondingFaceIndex_OnD[dualGraphWithHM.FaceCorrespondingGraphNodeIndex[i]];
-                    graphNodes.Add(dualGraphWithHM.GraphNodes[nodeIndex]);
+                    if (newGraph.GraphNodes[i].IsInner)
+                    {
+                        TextDot textDot = new TextDot(string.Format("{0} | {1}", i, newGraph.GraphNodes[i].NodeAttribute.NodeLabel), newGraph.GraphNodes[i].NodeVertex);
+                        InnerNodeTextDots.Add(textDot);
+                    }
                 }
 
-                for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
-                {
-                    GraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", allLayerPairCorrespondingFaceIndex_OnD[i], graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
-                }
+
+
+                //List<GraphNode> graphNodes = new List<GraphNode>();
+                //for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
+                //{
+                //    // FaceCorrespondingGraphNodeIndex是OnD
+                //    int nodeIndex = allLayerPairCorrespondingFaceIndex_OnD[dualGraphWithHM.FaceCorrespondingGraphNodeIndex[i]];
+                //    graphNodes.Add(dualGraphWithHM.GraphNodes[nodeIndex]);
+                //}
+
+                //for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
+                //{
+                //    InnerNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", allLayerPairCorrespondingFaceIndex_OnD[i], graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
+                //}
                 #endregion
 
                 #endregion
@@ -2418,10 +2463,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
 
-                for (int i = 0; i < GraphNodeTextDots.Count; i++)
+                for (int i = 0; i < InnerNodeTextDots.Count; i++)
                 {
                     args.Display.EnableDepthTesting(false);
-                    args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                    args.Display.DrawDot(InnerNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                    args.Display.EnableDepthTesting(true);
+                }
+                for (int i = 0; i < OuterNodeTextDots.Count; i++)
+                {
+                    args.Display.EnableDepthTesting(false);
+                    args.Display.DrawDot(OuterNodeTextDots[i], Color.Gray, Color.White, Color.White);
                     args.Display.EnableDepthTesting(true);
                 }
             }
@@ -2447,10 +2498,16 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             {
                 args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
 
-                for (int i = 0; i < GraphNodeTextDots.Count; i++)
+                for (int i = 0; i < InnerNodeTextDots.Count; i++)
                 {
                     args.Display.EnableDepthTesting(false);
-                    args.Display.DrawDot(GraphNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                    args.Display.DrawDot(InnerNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
+                    args.Display.EnableDepthTesting(true);
+                }
+                for (int i = 0; i < OuterNodeTextDots.Count; i++)
+                {
+                    args.Display.EnableDepthTesting(false);
+                    args.Display.DrawDot(OuterNodeTextDots[i], Color.Gray, Color.White, Color.White);
                     args.Display.EnableDepthTesting(true);
                 }
             }

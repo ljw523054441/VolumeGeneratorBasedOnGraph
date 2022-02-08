@@ -83,12 +83,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 获取相关属性
                 List<GraphNode> pGraphNodes = graphWithHM.GraphNodes;
                 List<List<int>> pGraphTables = graphWithHM.GraphTables;
-                PlanktonMesh pGraphWithHM = graphWithHM.PlanktonMesh;
+                PlanktonMesh P = graphWithHM.PlanktonMesh;
 
 
                 #region 获得对偶图
                 // 利用半边数据结构求出对偶
-                PlanktonMesh D = pGraphWithHM.Dual();
+                PlanktonMesh D = P.Dual();
                 #endregion
 
                 #region 得到所有的innerNode的序号和outerNode的序号
@@ -107,17 +107,18 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 for (int i = 0; i < outerNodeIndexs.Count; i++)
                 {
                     // 找到每个outerNode所发出的halfedge的index
-                    int[] halfedgeIndexsStartFromOuterNode = pGraphWithHM.Vertices.GetHalfedges(outerNodeIndexs[i]);
+                    int[] halfedgeIndexsStartFromOuterNode = P.Vertices.GetHalfedges(outerNodeIndexs[i]);
                     halfedgeIndexsStartFromOuterNodes.Add(new List<int>());
                     halfedgeIndexsStartFromOuterNodes[i].AddRange(halfedgeIndexsStartFromOuterNode);
                     // 找到每个outerNode所邻接的Face的index，-1表示邻接外界
-                    int[] faceIndexsAroundOuterNode = pGraphWithHM.Vertices.GetVertexFaces(outerNodeIndexs[i]);
+                    int[] faceIndexsAroundOuterNode = P.Vertices.GetVertexFaces(outerNodeIndexs[i]);
                     faceIndexsAroundOuterNodes.Add(new List<int>());
                     faceIndexsAroundOuterNodes[i].AddRange(faceIndexsAroundOuterNode);
                 }
                 #endregion
 
                 DualGraphWithHM dualGraphWithHM = new DualGraphWithHM(D,
+                                                                      P,
                                                                       pGraphNodes,
                                                                       pGraphTables,
                                                                       faceIndexsAroundOuterNodes);
