@@ -151,33 +151,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
         }
 
         /// <summary>
-        /// 将Adjacency图结构中的Edge转化为可以显示的Line线段
-        /// </summary>
-        /// <param name="adjacencyGraphTree">adjacent图结构</param>
-        /// <param name="volumeNodeList">volume顶点列表</param>
-        /// <param name="boundaryNodeList">boundary顶点列表</param>
-        /// <returns>可以显示的Line线段</returns>
-        internal static List<Line> AdjacencyGraphEdgeToLine(DataTree<int> adjacencyGraphTree, List<Point3d> volumeNodeList, List<Point3d> boundaryNodeList, GlobalParameter globalParameter)
-        {
-            List<Line> lineList = new List<Line>();
-
-            for (int i = 0; i < adjacencyGraphTree.BranchCount; i++)
-            {
-                for (int j = 0; j < adjacencyGraphTree.Branch(i).Count; j++)
-                {
-                    if (adjacencyGraphTree.Branch(i)[j] == -1 - globalParameter.BoundaryNodeCount)
-                    {
-                        continue;
-                    }
-                    Line line = new Line(volumeNodeList[i], boundaryNodeList[adjacencyGraphTree.Branch(i)[j] + globalParameter.BoundaryNodeCount]);
-                    lineList.Add(line);
-                }
-            }
-
-            return lineList;
-        }
-
-        /// <summary>
         /// 绘制表示图结构关系的Line
         /// </summary>
         /// <param name="graph"></param>
@@ -380,31 +353,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         #endregion
 
         #region 图结构相关操作
-        internal static void GraphToSubGraph(DataTree<int> graph, GlobalParameter globalParameter, out DataTree<int> connectivityGraph, out DataTree<int> adjacencyGraph)
-        {
-            connectivityGraph = new DataTree<int>();
-            adjacencyGraph = new DataTree<int>();
 
-            for (int i = 0; i < graph.BranchCount; i++)
-            {
-                for (int j = 0; j < graph.Branch(i).Count; j++)
-                {
-                    if (i < globalParameter.VolumeNodeCount)
-                    {
-                        connectivityGraph.EnsurePath(i);
-                        if (graph.Branch(i)[j] < globalParameter.VolumeNodeCount)
-                        {
-                            connectivityGraph.Branch(i).Add(graph.Branch(i)[j]);
-                        }
-                    }
-                    else
-                    {
-                        adjacencyGraph.EnsurePath(i - globalParameter.VolumeNodeCount);
-                        adjacencyGraph.Branch(i - globalParameter.VolumeNodeCount).Add(graph.Branch(i)[j]);
-                    }
-                }
-            }
-        }
 
         #endregion
 
