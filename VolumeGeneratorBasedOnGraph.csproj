@@ -67,41 +67,27 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class\ConvexPolygon.cs" />
-    <Compile Include="Class\DualGraphNode.cs" />
-    <Compile Include="Class\DualGraphNodeAttribute.cs" />
     <Compile Include="Class\DualGraphWithHM.cs" />
-    <Compile Include="Class\ExtensionMethod.cs" />
     <Compile Include="Class\GraphWithHM.cs" />
     <Compile Include="Class\Graph.cs" />
+    <Compile Include="Class\MeshEdgeClass.cs" />
     <Compile Include="Class\Node.cs" />
-    <Compile Include="Class\FaceEdgeSegment.cs" />
-    <Compile Include="Class\Tree.cs" />
+    <Compile Include="Class\Volume\BasicFunctions.cs" />
+    <Compile Include="Class\Volume\Building.cs" />
+    <Compile Include="Class\Volume\ExtraFunctions.cs" />
+    <Compile Include="Class\Volume\GhcVolumeBaseOnTopo.cs" />
+    <Compile Include="Class\Volume\GhcVolumeGenerator.cs" />
+    <Compile Include="Class\Volume\Parameters.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDebugGraph.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\GhcDivisionMorph.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDualUsingHalfedge2.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcLaplaceSmooth.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcReorganizeBoundary2.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcReorganizeBoundary3.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision2.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision3.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcSplitTest.cs" />
-    <Compile Include="Temporary\CellGraph.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\VolumeAlgorithm\GhcVolumeGenerator1.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />
-    <Compile Include="Temporary\CoinGraph.cs" />
-    <Compile Include="Temporary\CoinGraphToDiskDrawing.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructBoundarySegment.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcDecomposeVertex.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcReorganizeBoundary.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructGraph.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcCSVReader.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcDualGraph.cs" />
-    <Compile Include="Temporary\ForceDirectedDrawing.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcDualUsingHalfedge.cs" />
-    <Compile Include="GraphAndMeshAlgorithm\GhcGlobalParameters.cs" />
-    <Compile Include="Class\GlobalParameterStruct.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcShowGraph.cs" />
-    <Compile Include="Temporary\GraphFromVolumeAndBoundaryNode.cs" />
-    <Compile Include="Temporary\GraphToDiskDrawing.cs" />
     <Compile Include="Class\GraphNode.cs" />
     <Compile Include="Class\GraphNodeAttribute.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcTriangulate.cs" />
@@ -109,7 +95,6 @@
     <Compile Include="Class\UtilityFunctions.cs" />
     <Compile Include="VolumeGeneratorBasedOnGraphInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Temporary\WeightedVoroni.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
@@ -119,6 +104,7 @@
     <None Include="测试文件夹\1024Test.csv" />
     <None Include="测试文件夹\1024_test.gh" />
     <None Include="测试文件夹\1111_test.gh" />
+    <None Include="测试文件夹\0208.gh" />
     <None Include="测试文件夹\1221.gh" />
     <None Include="测试文件夹\1221Test.csv" />
   </ItemGroup>
