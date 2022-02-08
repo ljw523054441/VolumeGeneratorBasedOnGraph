@@ -5,7 +5,9 @@ using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Attributes;
 using Plankton;
 using PlanktonGh;
+using Rhino.Collections;
 using Rhino.Geometry;
+using Rhino.Geometry.Collections;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -34,6 +36,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             GraphNodePoints = new List<Point3d>();
             GraphEdges = new List<Line>();
             GraphNodeTextDots = new List<TextDot>();
+
+            BoundarySegmentTextDots = new List<TextDot>();
         }
 
         private int Thickness;
@@ -45,6 +49,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<Point3d> GraphNodePoints;
         private List<Line> GraphEdges;
         private List<TextDot> GraphNodeTextDots;
+
+        private List<TextDot> BoundarySegmentTextDots;
 
         public enum ShowMode { ShowTopology, NotShowTopology };/* 定义一个enum类型 */
         public ShowMode CompWorkMode { get; set; } = ShowMode.ShowTopology;/* 使用这个enum类型来定义一个代表电池工作状态的变量 */
@@ -86,8 +92,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             pManager.AddNumberParameter("tXDT", "tXDT", "", GH_ParamAccess.tree);
             pManager.AddNumberParameter("tYDT", "tYDT", "", GH_ParamAccess.tree);
+
+            pManager.AddGenericParameter("Graph", "Graph", "", GH_ParamAccess.item);
+
+            pManager.AddGenericParameter("DualPlanktonMesh", "DualPlanktonMesh", "", GH_ParamAccess.item);
             
-            pManager.AddCurveParameter("DeBug Polyline", "DP", "", GH_ParamAccess.item);
+            //pManager.AddCurveParameter("DeBug Polyline", "DP", "", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -602,9 +612,86 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                                           ref needToCalNextLayer);
                 }
 
+                // 此时的P是对偶图
+                //List<Polyline> polylineList = P.ToPolylines().ToList();
+                //DA.SetDataList("DeBug Polyline", polylineList);
+
+
+                // todo：最后out一个GraphWithHM类
+
+                //GraphWithHM graphWithDual = new GraphWithHM(P, dualGraphWithHM.GraphNodes, dualGraphWithHM.GraphTables);
+                DA.SetData("DualPlanktonMesh", P);
+
+                List<GraphNode> pGraphNodes = dualGraphWithHM.GraphNodes;
+                List<List<int>> pGraphTables = dualGraphWithHM.GraphTables;
+                int innerNodeCount = dualGraphWithHM.InnerNodeCount;
+                int outerNodeCount = dualGraphWithHM.OuterNodeCount;
+
+                #region 更新原来图的相关信息
+                #region 添加对偶图所有面的中心点作为innerGraphNodePoints的坐标位置
+                Polyline[] polylines = P.ToPolylines();
+                List<Point3d> innerGraphNodePoints = new List<Point3d>();
+                for (int i = 0; i < polylines.Length; i++)
+                {
+                    List<Point3d> points = polylines[i].ToList();
+                    Point3d gravityPoint = GetCenterOfGravityPoint(points);
+                    innerGraphNodePoints.Add(gravityPoint);
+                    GraphNodePoints.Add(gravityPoint);
+                }
+                #endregion
+
+                #region outerGraphNodePoints的坐标位置
+                // 表示NEWS的四个点
+                List<Point3d> outerGraphNodePoints = new List<Point3d>();
+                for (int i = 0; i < sortedBoundarySegments.Count; i++)
+                {
+                    Vector3d verticalVector = Vector3d.CrossProduct(sortedBoundarySegments[i].Lines[0].Direction, Vector3d.ZAxis);
+                    verticalVector.Unitize();
+
+                    Point3d point0 = (sortedBoundarySegments[i].From + sortedBoundarySegments[i].To) / 2;
+                    point0 += verticalVector * 3 * sortedBoundarySegments[i].Lines[0].Length / 4;
+                    outerGraphNodePoints.Add(point0);
+                }
+                #endregion
+
+                #region 把LOL形式的allLayerPairCorrespondingFaceIndexLoL转换为list形式
+                List<int> allLayerPairCorrespondingFaceIndex_OnD = new List<int>();
+                for (int i = 0; i < allLayerPairCorrespondingFaceIndexLoL_OnD.Count; i++)
+                {
+                    allLayerPairCorrespondingFaceIndex_OnD.AddRange(allLayerPairCorrespondingFaceIndexLoL_OnD[i]);
+                }
+                #endregion
+                if (allLayerVerticesIndexForEachBS.Last().DataCount == 0)
+                {
+                    allLayerPairCorrespondingFaceIndex_OnD.Add(P.Faces.Count - 1);
+                }
+
+                #region newNodePoints
+                List<Point3d> newNodePoints = new List<Point3d>();
+                for (int i = 0; i < pGraphNodes.Count; i++)
+                {
+                    if (pGraphNodes[i].IsInner)
+                    {
+                        newNodePoints.Add(innerGraphNodePoints[allLayerPairCorrespondingFaceIndex_OnD[i]]);
+                    }
+                    else
+                    {
+                        newNodePoints.Add(outerGraphNodePoints[i - innerNodeCount]);
+                    }
+                }
+                #endregion
+                for (int i = 0; i < pGraphNodes.Count; i++)
+                {
+                    pGraphNodes[i].NodeVertex = newNodePoints[i];
+                }
+
+                Graph newGraph = new Graph(pGraphNodes, pGraphTables);
+                DA.SetData("Graph", newGraph);
+                #endregion
+
+
                 #region 可视化部分
                 PlanktonMesh MeshForVisualize = new PlanktonMesh();
-
                 MeshForVisualize = P;
                 #region clear
                 // 对偶图
@@ -627,17 +714,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     DualPolylines[i].AddRange(dualPolylines[i]);
                 }
 
-                #region 把LOL形式的allLayerPairCorrespondingFaceIndexLoL转换为list形式
-                List<int> allLayerPairCorrespondingFaceIndex_OnD = new List<int>();
-                for (int i = 0; i < allLayerPairCorrespondingFaceIndexLoL_OnD.Count; i++)
-                {
-                    allLayerPairCorrespondingFaceIndex_OnD.AddRange(allLayerPairCorrespondingFaceIndexLoL_OnD[i]);
-                }
-                #endregion
-                if (allLayerVerticesIndexForEachBS.Last().DataCount == 0)
-                {
-                    allLayerPairCorrespondingFaceIndex_OnD.Add(P.Faces.Count - 1);
-                }
+                
                 
 
                 for (int i = 0; i < MeshForVisualize.Vertices.Count; i++)
@@ -663,23 +740,41 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
 
                 #region 原来的图
-                #region 添加对偶图所有面的中心点作为GraphNodePoints的坐标位置
-                Polyline[] polylines = MeshForVisualize.ToPolylines();
-                for (int i = 0; i < polylines.Length; i++)
-                {
-                    List<Point3d> points = polylines[i].ToList();
-                    Point3d gravityPoint = GetCenterOfGravityPoint(points);
-                    GraphNodePoints.Add(gravityPoint);
-                }
+                
+                #region 实线和虚线
+                // 实线
+                // 绘制Graph的Edge
+                DataTree<int> newGraphDT = UtilityFunctions.LoLToDataTree<int>(newGraph.GraphTables);
+                List<Line> graphEdge = GraphEdgeList(newGraphDT, newNodePoints);
+                // 绘制Graph形成的Convex
+                //List<Polyline> graphConvex = GMeshFaceBoundaries(outerGraphNodePoints, graphEdge, Plane.WorldXY);
 
+                //Mesh mesh = new Mesh();
+                //mesh.Vertices.Add()
+                // 虚线
 
-                //for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
-                //{
-                //    GraphNodePoints.Add(PlanktonGh.RhinoSupport.ToPoint3d(MeshForVisualize.Faces.GetFaceCenter(i)));
-                //}
                 #endregion
 
-                #region 根据innerNode的序号，写入对应的GraphNodeTextDots
+                GraphNodePoints = newNodePoints;
+                GraphEdges = graphEdge;
+
+                #region TextDot
+                // outer
+                List<string> outerNodeLabels = new List<string>();
+                for (int i = 0; i < pGraphNodes.Count; i++)
+                {
+                    if (!pGraphNodes[i].IsInner)
+                    {
+                        outerNodeLabels.Add(pGraphNodes[i].NodeAttribute.NodeLabel);
+                    }
+                }
+                for (int i = 0; i < sortedBoundarySegments.Count; i++)
+                {
+                    TextDot boundarySegmentTextDot = new TextDot(string.Format("{0} | {1}", i + innerNodeCount, outerNodeLabels[i]), outerGraphNodePoints[i]);
+                    BoundarySegmentTextDots.Add(boundarySegmentTextDot);
+                }
+
+                // inner
                 List<GraphNode> graphNodes = new List<GraphNode>();
                 for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
                 {
@@ -691,17 +786,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 for (int i = 0; i < MeshForVisualize.Faces.Count; i++)
                 {
                     GraphNodeTextDots.Add(new TextDot(string.Format("{0} | {1}", allLayerPairCorrespondingFaceIndex_OnD[i], graphNodes[i].NodeAttribute.NodeLabel), GraphNodePoints[i]));
-                }
-                #endregion
-
-                #region 代表innernode之间的连线
-                List<List<int>> faceAdjacency = UtilityFunctions.GetAdjacencyFaceIndexs(MeshForVisualize);
-                for (int i = 0; i < GraphNodePoints.Count; i++)
-                {
-                    for (int j = 0; j < faceAdjacency[i].Count; j++)
-                    {
-                        GraphEdges.Add(new Line(GraphNodePoints[i], GraphNodePoints[faceAdjacency[i][j]]));
-                    }
                 }
                 #endregion
 
@@ -2251,6 +2335,68 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             return new Point3d(gx, gy, points[0].Z);
         }
+
+
+        public List<Line> GraphEdgeList(DataTree<int> graph, List<Point3d> graphVertices)
+        {
+            List<Line> list = new List<Line>();
+            for (int i = 0; i < graph.BranchCount; i++)
+            {
+                for (int j = 0; j < graph.Branch(i).Count; j++)
+                {
+                    Line item = new Line(graphVertices[i], graphVertices[graph.Branch(i)[j]]);
+                    list.Add(item);
+                }
+            }
+
+            return list;
+        }
+
+        public List<Polyline> GMeshFaceBoundaries(List<Point3d> sortedBoundaryPoints, List<Line> edges, Plane basePlane)
+        {
+            List<Curve> splitLines = new List<Curve>();
+            foreach (Line line in edges)
+            {
+                splitLines.Add(line.ToNurbsCurve());
+            }
+
+            Polyline polyline = SortedPointsToPolyline(sortedBoundaryPoints, basePlane);
+            Curve curve = polyline.ToNurbsCurve();
+
+            Brep[] PlanarBrepArray = Brep.CreatePlanarBreps(curve, Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+            Brep planarBreps = PlanarBrepArray[0];
+            BrepFace planarBrepFace = planarBreps.Faces[0];
+            Brep splittedPlanarBrepFaces = planarBrepFace.Split(splitLines, Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance);
+
+            List<Polyline> allConvexPolyline = new List<Polyline>();
+            foreach (BrepFace brepFace in splittedPlanarBrepFaces.Faces)
+            {
+                Brep singleSplitFaceBrep = brepFace.DuplicateFace(true);
+                Point3d[] singleSplitFaceVertices = singleSplitFaceBrep.DuplicateVertices();
+                Curve splitFaceConvexCure = Curve.JoinCurves(singleSplitFaceBrep.Faces[0].DuplicateFace(true).DuplicateEdgeCurves())[0];
+                Polyline splitFaceConvexPolyline = null;
+                splitFaceConvexCure.TryGetPolyline(out splitFaceConvexPolyline);
+                allConvexPolyline.Add(splitFaceConvexPolyline);
+            }
+
+            return allConvexPolyline;
+        }
+
+        /// <summary>
+        /// 将排好序的点连接成多段线（NurbsCurve类型）
+        /// </summary>
+        /// <param name="sortedBoundaryPoints"></param>
+        /// <param name="basePlane"></param>
+        /// <returns></returns>
+        public Polyline SortedPointsToPolyline(List<Point3d> sortedBoundaryPoints, Plane basePlane)
+        {
+            // 把startPoint放到最后作为endPoint，这样polyline才会闭合
+            sortedBoundaryPoints.Add(sortedBoundaryPoints[0]);
+
+            Polyline convex = new Polyline(sortedBoundaryPoints);
+            return convex;
+        }
+
 
         public override void DrawViewportWires(IGH_PreviewArgs args)
         {

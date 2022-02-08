@@ -548,7 +548,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     Vector3d verticalVector = Vector3d.CrossProduct(boundarySegments[i].Lines[0].Direction, Vector3d.ZAxis);
                     verticalVector.Unitize();
                     Point3d boundarySegmentTextDotLocation = new Point3d((boundarySegments[i].From + boundarySegments[i].To) / 2);
-                    boundarySegmentTextDotLocation += verticalVector * 2;
+                    boundarySegmentTextDotLocation += verticalVector * 3 * boundarySegments[i].Lines[0].Length / 4;
                     boundarySegmentTextDotLocations.Add(boundarySegmentTextDotLocation);
                 }
                 for (int i = 0; i < boundarySegments.Count; i++)

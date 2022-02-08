@@ -18,6 +18,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
     {
         public List<GraphNode> UndividedGraphNodes { get; set; }
         public List<List<int>> UndividedGraphTable { get; set; }
+
+        public PlanktonMesh PlanktonMesh { get; set; }
         
         public PlanktonMesh DualPlanktonMesh { get; set; }
         public PlanktonMesh IntegrateDualPlanktonMesh { get; set; }
@@ -47,6 +49,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// </summary>
         public DualGraphWithHM() : base()
         {
+            this.PlanktonMesh = new PlanktonMesh();
             this.DualPlanktonMesh = new PlanktonMesh();
             this.IntegrateDualPlanktonMesh = new PlanktonMesh();
         }
