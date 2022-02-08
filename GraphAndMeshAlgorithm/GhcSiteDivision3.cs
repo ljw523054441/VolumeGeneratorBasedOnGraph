@@ -36,8 +36,10 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             //GraphNodePoints = new List<Point3d>();
             GraphEdges = new List<Line>();
             InnerNodeTextDots = new List<TextDot>();
-
             OuterNodeTextDots = new List<TextDot>();
+
+            MeshForVisualize = null;
+            DottedCurve = new List<Curve>();
         }
 
         private int Thickness;
@@ -50,6 +52,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         private List<Line> GraphEdges;
         private List<TextDot> InnerNodeTextDots;
         private List<TextDot> OuterNodeTextDots;
+
+        private Mesh MeshForVisualize;
+        private List<Curve> DottedCurve;
 
         public enum ShowMode { ShowTopology, NotShowTopology };/* 定义一个enum类型 */
         public ShowMode CompWorkMode { get; set; } = ShowMode.ShowTopology;/* 使用这个enum类型来定义一个代表电池工作状态的变量 */
@@ -713,8 +718,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
 
                 #region 可视化部分
-                PlanktonMesh MeshForVisualize = new PlanktonMesh();
-                MeshForVisualize = P;
+                //PlanktonMesh meshForVisualize = new PlanktonMesh();
+                //meshForVisualize = P;
                 #region clear
                 // 对偶图
                 //DualVertices.Clear();
@@ -724,25 +729,26 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 //GraphNodePoints.Clear();
                 GraphEdges.Clear();
                 InnerNodeTextDots.Clear();
+
+                MeshForVisualize = null;
+                DottedCurve.Clear();
                 #endregion
 
                 #region 对偶图
                 //DualVertices = PlanktonGh.RhinoSupport.GetPositions(MeshForVisualize).ToList();
-                List<Point3d> dualVertices = PlanktonGh.RhinoSupport.GetPositions(MeshForVisualize).ToList();
+                List<Point3d> dualVertices = PlanktonGh.RhinoSupport.GetPositions(P).ToList();
 
-                Polyline[] dualPolylines = PlanktonGh.RhinoSupport.ToPolylines(MeshForVisualize);
+                Polyline[] dualPolylines = PlanktonGh.RhinoSupport.ToPolylines(P);
                 for (int i = 0; i < dualPolylines.Length; i++)
                 {
                     DualPolylines.Add(new List<Point3d>());
                     DualPolylines[i].AddRange(dualPolylines[i]);
                 }
 
-                
-                
 
-                for (int i = 0; i < MeshForVisualize.Vertices.Count; i++)
+                for (int i = 0; i < P.Vertices.Count; i++)
                 {
-                    List<int> facesAroundVertex = MeshForVisualize.Vertices.GetVertexFaces(i).ToList();
+                    List<int> facesAroundVertex = P.Vertices.GetVertexFaces(i).ToList();
                     while (facesAroundVertex.Contains(-1))
                     {
                         facesAroundVertex.Remove(-1);
@@ -774,9 +780,21 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 // 绘制Graph形成的Convex
                 //List<Polyline> graphConvex = GMeshFaceBoundaries(outerGraphNodePoints, graphEdge, Plane.WorldXY);
 
-                //Mesh mesh = new Mesh();
-                //mesh.Vertices.Add()
+                MeshForVisualize = newPlanktonMesh.ToRhinoMesh();
+
                 // 虚线
+                List<Line> meshEdges = new List<Line>();
+                for (int i = 0; i < MeshForVisualize.TopologyEdges.Count; i++)
+                {
+                    meshEdges.Add(MeshForVisualize.TopologyEdges.EdgeLine(i));
+                }
+                double[] pattern = { 1.0 };
+                for (int i = 0; i < meshEdges.Count; i++)
+                {
+                    IEnumerable<Curve> segments = UtilityFunctions.ApplyDashPattern(meshEdges[i].ToNurbsCurve(), pattern);
+                    DottedCurve.AddRange(segments);
+                }
+
 
                 #endregion
 
@@ -2461,7 +2479,12 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             if (this.CompWorkMode == ShowMode.ShowTopology)
             {
-                args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+                for (int i = 0; i < DottedCurve.Count; i++)
+                {
+                    args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+                }
+
+                args.Display.DrawLines(GraphEdges, Color.BlueViolet, Thickness);
 
                 for (int i = 0; i < InnerNodeTextDots.Count; i++)
                 {
@@ -2496,7 +2519,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             if (this.CompWorkMode == ShowMode.ShowTopology)
             {
-                args.Display.DrawLines(GraphEdges, Color.ForestGreen, Thickness);
+                args.Display.DrawMeshShaded(MeshForVisualize, new Rhino.Display.DisplayMaterial(Color.White, 0));
+
+                for (int i = 0; i < DottedCurve.Count; i++)
+                {
+                    args.Display.DrawCurve(DottedCurve[i], Color.DarkGreen, Thickness);
+                }
+                
+                args.Display.DrawLines(GraphEdges, Color.BlueViolet, Thickness);
 
                 for (int i = 0; i < InnerNodeTextDots.Count; i++)
                 {
