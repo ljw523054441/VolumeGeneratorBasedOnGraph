@@ -12,6 +12,7 @@ using System;
 using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
+using VolumeGeneratorBasedOnGraph.Class;
 
 namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 {
