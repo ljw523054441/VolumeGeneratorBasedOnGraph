@@ -710,7 +710,9 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 PlanktonMesh newPlanktonMesh = PlanktonGh.RhinoSupport.ReplaceVertices(originPlanktonMesh, newNodePoints);
 
                 DualGraphWithHM newDualGraphWithHM = new DualGraphWithHM(P, newPlanktonMesh, pGraphNodes, pGraphTables, dualGraphWithHM.DFaceIndexsAroundOuterNodes);
-
+                List<int> DFace_PVertice = allLayerPairCorrespondingFaceIndex_OnD;
+                newDualGraphWithHM.DFIndex_PVIndex = new List<int>();
+                newDualGraphWithHM.DFIndex_PVIndex.AddRange(DFace_PVertice);
 
                 //GraphWithHM newGraphWithHM = new GraphWithHM(planktonMeshForGraph, newGraph.GraphNodes, newGraph.GraphTables);
                 DA.SetData("DualGraphWithHM", newDualGraphWithHM);

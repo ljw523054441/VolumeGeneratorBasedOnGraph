@@ -86,6 +86,22 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return lol;
         }
 
+        internal static List<List<int>> GH_StructureToLoL_Int(GH_Structure<GH_Integer> gh_Structure)
+        {
+            List<List<int>> lol = new List<List<int>>();
+            foreach (GH_Path gh_Path in gh_Structure.Paths)
+            {
+                lol.Add(new List<int>());
+                List<int> branchItems = new List<int>();
+                foreach (GH_Integer element in gh_Structure.get_Branch(gh_Path))
+                {
+                    branchItems.Add(element.Value);
+                }
+                lol.Last().AddRange(branchItems);
+            }
+            return lol;
+        }
+
         /// <summary>
         /// 由LoL转化成DataTree的泛型方法
         /// </summary>

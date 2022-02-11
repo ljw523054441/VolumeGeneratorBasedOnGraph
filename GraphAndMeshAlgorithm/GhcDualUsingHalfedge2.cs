@@ -131,7 +131,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         faceCorrespondingGraphNodeIndex.Add(i);
                     }
                 }
-                dualGraphWithHM.FaceCorrespondingGraphNodeIndex = faceCorrespondingGraphNodeIndex;
+                //dualGraphWithHM.FaceCorrespondingGraphNodeIndex = faceCorrespondingGraphNodeIndex;
 
                 DA.SetData("DualGraphWithHM", dualGraphWithHM);
 

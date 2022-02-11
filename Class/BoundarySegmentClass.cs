@@ -26,6 +26,31 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public List<int> PointOnWhichSegments { get; set; }
 
+        public int[] HIndex { get; set; }
+        public int FIndex { get; set; }
+        public int AdjacentFIndex { get; set; }
+
+        //public int AdjacentNodeIndex { get; set; }
+
+        public bool IsZeroCurvatureAtStart { get; set; }
+
+        public bool IsZeroCurvatureAtEnd { get; set; }
+
+        public enum Location
+        {
+            Unset,
+            N,
+            W,
+            S,
+            E,
+            Inner,
+            adjacent
+        }
+
+        public Location LocationValue { get; set; } = Location.Unset;
+
+        public double setback { get; set; }
+
         public BoundarySegment()
         {
 
@@ -53,9 +78,49 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.TurningTs = new List<double>();
 
-            //this.PointOnWhichSegments = new List<int>();
-            //this.PointOnWhichSegments.Add(0);
             this.PointOnWhichSegments = new List<int>();
+
+            this.HIndex = new int[1];
+            this.FIndex = -1;
+            this.AdjacentFIndex = -1;
+        }
+
+        public BoundarySegment(List<Point3d> points, int[] hIndex, int fIndex, int adjacentFIndex)
+        {
+            this.Points = new List<Point3d>();
+            this.Points.AddRange(points);
+            this.PolylineCurve = new PolylineCurve(this.Points);
+            this.PolylineCurve.Domain = new Interval(0, 1);
+            this.Label = null;
+
+            this.From = this.Points[0];
+            this.To = this.Points.Last();
+
+            this.Lines = new List<Line>();
+            Point3d start = this.Points[0];
+            for (int i = 1; i < this.Points.Count; i++)
+            {
+                this.Lines.Add(new Line(start, this.Points[i]));
+                start = this.Points[i];
+            }
+
+            this.TurningTs = new List<double>();
+            for (int i = 0; i < this.Points.Count; i++)
+            {
+                double t;
+                this.PolylineCurve.ClosestPoint(this.Points[i], out t);
+                this.TurningTs.Add(t);
+            }
+
+            this.PointOnWhichSegments = new List<int>();
+
+            this.HIndex = new int[hIndex.Length];
+            for (int i = 0; i < hIndex.Length; i++)
+            {
+                this.HIndex[i] = hIndex[i];
+            }
+            this.FIndex = fIndex;
+            this.AdjacentFIndex = adjacentFIndex;
         }
 
         public BoundarySegment(List<Line> segments, string label)
@@ -76,15 +141,15 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.From = Points[0];
                 this.To = Points.Last();
 
-                //this.IncludedDVertice = null;
-                //this.HIndex = -1;
                 this.Lines = new List<Line>();
                 this.Lines.Add(new Line(segments[0].From, segments[0].To));
 
                 this.TurningTs = new List<double>();
-                //this.PointOnWhichSegments = new List<int>();
-                //this.PointOnWhichSegments.Add(0);
                 this.PointOnWhichSegments = new List<int>();
+
+                this.HIndex = new int[1];
+                this.FIndex = -1;
+                this.AdjacentFIndex = -1;
             }
             
             this.Points = new List<Point3d>();
@@ -106,34 +171,19 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.Lines.Add(new Line(segments[i].From, segments[i].To));
             }
 
-            //List<double> lengths = new List<double>();
-            //double sum = 0;
-            //for (int i = 0; i < segments.Count; i++)
-            //{
-            //    double current = sum + segments[i].Length;
-            //    lengths.Add(current);
-            //    sum += segments[i].Length;
-            //}
-
             this.TurningTs = new List<double>();
             for (int i = 0; i < this.Points.Count; i++)
             {
                 double t;
-                PolylineCurve.ClosestPoint(this.Points[i], out t);
+                this.PolylineCurve.ClosestPoint(this.Points[i], out t);
                 this.TurningTs.Add(t);
             }
-            //if (lengths.Count > 1)
-            //{
-            //    this.TurningTs.Add(0);
-            //    for (int i = 0; i < lengths.Count - 1; i++)
-            //    {
-            //        double t = lengths[i] / sum;
-            //        this.TurningTs.Add(t);
-            //    }
-            //}
-            
 
             this.PointOnWhichSegments = new List<int>();
+
+            this.HIndex = new int[segments.Count];
+            this.FIndex = -1;
+            this.AdjacentFIndex = -1;
         }
 
         /// <summary>
@@ -173,6 +223,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.PointOnWhichSegments = new List<int>();
             this.PointOnWhichSegments.AddRange(source.PointOnWhichSegments);
+
+            this.HIndex = new int[source.HIndex.Length];
+            for (int i = 0; i < source.HIndex.Length; i++)
+            {
+                this.HIndex[i] = source.HIndex[i];
+            }
+            this.FIndex = source.FIndex;
+            this.AdjacentFIndex = source.AdjacentFIndex;
         }
 
         public virtual void Reverse()
@@ -201,6 +259,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <returns></returns>
         public override string ToString()
         {
+            if (this.Label == null)
+            {
+                return "BS:" + this.LocationValue.ToString();
+            }
+            
             return "BS:" + this.Label;
         }
 

@@ -4,6 +4,8 @@ using Rhino.Geometry;
 using Plankton;
 using PlanktonGh;
 using System;
+using System.Linq;
+using System.Drawing;
 using System.Collections.Generic;
 using VolumeGeneratorBasedOnGraph.Class;
 
@@ -19,7 +21,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
               "Description",
               "VolumeGeneratorBasedOnGraph", "CreateVolume")
         {
+            PolylinePoints = new List<List<Point3d>>();
+            //InnerNodeTextDots = new List<TextDot>();
         }
+
+        private int Thickness;
+        private List<List<Point3d>> PolylinePoints;
+        //private List<TextDot> InnerNodeTextDots;
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -48,6 +56,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            Thickness = 2;
             // DualGraphWithHM dualGraphWithHM = new DualGraphWithHM();
 
             PlanktonMesh dualPlanktonMesh = new PlanktonMesh();
@@ -159,6 +168,22 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             newDualPlanktonMesh.Faces.AddFaces(faces);
 
             DA.SetData("DualPlanktonMesh", newDualPlanktonMesh);
+
+            #region 可视化
+            PolylinePoints.Clear();
+            PolylinePoints = new List<List<Point3d>>();
+            for (int i = 0; i < faces.Count; i++)
+            {
+                PolylinePoints.Add(new List<Point3d>());
+                int[] vi = newDualPlanktonMesh.Faces.GetFaceVertices(i);
+                for (int j = 0; j < vi.Length; j++)
+                {
+                    Point3d point = newDualPlanktonMesh.Vertices[vi[j]].ToPoint3d();
+                    PolylinePoints[i].Add(point);
+                }
+                PolylinePoints[i].Add(PolylinePoints[i].First());
+            }
+            #endregion
         }
 
 
@@ -194,6 +219,24 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 Point3d point3d = this.m_srf.PointAt(num, num2);
                 Vector3d vector3d = this.m_srf.NormalAt(num, num2);
                 return point3d + vector3d * num3;
+            }
+        }
+
+        public override void DrawViewportWires(IGH_PreviewArgs args)
+        {
+            // base.DrawViewportWires(args);
+            for (int i = 0; i < PolylinePoints.Count; i++)
+            {
+                args.Display.DrawPolyline(PolylinePoints[i], Color.DarkOrange, Thickness);
+            }
+        }
+
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            // base.DrawViewportMeshes(args);
+            for (int i = 0; i < PolylinePoints.Count; i++)
+            {
+                args.Display.DrawPolyline(PolylinePoints[i], Color.DarkOrange, Thickness);
             }
         }
 

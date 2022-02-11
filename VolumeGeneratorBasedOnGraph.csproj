@@ -43,6 +43,7 @@
     <Reference Include="Grasshopper, Version=6.13.19058.370, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
       <HintPath>packages\Grasshopper.6.13.19058.371\lib\net45\Grasshopper.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Plankton, Version=0.4.2.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>lib\Plankton.dll</HintPath>
@@ -66,12 +67,15 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Class\clipper_library.cs" />
     <Compile Include="Class\ConvexPolygon.cs" />
+    <Compile Include="Class\CurveSets.cs" />
     <Compile Include="Class\DualGraphWithHM.cs" />
     <Compile Include="Class\GraphWithHM.cs" />
     <Compile Include="Class\Graph.cs" />
     <Compile Include="Class\MeshEdgeClass.cs" />
     <Compile Include="Class\Node.cs" />
+    <Compile Include="Class\Polyline3D.cs" />
     <Compile Include="Class\Volume\BasicFunctions.cs" />
     <Compile Include="Class\Volume\Building.cs" />
     <Compile Include="Class\Volume\ExtraFunctions.cs" />
