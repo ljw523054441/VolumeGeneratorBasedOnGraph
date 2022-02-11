@@ -13,7 +13,7 @@ using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
 
-namespace VolumeGeneratorBasedOnGraph.Class.Volume
+namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 {
     public class GhcVolumeBaseOnTopo : GH_Component
     {
@@ -56,14 +56,18 @@ namespace VolumeGeneratorBasedOnGraph.Class.Volume
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
+            pManager.AddGenericParameter("DualGraphWithHM with BS","", "", GH_ParamAccess.item);
+            
             pManager.AddGeometryParameter("SetBack Polyline", "", "", GH_ParamAccess.list);
 
-            pManager.AddCurveParameter("CutRegion Debug", "", "", GH_ParamAccess.tree);
+            //pManager.AddGenericParameter("BoundarySegments", "", "", GH_ParamAccess.tree);
 
-            pManager.AddCurveParameter("Public Side", "", "", GH_ParamAccess.tree);
+            // pManager.AddCurveParameter("CutRegion Debug", "", "", GH_ParamAccess.tree);
 
-            //pManager.AddBrepParameter("CutsBrepDT", "", "", GH_ParamAccess.tree);
-            pManager.AddBrepParameter("ResultBreps", "", "", GH_ParamAccess.list);
+            // pManager.AddCurveParameter("Public Side", "", "", GH_ParamAccess.tree);
+
+            // pManager.AddBrepParameter("CutsBrepDT", "", "", GH_ParamAccess.tree);
+            // pManager.AddBrepParameter("ResultBreps", "", "", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -380,23 +384,34 @@ namespace VolumeGeneratorBasedOnGraph.Class.Volume
 
                 #region 退线
                 List<Polyline> innerResultPolylines;
-                DataTree<Curve> cuts;
-                DataTree<Curve> publicSide;
+                //DataTree<Curve> cuts;
+                //DataTree<Curve> publicSide;
                 //DataTree<Brep> cutsBrepDT;
-                List<Brep> resultBreps;
-                List<List<BoundarySegment>> newAllFaceBS = OffsetBS(allFaceBS, 
-                                                                    facePolylines, 
-                                                                    out innerResultPolylines, 
-                                                                    out cuts, 
-                                                                    out publicSide,
+                //List<Brep> resultBreps;
+                List<List<BoundarySegment>> newAllFaceBS = OffsetBS(allFaceBS,
+                                                                    facePolylines,
+                                                                    out innerResultPolylines); 
+                                                                    //out cuts, 
+                                                                    //out publicSide,
                                                                     //out cutsBrepDT,
-                                                                    out resultBreps);
+                                                                    //out resultBreps);
                 #endregion
                 DA.SetDataList("SetBack Polyline", innerResultPolylines);
-                DA.SetDataTree(1, cuts);
-                DA.SetDataTree(2, publicSide);
+                //DA.SetDataTree(1, cuts);
+                //DA.SetDataTree(2, publicSide);
                 //DA.SetDataTree(3, cutsBrepDT);
-                DA.SetDataList("ResultBreps", resultBreps);
+                //DA.SetDataList("ResultBreps", resultBreps);
+
+                dualGraphWithHM.OffsetedBoundarySegments = new List<List<BoundarySegment>>();
+                for (int i = 0; i < newAllFaceBS.Count; i++)
+                {
+                    dualGraphWithHM.OffsetedBoundarySegments.Add(new List<BoundarySegment>());
+                    for (int j = 0; j < newAllFaceBS[i].Count; j++)
+                    {
+                        dualGraphWithHM.OffsetedBoundarySegments[i].Add(new BoundarySegment(newAllFaceBS[i][j]));
+                    }
+                }
+                DA.SetData("DualGraphWithHM with BS", dualGraphWithHM);
 
                 #region 可视化
                 InnerResultPolyline.Clear();
@@ -418,18 +433,18 @@ namespace VolumeGeneratorBasedOnGraph.Class.Volume
 
         private List<List<BoundarySegment>> OffsetBS(List<List<BoundarySegment>> allFaceBS, 
                                                      List<Polyline> facePolylines,
-                                                     out List<Polyline> innerResultPolylines,
-                                                     out DataTree<Curve> cuts,
-                                                     out DataTree<Curve> publicSides,
+                                                     out List<Polyline> innerResultPolylines)
+                                                     //out DataTree<Curve> cuts,
+                                                     //out DataTree<Curve> publicSides,
                                                      //out DataTree<Brep> cutsBrepDT,
-                                                     out List<Brep> resultBreps)
+                                                     //out List<Brep> resultBreps)
         {
             double tolerance = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
 
-            cuts = new DataTree<Curve>();
-            publicSides = new DataTree<Curve>();
+            //cuts = new DataTree<Curve>();
+            //publicSides = new DataTree<Curve>();
             //cutsBrepDT = new DataTree<Brep>();
-            resultBreps = new List<Brep>();
+            //resultBreps = new List<Brep>();
 
             innerResultPolylines = new List<Polyline>();
             List<List<BoundarySegment>> newAllFaceBS = new List<List<BoundarySegment>>();
@@ -610,8 +625,8 @@ namespace VolumeGeneratorBasedOnGraph.Class.Volume
                     }
                 }
 
-                cuts.EnsurePath(i);
-                cuts.Branch(i).AddRange(cutCurves);
+                //cuts.EnsurePath(i);
+                //cuts.Branch(i).AddRange(cutCurves);
 
                 facePolylines[i].Add(facePolylines[i][0]);
                 Curve CurveToCut = Curve.CreateInterpolatedCurve(facePolylines[i], 1);
@@ -638,7 +653,7 @@ namespace VolumeGeneratorBasedOnGraph.Class.Volume
 
                 // 用求surface与surface之间公共边的方法，来得到最后的BS
                 Brep innerResultBrep = BoundarySurfaces(innerResultCurve[0])[0];
-                resultBreps.Add(innerResultBrep);
+                //resultBreps.Add(innerResultBrep);
 
                 List<Curve> intersections = new List<Curve>();
                 for (int j = 0; j < cutCurves.Count; j++)
@@ -670,8 +685,8 @@ namespace VolumeGeneratorBasedOnGraph.Class.Volume
 
                     
                 }
-                publicSides.EnsurePath(i);
-                publicSides.Branch(i).AddRange(intersections);
+                //publicSides.EnsurePath(i);
+                //publicSides.Branch(i).AddRange(intersections);
 
                 // 得到最后的BS
                 for (int j = 0; j < intersections.Count; j++)

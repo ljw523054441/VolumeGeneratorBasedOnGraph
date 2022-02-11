@@ -44,6 +44,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public List<int> DFIndex_PVIndex { get; set; }
 
+        public List<List<BoundarySegment>> OffsetedBoundarySegments { get; set; }
+
         /// <summary>
         /// 构造空的DualGraphWithHM对象
         /// </summary>

@@ -79,7 +79,7 @@
     <Compile Include="Class\Volume\BasicFunctions.cs" />
     <Compile Include="Class\Volume\Building.cs" />
     <Compile Include="Class\Volume\ExtraFunctions.cs" />
-    <Compile Include="Class\Volume\GhcVolumeBaseOnTopo.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\VolumeAlgorithm\GhcVolumeBaseOnTopo.cs" />
     <Compile Include="Class\Volume\GhcVolumeGenerator.cs" />
     <Compile Include="Class\Volume\Parameters.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcDebugGraph.cs" />

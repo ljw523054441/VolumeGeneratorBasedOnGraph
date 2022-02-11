@@ -231,6 +231,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             this.FIndex = source.FIndex;
             this.AdjacentFIndex = source.AdjacentFIndex;
+
+            this.IsZeroCurvatureAtStart = source.IsZeroCurvatureAtStart;
+            this.IsZeroCurvatureAtEnd = source.IsZeroCurvatureAtEnd;
+            this.LocationValue = source.LocationValue;
+            this.setback = source.setback;
         }
 
         public virtual void Reverse()
