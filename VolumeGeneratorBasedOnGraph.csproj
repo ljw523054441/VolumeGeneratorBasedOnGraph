@@ -87,6 +87,7 @@
     <Compile Include="GraphAndMeshAlgorithm\GhcDualUsingHalfedge2.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcReorganizeBoundary3.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcSiteDivision3.cs" />
+    <Compile Include="GraphAndMeshAlgorithm\VolumeAlgorithm\GhcVolumeGenerator.cs" />
     <Compile Include="GraphAndMeshAlgorithm\VolumeAlgorithm\GhcVolumeGenerator1.cs" />
     <Compile Include="Class\BoundarySegmentClass.cs" />
     <Compile Include="GraphAndMeshAlgorithm\GhcConstructBoundarySegment.cs" />

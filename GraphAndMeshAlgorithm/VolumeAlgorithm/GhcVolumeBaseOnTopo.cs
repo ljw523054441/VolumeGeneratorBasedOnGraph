@@ -2,8 +2,8 @@
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
-using Grasshopper.Kernel.Geometry;
-using Grasshopper.Kernel.Geometry.ConvexHull;
+//using Grasshopper.Kernel.Geometry;
+//using Grasshopper.Kernel.Geometry.ConvexHull;
 using Plankton;
 using PlanktonGh;
 using Rhino.Geometry;
@@ -28,12 +28,23 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         {
             InnerResultPolyline = new List<Polyline>();
             InnerNodeTextDots = new List<TextDot>();
+
+            // Temp
+            SCrvForShowList = new List<Curve>();
+            NCrvForShowList = new List<Curve>();
         }
+
+        private Random m_random;
 
         private int Thickness;
         private List<Polyline> InnerResultPolyline;
 
         private List<TextDot> InnerNodeTextDots;
+
+        // Temp
+        private List<Curve> SCrvForShowList;
+        private List<Curve> NCrvForShowList;
+
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -50,6 +61,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             pManager[3].Optional = true;
 
             pManager.AddNumberParameter("SetbackList", "SetbackList", "", GH_ParamAccess.list);
+
+            pManager.AddNumberParameter("w", "", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("W", "", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("lMin", "", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("lMax", "", "", GH_ParamAccess.item);
+
+            pManager.AddIntegerParameter("Seed", "", "", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -69,6 +87,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
             // pManager.AddBrepParameter("CutsBrepDT", "", "", GH_ParamAccess.tree);
             // pManager.AddBrepParameter("ResultBreps", "", "", GH_ParamAccess.list);
+
+            pManager.AddCurveParameter("H", "", "", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -93,12 +113,27 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
             List<double> setbackList = new List<double>();
 
+            double w = 0;
+            double W = 0;
+            double lMin = 0;
+            double lMax = 0;
+
+            int seed = 0;
+
             if (DA.GetData<DualGraphWithHM>("DualGraphWithHM", ref dualGraphWithHM)
                 && DA.GetData<PlanktonMesh>("newDualPlanktonMesh", ref dual)
-                && DA.GetDataList("SetbackList", setbackList))
+                && DA.GetDataList("SetbackList", setbackList)
+                && DA.GetData("w", ref w)
+                && DA.GetData("W", ref W)
+                && DA.GetData("lMin",ref lMin)
+                && DA.GetData("lMax",ref lMax)
+                && DA.GetData<int>("Seed", ref seed))
             {
                 DA.GetDataTree<GH_Integer>("WhichPairSetbackNeedToChange", out pairNeedToChange);
                 DA.GetDataTree<GH_Number>("SetbackValueNeedToChange", out setbackValueNeedToChange);
+
+                // 固定种子随机数生成器
+                m_random = new Random(seed);
 
                 Thickness = 2;
 
@@ -234,12 +269,25 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             currPoints.Add(dual.Vertices[currVIndex[k]].ToPoint3d());
                         }
 
-                        // 判断首尾两个点位置处的曲率，即是否在首尾处转折
-                        double first, last;
-                        GetSlopeAtStartAndEnd(dual, allFaceHIndex, i, j, currPoints, out first, out last);
-
                         BoundarySegment bs = new BoundarySegment(currPoints, allFaceHIndex[i][j].ToArray(), allFaceFIndex[i][j], allFaceAdjacentFIndex[i][j]);
-                        if (first - 0 < 0.5 * Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance)
+
+                        // 判断首尾两个点位置处的曲率，即是否在首尾处转折
+                        int FH = allFaceHIndex[i][j].First();
+                        int LH = allFaceHIndex[i][j].Last();
+                        int PFH = dual.Halfedges[FH].PrevHalfedge;
+                        int NLH = dual.Halfedges[LH].NextHalfedge;
+
+                        int PFHS = dual.Halfedges[PFH].StartVertex;
+                        int NLHE = dual.Halfedges.EndVertex(NLH);
+
+                        Point3d pt0 = dual.Vertices[PFHS].ToPoint3d();
+                        Point3d pt1 = currPoints.First();
+                        Point3d pt2 = currPoints[1];
+
+                        Point3d pt3 = currPoints[currPoints.Count - 2];
+                        Point3d pt4 = currPoints.Last();
+                        Point3d pt5 = dual.Vertices[NLHE].ToPoint3d();
+                        if (IsThreePointsCollinear(pt0, pt1, pt2))
                         {
                             bs.IsZeroCurvatureAtStart = true;
                         }
@@ -247,7 +295,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         {
                             bs.IsZeroCurvatureAtStart = false;
                         }
-                        if (last - 0 < 0.5 * Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance)
+                        if (IsThreePointsCollinear(pt3, pt4, pt5))
                         {
                             bs.IsZeroCurvatureAtEnd = true;
                         }
@@ -413,6 +461,88 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                 }
                 DA.SetData("DualGraphWithHM with BS", dualGraphWithHM);
+
+
+
+                //for (int i = 0; i < allFaceBS.Count; i++)
+                //{
+                //    Curve joinedCurve = GetJoinedCurveFromBS(allFaceBS[i]);
+
+                //    CalEachBSDomain(allFaceBS[i], joinedCurve);
+                //}
+
+                List<List<Curve>> curveUnionLoL = new List<List<Curve>>();
+
+                SCrvForShowList.Clear();
+                NCrvForShowList.Clear();
+
+                for (int i = 0; i < newAllFaceBS.Count; i++)
+                {
+                    curveUnionLoL.Add(new List<Curve>());
+
+                    bool isHorizontalLayout;
+                    Polyline sortedBoundaryPolyline;
+                    List<Line> lineForEachEdge;
+                    List<BoundarySegment> sortedBS = SortBoundarySegment(newAllFaceBS[i], innerResultPolylines[i], out isHorizontalLayout, out lineForEachEdge, out sortedBoundaryPolyline);
+
+                    Curve[] curveUnion = new Curve[] { };
+                    List<bool> isGenerateables = new List<bool>() { true, true, true, true };
+                    // todo:根据BS的属性（两个Face相连的BS的setback值），来生成 List<bool> isGenerateables
+
+                    Curve sCrvForShow = null;
+                    Curve nCrvForShow = null;
+                    if (sortedBoundaryPolyline.Count == 5)
+                    {
+                        curveUnion = GenerateLayoutLinesOnQuadBlock(sortedBoundaryPolyline, lineForEachEdge, isGenerateables, w, W, lMin, lMax, false, out sCrvForShow, out nCrvForShow);
+                    }
+
+                    if (sCrvForShow != null)
+                    {
+                        SCrvForShowList.Add(sCrvForShow);
+                    }
+                    if (nCrvForShow != null)
+                    {
+                        NCrvForShowList.Add(nCrvForShow);
+                    }
+
+                    //List<Curve> regions = new List<Curve>();
+                    //for (int j = 0; j < horizontalLayoutLine.Length; j++)
+                    //{
+                    //    if (horizontalLayoutLine[j] != null)
+                    //    {
+                    //        regions.Add(GenerateSingleLayoutRegion(horizontalLayoutLine[j], w));
+                    //    }
+                    //    else
+                    //    {
+                    //        // 如果southBaseLine到northBoundaryLine的距离，小于W后，就直接让体量充满地块
+                    //        regions.Add(innerResultPolylines[i].ToNurbsCurve());
+                    //    }
+                        
+                    //}
+
+                    curveUnionLoL[i].AddRange(curveUnion);
+                }
+
+                DataTree<GH_Curve> ghcurves = new DataTree<GH_Curve>();
+                for (int i = 0; i < curveUnionLoL.Count; i++)
+                {
+                    ghcurves.EnsurePath(i);
+                    for (int j = 0; j < curveUnionLoL[i].Count; j++)
+                    {
+                        GH_Curve ghcurve = new GH_Curve(curveUnionLoL[i][j]);
+                        ghcurves.Branch(i).Add(ghcurve);
+                    }
+                }
+
+                //DataTree<Curve> tree = UtilityFunctions.LoLToDataTree<Curve>(horizontalLayoutLineLoL);
+                //GH_Curve
+                DA.SetDataTree(2, ghcurves);
+
+
+
+
+
+
 
                 #region 可视化
                 InnerResultPolyline.Clear();
@@ -714,31 +844,27 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return newAllFaceBS;
         }
 
-        private void GetSlopeAtStartAndEnd(PlanktonMesh dual, List<List<List<int>>> allFaceHIndex, int i, int j, List<Point3d> currPoints, out double first, out double last)
+        /// <summary>
+        /// 三点是否共线
+        /// </summary>
+        /// <param name="pt0"></param>
+        /// <param name="pt1"></param>
+        /// <param name="pt2"></param>
+        /// <returns></returns>
+        private bool IsThreePointsCollinear(Point3d pt0, Point3d pt1, Point3d pt2)
         {
-            int FH = allFaceHIndex[i][j].First();
-            int LH = allFaceHIndex[i][j].Last();
-            int PFH = dual.Halfedges[FH].PrevHalfedge;
-            int NLH = dual.Halfedges[LH].NextHalfedge;
-
-            int PFHS = dual.Halfedges[PFH].StartVertex;
-            int NLHE = dual.Halfedges.EndVertex(NLH);
-
-            Point3d pt0 = dual.Vertices[PFHS].ToPoint3d();
-            Point3d pt1 = currPoints.First();
-            Point3d pt2 = currPoints[1];
-
-            Point3d pt3 = currPoints[currPoints.Count - 2];
-            Point3d pt4 = currPoints.Last();
-            Point3d pt5 = dual.Vertices[NLHE].ToPoint3d();
-
             Vector3d dxdy01 = new Vector3d(pt1 - pt0);
             Vector3d dxdy12 = new Vector3d(pt2 - pt1);
-            Vector3d dxdy34 = new Vector3d(pt4 - pt3);
-            Vector3d dxdy45 = new Vector3d(pt5 - pt4);
 
-            first = dxdy01.X * dxdy12.Y - dxdy01.Y * dxdy12.X;
-            last = dxdy34.X * dxdy45.Y - dxdy34.Y * dxdy45.X;
+            double k = dxdy01.X * dxdy12.Y - dxdy01.Y * dxdy12.X;
+            if (Math.Abs(k) - 0 < 0.5 * GH_Component.DocumentTolerance())
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public class SolveResults
@@ -874,6 +1000,1289 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return result;
         }
 
+
+        //public Curve GetJoinedCurveFromBS(List<BoundarySegment> bs)
+        //{
+        //    List<Curve> boundaryCurves = new List<Curve>();
+        //    for (int i = 0; i < bs.Count; i++)
+        //    {
+        //        boundaryCurves.Add(bs[i].PolylineCurve);
+        //    }
+        //    Curve joinedBoundaryCurve = Curve.JoinCurves(boundaryCurves)[0];
+
+        //    return joinedBoundaryCurve;
+        //}
+
+
+        private List<BoundarySegment> SortBoundarySegment(List<BoundarySegment> bs, 
+                                                          Polyline boundaryPolyline, 
+                                                          out bool isHorizontalLayout,
+                                                          out List<Line> lineForEachEdge,
+                                                          out Polyline sortedBoundaryPolyline)
+        {
+            #region 得到从最南侧的点开始排序的sortedBoundaryPolyline
+            List<Point3d> pts = boundaryPolyline.ToList();
+            pts.RemoveAt(pts.Count - 1);
+            BoundingBox boundingBox = boundaryPolyline.BoundingBox;
+            double minY = boundingBox.Min.Y;
+            List<int> lowestPointIndexs = new List<int>();
+            List<Point3d> lowestPoints = new List<Point3d>();
+            for (int i = 0; i < pts.Count; i++)
+            {
+                if (pts[i].Y == minY)
+                {
+                    lowestPointIndexs.Add(i);
+                    lowestPoints.Add(pts[i]);
+                }
+            }
+
+            int shift;
+            if (lowestPointIndexs.Count == 1)
+            {
+                // 只有一个点是最南侧的点时
+                shift = lowestPointIndexs[0];
+            }
+            else
+            {
+                // 有两个点是最南侧的点时
+                List<double> xlist = new List<double>();
+                for (int i = 0; i < lowestPoints.Count; i++)
+                {
+                    xlist.Add(lowestPoints[i].X);
+                }
+                int index = xlist.IndexOf(xlist.Min());
+
+                shift = lowestPointIndexs[index];
+            }
+
+            List<Point3d> sortedPts = UtilityFunctions.Shift<Point3d>(pts, shift, true);
+            
+            #endregion
+
+            #region 得到能够代表每条边的直线
+            List<Line> unsortedLineForEachEdge = new List<Line>();
+            int currentIndex = 0;
+            do
+            {
+                Point3d pt0 = sortedPts[currentIndex];
+                Point3d pt1 = sortedPts[(currentIndex + 1) % sortedPts.Count];
+                Point3d pt2 = sortedPts[(currentIndex + 2) % sortedPts.Count];
+                if (IsThreePointsCollinear(pt0, pt1, pt2))
+                {
+                    Line line = new Line(pt0, pt2);
+                    unsortedLineForEachEdge.Add(line);
+
+                    currentIndex = sortedPts.IndexOf(pt2);
+                }
+                else
+                {
+                    Line line = new Line(pt0, pt1);
+                    unsortedLineForEachEdge.Add(line);
+
+                    currentIndex = sortedPts.IndexOf(pt1);
+                }
+            } while (currentIndex != 0);
+            #endregion
+
+            #region 判断sortedPts[0]这个点左侧的线(lineForEdge[-1])还是右侧的线(lineForEdge[0])是southBaseLine
+            Vector3d vector0 = sortedPts[sortedPts.Count - 1] - sortedPts[0];
+            Vector3d vector1 = sortedPts[0] - sortedPts[1];
+
+            double rad0 = Vector3d.VectorAngle(vector0, Vector3d.XAxis);
+            double rad1 = Vector3d.VectorAngle(vector1, Vector3d.YAxis);
+
+            isHorizontalLayout = false;
+            if (rad0 > Math.PI/4 && rad1 > Math.PI/4)
+            {
+                isHorizontalLayout = true;
+                lineForEachEdge = UtilityFunctions.Shift<Line>(unsortedLineForEachEdge, 1, false);
+            }
+            else
+            {
+                if (rad0 < rad1)
+                {
+                    isHorizontalLayout = false;
+                    lineForEachEdge = UtilityFunctions.Shift<Line>(unsortedLineForEachEdge, 1, false);
+                }
+                else if (rad0 == rad1)
+                {
+                    isHorizontalLayout = false;
+
+                    double length0 = vector0.Length;
+                    double length1 = vector1.Length;
+                    if (length0 >= length1)
+                    {
+                        lineForEachEdge = UtilityFunctions.Shift<Line>(unsortedLineForEachEdge, 1, false);
+                    }
+                    else
+                    {
+                        lineForEachEdge = unsortedLineForEachEdge;
+                    }
+                }
+                else
+                {
+                    isHorizontalLayout = false;
+                    lineForEachEdge = unsortedLineForEachEdge;
+                }
+            }
+            #endregion
+
+            #region 基于lineForEachEdge，得到sortedBoundaryPolyline
+            List<Point3d> lineStartAndEnd = new List<Point3d>();
+            lineStartAndEnd.Add(lineForEachEdge[0].From);
+            for (int i = 0; i < lineForEachEdge.Count; i++)
+            {
+                lineStartAndEnd.Add(lineForEachEdge[i].To);
+            }
+            sortedBoundaryPolyline = new Polyline(lineStartAndEnd);
+            #endregion
+
+
+            #region 对BS进行排序
+            int bsShift;
+            List<int> jList = new List<int>();
+            for (int i = 0; i < bs.Count; i++)
+            {
+                for (int j = 0; j < bs[i].Points.Count; j++)
+                {
+                    if (bs[i].Points[j].EpsilonEquals(lineForEachEdge[0].From, GH_Component.DocumentTolerance()))
+                    {
+                        jList.Add(j);
+                    }
+                }
+            }
+            bsShift = jList.IndexOf(jList.Min());
+            List<BoundarySegment> sortedBS = UtilityFunctions.Shift<BoundarySegment>(bs, shift, true);
+
+            #endregion
+
+            return sortedBS;
+        }
+
+        //private List<BoundarySegment> decomposeQuadBlock(List<BoundarySegment> sortedBS, 
+        //                                                 Polyline sortedBoundaryPolyline, 
+        //                                                 out List<Polyline> decomposedBoundaryPolyline,
+        //                                                 double lMin,
+        //                                                 double lMax)
+        //{
+        //    int sIndex = 0;
+        //    int eIndex = 1;
+        //    int nIndex = 2;
+        //    int wIndex = 3;
+
+            
+        //    //BoundarySegment sBS = sortedBS[sIndex];
+
+        //    // 由于输入的bs中可能含有折线，所以要重新生成不包含折线的多边形各个边
+        //    List<Line> sortedLines = new List<Line>();
+        //    int currentIndex = 0;
+        //    while (currentIndex != sortedBoundaryPolyline.Count - 1)
+        //    {
+        //        Point3d pt0 = sortedBoundaryPolyline[currentIndex];
+        //        Point3d pt1 = sortedBoundaryPolyline[(currentIndex + 1) % sortedBoundaryPolyline.Count];
+        //        Point3d pt2 = sortedBoundaryPolyline[(currentIndex + 2) % sortedBoundaryPolyline.Count];
+        //        if (IsThreePointsCollinear(pt0, pt1, pt2))
+        //        {
+        //            Line line = new Line(pt0, pt2);
+        //            sortedLines.Add(line);
+
+        //            currentIndex = sortedBoundaryPolyline.IndexOf(pt2);
+        //        }
+        //        else
+        //        {
+        //            Line line = new Line(pt0, pt1);
+        //            sortedLines.Add(line);
+
+        //            currentIndex = sortedBoundaryPolyline.IndexOf(pt1);
+        //        }
+        //    }
+
+        //    //// 水平方向上的分解
+        //    //double sL = sortedLines[sIndex].Length;
+        //    //double nL = sortedLines[nIndex].Length;
+
+        //    // 判断是选择起始点左侧的边还是右侧的边作为排布的基准线
+        //    Vector3d vector0 = sortedLines.First().Direction;
+        //    Vector3d vector1 = sortedLines.Last().Direction * (-1);
+        //    bool isFirst;
+        //    Vector3d verticalVector;
+        //    Vector3d layoutDirection = GetLayoutDirection(vector0, vector1,out isFirst, out verticalVector);
+
+        //    Curve boundary = Curve.CreateInterpolatedCurve(sortedBoundaryPolyline, 1);
+        //    Curve needToTrim;
+        //    if (isFirst)
+        //    {
+        //        needToTrim = sortedLines.First().ToNurbsCurve();
+        //    }
+        //    else
+        //    {
+        //        needToTrim = sortedLines.Last().ToNurbsCurve();
+        //    }
+        //    Curve newCurve = TrimBothEnd(boundary, verticalVector, needToTrim, isGenerateable, double w);
+
+
+
+        //}
+
+        private Curve[] GenerateLayoutLinesOnQuadBlock(//List<BoundarySegment> sortedBS, 
+                                                       Polyline sortedBoundaryPolyline, 
+                                                       List<Line> lineForEachEdge,
+                                                       List<bool> isGenerateables, 
+                                                       //bool isHorizontalLayout,
+                                                       double w, 
+                                                       double W, 
+                                                       double lMin,
+                                                       double lMax,
+                                                       bool isParallelGeneration,
+                                                       out Curve southBaseLineForShow,
+                                                       out Curve northBaseLineForShow)
+        {
+            // 从确定南侧基线开始处理
+            // 判断是选择起始点左侧的边还是右侧的边作为排布的基准线
+            //Vector3d vector0 = lineForEachEdge.First().Direction;
+            //Vector3d vector1 = lineForEachEdge.Last().Direction * (-1);
+            //bool isFirst;
+            Vector3d directionVector;
+            Vector3d verticalVector;
+            
+            //Vector3d layoutDirection = GetLayoutDirection(vector0, vector1, out isFirst, out verticalVector);
+
+            Curve boundary = Curve.CreateInterpolatedCurve(sortedBoundaryPolyline, 1);
+            Curve southBoundaryLine;
+            int southSegmentIndex = 0;
+            
+            southBoundaryLine = lineForEachEdge.First().ToNurbsCurve();
+            directionVector = lineForEachEdge[southSegmentIndex].Direction;
+            verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+            Curve southCenterLine = TrimBothEnd(boundary, verticalVector, southBoundaryLine, Convert.ToInt32(isGenerateables[southSegmentIndex]), w, W);
+            southCenterLine.Domain = new Interval(0, 1);
+
+            Curve southBaseLine = southCenterLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            //sCrvForCalDistance = TrimBothEnd(boundary, verticalVector, sCrvForCalDistance, true, w, W);
+            southBaseLine.Domain = new Interval(0, 1);
+
+            // 确定北侧基线
+            int northSegmentIndex = 2;
+
+            Curve northBoundaryLine = lineForEachEdge[northSegmentIndex].ToNurbsCurve();
+            directionVector = lineForEachEdge[northSegmentIndex].Direction;
+            verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+            Curve northCenterLine = TrimBothEnd(boundary, verticalVector, northBoundaryLine, Convert.ToInt32(isGenerateables[northSegmentIndex]), w, W);
+            northCenterLine.Domain = new Interval(0, 1);
+
+            Curve northBaseLine = northCenterLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            //nCrvForCalDistance = TrimBothEnd(boundary, verticalVector, nCrvForCalDistance, true, w, W);
+            northBaseLine.Domain = new Interval(0, 1);
+
+
+            // 判断南北侧基线是否小于 lMin
+            double sBLLength = southBaseLine.GetLength();
+            double nBLLength = northBaseLine.GetLength();
+
+            bool needToGenerateBaseLine = true;
+            if (sBLLength < lMin && nBLLength < lMin)
+            {
+                // 如果南北两基线，都小于 lMin 那么直接让生成的形体，占满当前整个地块
+                needToGenerateBaseLine = false;
+            }
+            else if (sBLLength < lMin && nBLLength >= lMin)
+            {
+                // 如果南基线的长度小于 lMin ，那么就让南基线进行退线，直到长度等于 lMin
+                needToGenerateBaseLine = true;
+
+                // todo
+            }
+            else if (sBLLength >= lMin && nBLLength < lMin)
+            {
+                // 如果北基线的长度小于 lMin ，那么就让北基线进行退线，直到长度等于 lMin
+                needToGenerateBaseLine = true;
+
+                // todo
+            }
+
+            List<Curve> horizontalCenterLines = new List<Curve>();
+            if (needToGenerateBaseLine)
+            {
+                // 确定是否需要在南北基线之间添加新的基线
+                /* 此处不应该是 southBaseLine 和 northBaseLine 而应该是 偏移了 0.5*w 后的 */
+                Point3d a1 = southBaseLine.PointAtStart;
+                Point3d a2 = southBaseLine.PointAtEnd;
+                Point3d b1 = northBaseLine.PointAtStart;
+                Point3d b2 = northBaseLine.PointAtEnd;
+                int indexBetweenBaseLines = 0;
+                double minDistanceBetweenBaseLines = MinDistanceBetweenTwoLineSegment(a1, a2, b1, b2, out indexBetweenBaseLines);
+
+                if (minDistanceBetweenBaseLines <= 0)
+                {
+                    // 如果两线段直接相交时，或者a1a2在b1b2上面时
+
+                    b1 = northBoundaryLine.PointAtStart;
+                    b2 = northBoundaryLine.PointAtEnd;
+
+                    int indexBetweenBaseLineAndBoundaryLine = 0;
+                    double minDistanceBetweenBaseLineAndBoundaryLine = MinDistanceBetweenTwoLineSegment(a1, a2, b1, b2, out indexBetweenBaseLineAndBoundaryLine);
+
+                    if (minDistanceBetweenBaseLineAndBoundaryLine < W * 0.5)
+                    {
+                        // 如果southBaseLine到northBoundaryLine的距离，小于W后，就直接让体量充满地块
+                        //horizontalCenterLines.Add(null);
+                    }
+                    else
+                    {
+                        // 此时场地内只有一个体量，因此要考虑在南侧，中间，还是北侧？
+                        Curve northCenterLineDP = northCenterLine.DuplicateCurve();
+                        northCenterLineDP.Reverse();
+
+                        Surface surface = NurbsSurface.CreateRuledSurface(southCenterLine, northCenterLineDP);
+                        //List<double> pList = new List<double>() { 0.0, 0.5, 1.0 };
+                        int pIndex = m_random.Next(3);
+                        if (pIndex == 1)
+                        {
+                            double t = surface.Domain(1).ParameterAt(0.5);
+                            Curve curve = surface.IsoCurve(0, t);
+                            Vector3d vec = curve.TangentAtStart;
+                            verticalVector = new Vector3d(-vec.Y, vec.X, vec.Z);
+                            curve = TrimBothEnd(boundary, verticalVector, curve, 2, w, W);
+
+                            horizontalCenterLines.Add(curve);
+                        }
+                        else if (pIndex == 0)
+                        {
+                            horizontalCenterLines.Add(southCenterLine);
+                        }
+                        else
+                        {
+                            horizontalCenterLines.Add(northCenterLine);
+                        }
+                    }
+
+                }
+                else if (minDistanceBetweenBaseLines > 0 && minDistanceBetweenBaseLines < W)
+                {
+                    // 两线段之间的距离不足以放置新的基线（进行TweenCurve）
+                    // 尝试将NorthBaseLine缩短到使得 minDistanceBetweenSouthAndNorth = W
+
+                    #region 计算setback
+                    double setback;
+                    if (indexBetweenBaseLines % 2 == 0)
+                    {
+                        // index为偶数，右端最近
+                        if (indexBetweenBaseLines == 0)
+                        {
+                            // 与b1b2垂直
+                            setback = Math.Sqrt(Dis2(a2, b1) - Math.Pow(minDistanceBetweenBaseLines, 2)) + Math.Sqrt(Math.Pow(W, 2) - Math.Pow(minDistanceBetweenBaseLines, 2));
+
+                        }
+                        else if (indexBetweenBaseLines == 2)
+                        {
+                            // 与a1a2垂直
+                            double alpha = Vector3d.VectorAngle(-southBaseLine.TangentAtStart, northBaseLine.TangentAtStart);
+                            setback = (W - minDistanceBetweenBaseLines) / Math.Sin(alpha);
+                        }
+                        else
+                        {
+                            // 都不垂直
+                            double D = Dis2PointToStraightLine(b1, b2, a2);
+                            setback = Math.Sqrt(Math.Pow(W, 2) - Math.Pow(D, 2)) - Math.Sqrt(Math.Pow(minDistanceBetweenBaseLines, 2) - Math.Pow(D, 2));
+                        }
+                    }
+                    else
+                    {
+                        // index为奇数，左端最近
+                        if (indexBetweenBaseLines == 1)
+                        {
+                            // 与b1b2垂直
+                            setback = Math.Sqrt(Dis2(a1, b2) - Math.Pow(minDistanceBetweenBaseLines, 2)) + Math.Sqrt(Math.Pow(W, 2) - Math.Pow(minDistanceBetweenBaseLines, 2));
+                        }
+                        else if (indexBetweenBaseLines == 3)
+                        {
+                            // 与a1a2垂直
+                            double alpha = Vector3d.VectorAngle(southBaseLine.TangentAtStart, -northBaseLine.TangentAtStart);
+                            setback = (W - minDistanceBetweenBaseLines) / Math.Sin(alpha);
+                        }
+                        else
+                        {
+                            // 都不垂直
+                            double D = Dis2PointToStraightLine(b1, b2, a1);
+                            setback = Math.Sqrt(Math.Pow(W, 2) - Math.Pow(D, 2)) - Math.Sqrt(Math.Pow(minDistanceBetweenBaseLines, 2) - Math.Pow(D, 2));
+                        }
+                    }
+                    #endregion
+
+                    double l = northBaseLine.GetLength() - setback;
+                    if (l < lMin)
+                    {
+                        // 此时体量的剩余距离过短，north体量被排除
+                        // 此时场地内只有一个体量，因此要考虑在南侧，中间，还是北侧？
+                        Curve northCenterLineDP = northCenterLine.DuplicateCurve();
+                        northCenterLineDP.Reverse();
+
+                        Surface surface = NurbsSurface.CreateRuledSurface(southCenterLine, northCenterLineDP);
+                        //List<double> pList = new List<double>() { 0.0, 0.5, 1.0 };
+                        int pIndex = m_random.Next(3);
+                        if (pIndex == 1)
+                        {
+                            double t = surface.Domain(1).ParameterAt(0.5);
+                            Curve curve = surface.IsoCurve(0, t);
+                            Vector3d vec = curve.TangentAtStart;
+                            verticalVector = new Vector3d(-vec.Y, vec.X, vec.Z);
+                            curve = TrimBothEnd(boundary, verticalVector, curve, 2, w, W);
+
+                            horizontalCenterLines.Add(curve);
+                        }
+                        else if (pIndex == 0)
+                        {
+                            horizontalCenterLines.Add(southCenterLine);
+                        }
+                        else
+                        {
+                            horizontalCenterLines.Add(northCenterLine);
+                        }
+                    }
+                    else
+                    {
+                        // 此时场地内有两个体量
+                        Curve newNorthCenterLine;
+                        if (indexBetweenBaseLines % 2 == 0)
+                        {
+                            newNorthCenterLine = northCenterLine.Trim(CurveEnd.Start, setback);
+                        }
+                        else
+                        {
+                            newNorthCenterLine = northCenterLine.Trim(CurveEnd.End, setback);
+                        }
+
+                        horizontalCenterLines.Add(southCenterLine);
+                        horizontalCenterLines.Add(newNorthCenterLine);
+                    }
+                }
+                else
+                {
+                    // 两线段之间的距离足以放置新的基线（进行TweenCurve）
+                    minDistanceBetweenBaseLines -= W;
+
+                    int insertCount = (int)(Math.Floor(minDistanceBetweenBaseLines / (W + w)));
+
+                    if (insertCount != 0)
+                    {
+                        // 南北基线中间插入新的基线
+                        double sum = (insertCount + 1) * W + insertCount * w;
+                        List<double> eachLengths = new List<double>();
+                        eachLengths.Add(W + 0.5 * w);
+                        for (int i = 1; i < insertCount; i++)
+                        {
+                            double num = eachLengths[i - 1] + W + w;
+                            eachLengths.Add(num);
+                        }
+
+                        List<double> factors = new List<double>();
+                        for (int i = 0; i < insertCount; i++)
+                        {
+                            double factor = eachLengths[i] / sum;
+                            factors.Add(factor);
+                        }
+
+                        Curve trimedSouthBaseLine;
+                        Curve trimedNorthBaseLine;
+                        // 按照最短距离计算的结果，对进行TweenCurve的南北基线进行修正
+                        // (a1, a2, b1):右端，与b1b2垂直，即index = 0
+                        // (a1, a1, b2):左端，与b1b2垂直，即index = 1
+                        // (b1, b2, a2):右端，与a1a2垂直，即index = 2
+                        // (b1, b2, a1):左端，与a1a2垂直，即index = 3
+                        // index = 4:右端，都不垂直
+                        // index = 5:左端，都不垂直
+                        if (indexBetweenBaseLines % 2 == 0)
+                        {
+                            // index为偶数，右端最近
+                            if (indexBetweenBaseLines == 0)
+                            {
+                                // 与b1b2垂直
+                                double t;
+                                northBaseLine.ClosestPoint(a2, out t);
+                                trimedNorthBaseLine = northBaseLine.Trim(t, 1.0);
+                                trimedSouthBaseLine = southBaseLine;
+                            }
+                            else if (indexBetweenBaseLines == 2)
+                            {
+                                // 与a1a2垂直
+                                double t;
+                                southBaseLine.ClosestPoint(b1, out t);
+                                trimedSouthBaseLine = southBaseLine.Trim(0.0, t);
+                                trimedNorthBaseLine = northBaseLine;
+                            }
+                            else
+                            {
+                                // 都不垂直
+                                trimedSouthBaseLine = southBaseLine;
+                                trimedNorthBaseLine = northBaseLine;
+                            }
+                        }
+                        else
+                        {
+                            // index为奇数，左端最近
+                            if (indexBetweenBaseLines == 1)
+                            {
+                                // 与b1b2垂直
+                                double t;
+                                northBaseLine.ClosestPoint(a1, out t);
+                                trimedNorthBaseLine = northBaseLine.Trim(0.0, t);
+                                trimedSouthBaseLine = southBaseLine;
+                            }
+                            else if (indexBetweenBaseLines == 3)
+                            {
+                                // 与a1a2垂直
+                                double t;
+                                southBaseLine.ClosestPoint(b2, out t);
+                                trimedSouthBaseLine = southBaseLine.Trim(t, 1.0);
+                                trimedNorthBaseLine = northBaseLine;
+                            }
+                            else
+                            {
+                                // 都不垂直
+                                trimedSouthBaseLine = southBaseLine;
+                                trimedNorthBaseLine = northBaseLine;
+                            }
+                        }
+
+                        if (isParallelGeneration)
+                        {
+                            // southCrv不需要修改赋值，重新对northCrv进行赋值即可
+                            Vector3d motion;
+                            switch (indexBetweenBaseLines)
+                            {
+                                case 0:
+                                    motion = new Vector3d(northBaseLine.PointAtStart - southBaseLine.PointAtEnd);
+                                    break;
+                                case 1:
+                                    motion = new Vector3d(northBaseLine.PointAtEnd - southBaseLine.PointAtStart);
+                                    break;
+                                case 2:
+                                    motion = new Vector3d(northBaseLine.PointAtEnd - southBaseLine.PointAtStart);
+                                    break;
+                                case 3:
+                                    motion = new Vector3d(northBaseLine.PointAtStart - southBaseLine.PointAtEnd);
+                                    break;
+                                default:
+                                    motion = new Vector3d(0, 0, 0);
+                                    break;
+                            }
+
+                            Transform move = Transform.Translation(motion);
+                            Curve newNorthBaseLine = southBaseLine.DuplicateCurve();
+                            newNorthBaseLine.Transform(move);
+                            directionVector = newNorthBaseLine.TangentAtStart;
+                            verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+                            trimedNorthBaseLine = TrimBothEnd(boundary, verticalVector, newNorthBaseLine, 1, w, W);
+                        }
+
+                        trimedNorthBaseLine.Reverse();
+                        Surface surface = NurbsSurface.CreateRuledSurface(trimedSouthBaseLine, trimedNorthBaseLine);
+                        List<Curve> insectCurves = new List<Curve>();
+                        for (int i = 0; i < factors.Count; i++)
+                        {
+                            double t = surface.Domain(1).ParameterAt(factors[i]);
+                            Curve curve = surface.IsoCurve(0, t);
+                            insectCurves.Add(curve);
+                        }
+                        surface.Dispose();
+
+                        horizontalCenterLines.Add(southCenterLine);
+                        for (int i = 0; i < insectCurves.Count; i++)
+                        {
+                            directionVector = insectCurves[i].TangentAtStart;
+                            verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+                            Curve insectCurve = TrimBothEnd(boundary, verticalVector, insectCurves[i], 1, w, W);
+                            horizontalCenterLines.Add(insectCurve);
+                        }
+                        horizontalCenterLines.Add(northCenterLine);
+                    }
+                    else
+                    {
+                        // 南北基线中间不插入新的基线
+                        horizontalCenterLines.Add(southCenterLine);
+                        horizontalCenterLines.Add(northCenterLine);
+                    }
+                }
+            }
+
+
+
+            // todo：处理东西侧方向
+
+
+
+
+
+
+
+
+
+
+
+            // Temp
+            southBaseLineForShow = southCenterLine;
+            northBaseLineForShow = northCenterLine;
+
+            List<Curve> singleRegions = new List<Curve>();
+            if (horizontalCenterLines.Count != 0)
+            {
+                for (int i = 0; i < horizontalCenterLines.Count; i++)
+                {
+                    singleRegions.Add(GenerateSingleLayoutRegion(horizontalCenterLines[i], w));
+                }
+            }
+            else
+            {
+                // 如果southBaseLine到northBoundaryLine的距离，小于W后，就直接让体量充满地块
+                // 此时horizontalCenterLines这个列表中没有元素，singleRegions列表只有一个元素
+                singleRegions.Add(sortedBoundaryPolyline.ToNurbsCurve());
+            }
+
+            Curve[] curveUnion;
+            if (singleRegions.Count > 1)
+            {
+                curveUnion = Curve.CreateBooleanUnion(singleRegions, GH_Component.DocumentTolerance());
+                return curveUnion;
+            }
+            else
+            {
+                return singleRegions.ToArray();
+            }
+        }
+
+        private Curve GenerateSingleLayoutRegion(Curve layoutLine, double w)
+        {
+            Vector3d direction = layoutLine.TangentAtStart;
+            direction.Unitize();
+
+            Vector3d moveDirection0 = Vector3d.CrossProduct(direction, new Vector3d(0, 0, -1));
+            moveDirection0.Unitize();
+            moveDirection0 = moveDirection0 * (w * 0.5);
+
+            Vector3d moveDirection1 = new Vector3d(moveDirection0);
+            moveDirection1 *= -1;
+
+            Point3d start = layoutLine.PointAtStart;
+            Point3d end = layoutLine.PointAtEnd;
+
+            List<Point3d> regionPts = new List<Point3d>();
+            regionPts.Add(start + moveDirection0);
+            regionPts.Add(start + moveDirection1);
+            regionPts.Add(end + moveDirection1);
+            regionPts.Add(end + moveDirection0);
+
+            regionPts.Add(start + moveDirection0);
+
+            Curve crv = Curve.CreateInterpolatedCurve(regionPts, 1);
+
+            return crv;
+        }
+
+        //// todo:把这个函数优化掉
+        //private Vector3d GetLayoutDirection(Vector3d vector0, Vector3d vector1, out bool isFirst, out Vector3d verticalVector)
+        //{
+        //    double rad0 = Vector3d.VectorAngle(vector0, Vector3d.XAxis);
+        //    double rad1 = Vector3d.VectorAngle(vector1, Vector3d.XAxis);
+
+        //    Vector3d layoutDirection;
+        //    //if (rad0 > Math.PI / 4 && rad1 > Math.PI / 4)
+        //    //{
+        //    //    layoutDirection = new Vector3d(1, 0, 0);
+        //    //}
+        //    //else
+        //    //{
+                
+        //    //}
+
+        //    if (rad0 < rad1)
+        //    {
+        //        layoutDirection = vector0;
+        //        isFirst = true;
+        //    }
+        //    else if (rad0 == rad1)
+        //    {
+        //        double length0 = vector0.Length;
+        //        double length1 = vector1.Length;
+        //        if (length0 >= length1)
+        //        {
+        //            layoutDirection = vector0;
+        //            isFirst = true;
+        //        }
+        //        else
+        //        {
+        //            layoutDirection = vector1;
+        //            isFirst = false;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        layoutDirection = vector1;
+        //        isFirst = false;
+        //    }
+        //    verticalVector = new Vector3d(-layoutDirection.Y, layoutDirection.X, layoutDirection.Z);
+
+        //    return layoutDirection;
+        //}
+
+        private Curve TrimBothEnd(Curve boundary, Vector3d depthDirection, Curve needToTrim, int type, double w, double W)
+        {
+            double tolerance = GH_Component.DocumentTolerance();
+
+            BoundingBox box = boundary.GetBoundingBox(Plane.WorldXY);
+            double boxLength = box.Max.X - box.Min.X;
+
+            Plane localCooridinate = new Plane(new Point3d(0, 0, 0), needToTrim.TangentAtStart, depthDirection);
+            Plane transformedCoordinate = Plane.WorldXY;
+            Transform transform = Transform.PlaneToPlane(transformedCoordinate, localCooridinate);
+
+            Curve current = needToTrim;
+            Curve new0;
+            Curve new1;
+            Curve newCurrent;
+            Curve trimedCurve;
+            if (type == 1)
+            {
+                Curve offset0 = current.Offset(Plane.WorldXY, -w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
+                Curve offset1 = current.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.None)[0];
+
+                new0 = current.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                newCurrent = offset0.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                new1 = offset1.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                newCurrent.Domain = new Interval(0, 1);
+            }
+            else if (type == 0)
+            {
+                Curve offset0 = current.Offset(Plane.WorldXY, -W, tolerance, CurveOffsetCornerStyle.None)[0];
+                Curve offset1 = current.Offset(Plane.WorldXY, -(w * 0.5 + W), tolerance, CurveOffsetCornerStyle.None)[0];
+                Curve offset2 = current.Offset(Plane.WorldXY, -(w + W), tolerance, CurveOffsetCornerStyle.None)[0];
+
+                new0 = offset0.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                newCurrent = offset1.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                new1 = offset2.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                newCurrent.Domain = new Interval(0, 1);
+            }
+            else
+            {
+                Curve offset0 = current.Offset(Plane.WorldXY, w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
+                Curve offset1 = current.Offset(Plane.WorldXY, -w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
+
+                new0 = offset0.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                newCurrent = current.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                new1 = offset1.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                newCurrent.Domain = new Interval(0, 1);
+            }
+
+            CurveIntersections curveIntersections0 = Intersection.CurveCurve(new0, boundary, tolerance, tolerance);
+            CurveIntersections curveIntersections1 = Intersection.CurveCurve(new1, boundary, tolerance, tolerance);
+
+            Point3d point00;
+            Point3d point01;
+            Point3d point10;
+            Point3d point11;
+            if (curveIntersections0.Count == 2 && curveIntersections1.Count == 2)
+            {
+                // 在对于边缘baseline进行处理时，只有 isGenerateable == false 的时候，是这种情况
+                point00 = curveIntersections0[0].PointA;
+                point01 = curveIntersections0[1].PointA;
+                point10 = curveIntersections1[0].PointA;
+                point11 = curveIntersections1[1].PointA;
+            }
+            else if (curveIntersections0.Count == 1 && curveIntersections0[0].IsOverlap && curveIntersections1.Count == 2)
+            {
+                // todo：curveIntersections0.Count == 1时，即overlap时要怎么处理
+                // 在对于边缘baseline进行处理时，只有 isGenerateable == true 的时候，是这种情况
+                if (curveIntersections0[0].IsOverlap)
+                {
+                    point00 = curveIntersections0[0].PointA;
+                    point01 = curveIntersections0[0].PointA2;
+                    point10 = curveIntersections1[0].PointA;
+                    point11 = curveIntersections1[1].PointA;
+                }
+                else
+                {
+                    return null;
+                }
+                
+            }
+            else if (curveIntersections1.Count == 1 && curveIntersections1[0].IsOverlap && curveIntersections0.Count == 2)
+            {
+                if (curveIntersections1[0].IsOverlap)
+                {
+                    point00 = curveIntersections0[0].PointA;
+                    point01 = curveIntersections0[1].PointA;
+                    point10 = curveIntersections1[0].PointA;
+                    point11 = curveIntersections1[0].PointA2;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                return null;
+            }
+
+            Point3d point00Transformed = new Point3d(point00);
+            Point3d point01Transformed = new Point3d(point01);
+            Point3d point10Transformed = new Point3d(point10);
+            Point3d point11Transformed = new Point3d(point11);
+
+            point00Transformed.Transform(transform);
+            point01Transformed.Transform(transform);
+            point10Transformed.Transform(transform);
+            point11Transformed.Transform(transform);
+
+            Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+            lineTransformed.Transform(transform);
+
+            // 投影后，求t值，并比较
+            double t00 = lineTransformed.ClosestParameter(point00Transformed);
+            double t01 = lineTransformed.ClosestParameter(point01Transformed);
+            double t10 = lineTransformed.ClosestParameter(point10Transformed);
+            double t11 = lineTransformed.ClosestParameter(point11Transformed);
+
+            double tStart;
+            double tEnd;
+            if (t00 >= t10)
+            {
+                //newCurrent.ClosestPoint(point00, out tStart);
+                tStart = t00;
+            }
+            else
+            {
+                //newCurrent.ClosestPoint(point10, out tStart);
+                tStart = t10;
+            }
+
+            if (t01 <= t11)
+            {
+                //newCurrent.ClosestPoint(point01, out tEnd);
+                tEnd = t01;
+            }
+            else
+            {
+                //newCurrent.ClosestPoint(point11, out tEnd);
+                tEnd = t11;
+            }
+
+            Interval interval = new Interval(tStart, tEnd);
+            trimedCurve = newCurrent.Trim(interval);
+
+            return trimedCurve;
+        }
+
+        /// <summary>
+        /// 向量AB与向量AP的外积（叉积）
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        private double Cross(Point3d a, Point3d b,Point3d p)
+        {
+            Vector3d ab = new Vector3d(b - a);
+            Vector3d ap = new Vector3d(p - a);
+            return ab.X * ap.Y - ab.Y * ap.X;
+        }
+
+        /// <summary>
+        /// 向量AB与向量AP的内积（点积）
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        private double Dot(Point3d a, Point3d b, Point3d p)
+        {
+            Vector3d ab = new Vector3d(b - a);
+            Vector3d ap = new Vector3d(p - a);
+            return ab.X * ap.X + ab.Y * ap.Y;
+        }
+
+        /// <summary>
+        /// 点P与线段AB位置关系(判断点P在线段AB的哪个方向上)
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        private int Dir(Point3d a, Point3d b, Point3d p)
+        {
+            double cross = Cross(a, b, p);
+            double dot = Dot(a, b, p);
+            if (cross < 0) return -1;       // 逆时针
+            else if (cross > 0) return 1;   // 顺时针
+            else if (dot < 0) return -2;    // 反延长线
+            else
+            {
+                if (Dis2(a, b) < Dis2(a, p)) return 2;  // 延长线
+                return 0;                               // p在线段AB上
+            }
+        }
+
+        /// <summary>
+        /// 点a、b距离的平方
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        private double Dis2(Point3d a,Point3d b)
+        {
+            return Math.Pow((a.X - b.X), 2) + Math.Pow((a.Y - b.Y), 2);
+        }
+
+        /// <summary>
+        /// 点b到直线a1a2的距离
+        /// </summary>
+        /// <param name="a1"></param>
+        /// <param name="a2"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        private double Dis2PointToStraightLine(Point3d a1, Point3d a2, Point3d b)
+        {
+            Vector3d a2a1 = a1 - a2;
+            Vector3d a2b = b - a2;
+            Vector3d normal = Vector3d.CrossProduct(a2a1, a2b);
+            normal.Unitize();
+
+            return Math.Abs(a2b * normal);
+        }
+
+        /// <summary>
+        /// 点P到线段AB的最短距离
+        /// </summary>
+        /// <returns></returns>
+        private double DisMin(Point3d a, Point3d b, Point3d p)
+        {
+            double r = ((p.X - a.X) * (b.X - a.X) + (p.Y - a.Y) * (b.Y - a.Y)) / Dis2(a, b);
+            if (r <= 0)//第一种情况，P对AB的垂点在AB反向延长线上, 返回AP的长
+            {
+                return Math.Sqrt(Dis2(a, p));
+            }
+            else if (r >= 1)//第二种情况, 返回BP的长度
+            {
+                return Math.Sqrt(Dis2(b, p));
+            }
+            else//第三种情况, 返回PC的长度
+            {
+                double AC = r * Math.Sqrt(Dis2(a, b));//先求AC的长度,(AC=r*|AB|)
+                return Math.Sqrt(Dis2(a, p) - AC * AC);//再勾股定理返回PC的长度
+            }
+        }
+
+        /// <summary>
+        /// 两个线段之间的最短距离
+        /// </summary>
+        /// <param name="a1"></param>
+        /// <param name="a2"></param>
+        /// <param name="b1"></param>
+        /// <param name="b2"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        private double MinDistanceBetweenTwoLineSegment(Point3d a1, Point3d a2, Point3d b1, Point3d b2, out int index)
+        {
+            
+            if (Dir(a1, a2, b1)*Dir(a1, a2, b2) <= 0 && Dir(b1, b2, a1)*Dir(b1, b2, a2) <= 0)
+            {
+                // 考虑相交的情况，两线段相交，距离为0
+                index = -1;
+                return 0;
+            }
+            else
+            {
+                // 不相交，则最短距离为每个端点到另一条线段距离的最小值
+
+                // 为了区分最后返回距离的正负(规定a1a1在b1b2下方时，距离值为正，反之为负)
+                bool isA1A2UnderB1B2 = true;
+                // 按照a1a2b1b2的顺序，将这四个点连接形成四边形，如果是逆时针的方向，则a1a2一定在b1b2下方，否则就在上方
+                List<Point3d> pts = new List<Point3d>() { a1, a2, b1, b2 };
+                int num = GetPolygonDirection(pts);
+                if (num == 0)
+                {
+                    isA1A2UnderB1B2 = true;
+                }
+                else if (num == 1)
+                {
+                    isA1A2UnderB1B2 = false;
+                }
+                else
+                {
+                    // 四点共线
+                    index = -1;
+                    return 0;
+                }
+
+                List<double> distance = new List<double>();
+                distance.Add(DisMin(a1, a2, b1));
+                distance.Add(DisMin(a1, a2, b2));
+                distance.Add(DisMin(b1, b2, a2));
+                distance.Add(DisMin(b1, b2, a1));
+                
+                double min = distance.Min();
+                // (a1, a2, b1):右端，与b1b2垂直，即index = 0
+                // (a1, a1, b2):左端，与b1b2垂直，即index = 1
+                // (b1, b2, a2):右端，与a1a2垂直，即index = 2
+                // (b1, b2, a1):左端，与a1a2垂直，即index = 3
+                index = distance.IndexOf(min);
+                List<double> distanceForSecondMin = new List<double>();
+                distanceForSecondMin.AddRange(distance);
+                double secondMin = distanceForSecondMin.OrderBy(z => z).Skip(1).First();
+
+                if (min - secondMin > -0.001 && min - secondMin < 0.001)
+                {
+                    if (index % 2 == 0)
+                    {
+                        // 右端，都不垂直
+                        index = 4;
+                    }
+                    else
+                    {
+                        // 左端，都不垂直
+                        index = 5;
+                    }
+                }
+
+                if (isA1A2UnderB1B2)
+                {
+                    return min;
+                }
+                else
+                {
+                    return -min;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 判断多边形是顺时针还是逆时针, -1表示可能是不可计算的图形，比如多点共线；0表示逆时针；1表示顺时针
+        /// </summary>
+        /// <param name="pts"></param>
+        /// <returns></returns>
+        private int GetPolygonDirection(List<Point3d> pts)
+        {
+            int j, k;
+            int count = 0;
+            double z;
+            if (pts == null || pts.Count < 3)
+            {
+                // 无.可能是不可计算的图形，比如多点共线
+                return -1;
+            }
+            int n = pts.Count;
+            for (int i = 0; i < n; i++)
+            {
+                j = (i + 1) % n;
+                k = (i + 2) % n;
+                z = (pts[j].X - pts[i].X) * (pts[k].Y - pts[j].Y);
+                z -= (pts[j].Y - pts[i].Y) * (pts[k].X - pts[j].X);
+                if (z < 0)
+                {
+                    count--;
+                }
+                else if (z > 0)
+                {
+                    count++;
+                }
+            }
+
+            if (count > 0)
+            {
+                // 逆时针
+                return 0;
+            }
+            else if (count < 0)
+            {
+                // 顺时针
+                return 1;
+            }
+            else
+            {
+                // 无.可能是不可计算的图形，比如多点共线
+                return -1;
+            }
+        }
+
+        //private List<Point3d> GenerateSplitPointOnHorizontalDirection(double lMin, double lMax, double w, Line line)
+        //{
+        //    List<Point3d> splitPoints = new List<Point3d>();
+        //    double L = line.Length;
+        //    if (L < lMin)
+        //    {
+        //        // L∈(0,lMin)，需要退线后，再次执行分解操作
+
+        //        return null;
+        //    }
+        //    else if (L >= lMin && L <= lMax)
+        //    {
+        //        // L∈[lMin,lMax]，不需要分解
+        //        return new List<Point3d>();
+        //    }
+        //    else if (L >= 2 * lMin + w && L <= 2 * lMax + w)
+        //    {
+        //        // L∈[2 * lMin + w,2 * lMax + w]，分解为两个
+        //        double[] lengths = new double[2] { lMin + w / 2, lMin + w / 2 };
+
+        //        double remaining = L - lengths[0] - lengths[1];
+
+        //        int modulus = (int)Math.Truncate(remaining / 3);
+        //        double remainder = remaining % 3;
+
+        //        int[] moduluses = new int[2] { 0, 0 };
+        //        double[] additions = new double[2] { 0, 0 };
+        //        if (modulus == 0 || modulus == 1)
+        //        {
+
+        //            int indexForModulus = m_random.Next(0, 2);
+        //            int indexForRemainder = m_random.Next(0, 2);
+        //            additions[indexForModulus] += modulus * 3;
+        //            additions[indexForRemainder] += remainder;
+        //        }
+        //        else
+        //        {
+
+        //            moduluses[0] = m_random.Next(0, modulus);
+        //            moduluses[1] = modulus - moduluses[0];
+
+        //            int indexForModulus0 = m_random.Next(0, 2);
+        //            int indexForModulus1 = 1 - indexForModulus0;
+        //            int indexForRemainder = m_random.Next(0, 2);
+
+        //            additions[indexForModulus0] += moduluses[0] * 3;
+        //            additions[indexForModulus1] += moduluses[1] * 3;
+        //            additions[indexForRemainder] += remainder;
+        //        }
+        //        for (int i = 0; i < lengths.Length; i++)
+        //        {
+        //            lengths[i] += additions[i];
+        //        }
+
+        //        double t = lengths[0] / line.Length;
+        //        Point3d point = line.PointAt(t);
+
+        //        splitPoints.Add(point);
+        //    }
+        //    else if (L >= 3 * lMin + 2 * w && L <= 3 * lMax + 2 * w)
+        //    {
+        //        // L∈[3 * lMin + 2 * w,3 * lMax + 2 * w]，分解为三个
+
+        //        double[] lengths = new double[3] { lMin + w / 2, lMin + w, lMin + w / 2 };
+
+        //        double remaining = L - lengths[0] - lengths[1] - lengths[2];
+        //        int modulus = (int)Math.Truncate(remaining / 3);
+        //        double remainder = remaining % 3;
+
+        //        int[] moduluses = new int[3] { 0, 0, 0 };
+        //        double[] additions = new double[3] { 0, 0, 0 };
+        //        if (modulus == 0 || modulus == 1)
+        //        {
+        //            int indexForModulus = m_random.Next(0, 3);
+        //            int indexForRemainder = m_random.Next(0, 3);
+        //            additions[indexForModulus] += modulus * 3;
+        //            additions[indexForRemainder] += remainder;
+        //        }
+        //        else
+        //        {
+        //            moduluses[0] = m_random.Next(0, modulus);
+        //            moduluses[1] = m_random.Next(moduluses[0], modulus);
+        //            moduluses[2] = modulus - moduluses[0] - moduluses[1];
+
+        //            List<int> indexForModuluses = new List<int>();
+        //            List<int> list = new List<int>() { 0, 1, 2 };
+        //            int n0 = m_random.Next(list.Count - 1);
+        //            indexForModuluses.Add(list[n0]);
+        //            list.RemoveAt(n0);
+        //            int n1 = m_random.Next(list.Count - 1);
+        //            indexForModuluses.Add(list[n1]);
+        //            list.RemoveAt(n1);
+        //            indexForModuluses.Add(list[0]);
+
+        //            int indexForRemainder = m_random.Next(0, 3);
+
+        //            for (int i = 0; i < indexForModuluses.Count; i++)
+        //            {
+        //                additions[indexForModuluses[i]] += moduluses[i] * 3;
+        //            }
+        //            additions[indexForRemainder] += remainder;
+        //        }
+        //        for (int i = 0; i < lengths.Length; i++)
+        //        {
+        //            lengths[i] += additions[i];
+        //        }
+
+        //        double t0 = lengths[0] / line.Length;
+        //        double t1 = lengths[1] / line.Length;
+        //        Point3d pt0 = line.PointAt(t0);
+        //        Point3d pt1 = line.PointAt(t1);
+
+        //        splitPoints.Add(pt0);
+        //        splitPoints.Add(pt1);
+        //    }
+        //    else
+        //    {
+        //        // 先进行二分，然后迭代直到符合上面几个条件中的一个
+        //        double sample = m_random.NextDouble();
+        //        // 0.4~0.6
+        //        double scaled = sample * 0.2 + 0.4;
+        //        Point3d pt = line.PointAt(scaled);
+        //        List<Line> newLines = new List<Line>();
+        //        newLines.Add(new Line(line.From, pt));
+        //        newLines.Add(new Line(pt, line.To));
+
+        //        List<List<Point3d>> splitPts = new List<List<Point3d>>();
+        //        for (int i = 0; i < newLines.Count; i++)
+        //        {
+        //            splitPts.Add(new List<Point3d>());
+        //            splitPts[i].AddRange(GenerateSplitPointOnHorizontalDirection(lMin, lMax, w, newLines[i]));
+        //        }
+
+        //        splitPoints.AddRange(splitPts[0]);
+        //        splitPoints.Add(pt);
+        //        splitPoints.AddRange(splitPts[1]);
+        //    }
+
+        //    return splitPoints;
+        //}
+
+        //public void CalEachBSDomain(List<BoundarySegment> bs, Curve joinedCurve)
+        //{
+        //    Interval allDomain = joinedCurve.Domain;
+
+        //    for (int i = 0; i < bs.Count; i++)
+        //    {
+        //        Interval spanDomain = joinedCurve.SpanDomain(i);
+
+        //        bs[i].SubDomain = new Interval(spanDomain);
+        //    }
+        //}
+
+        //public Polyline GenerateInnerZone(List<BoundarySegment> bs, int bsIndex)
+        //{
+
+        //}
+
+        //public Polyline GenerateInnerOffset(List<BoundarySegment> bs)
+        //{
+        //    List<Curve> boundaryCurves = new List<Curve>();
+        //    for (int i = 0; i < bs.Count; i++)
+        //    {
+        //        boundaryCurves.Add(bs[i].PolylineCurve);
+        //    }
+        //    Curve joinedBoundaryCurve = Curve.JoinCurves(boundaryCurves)[0];
+        //    BoundingBox box = joinedBoundaryCurve.GetBoundingBox(Rhino.Geometry.Plane.WorldXY);
+        //    double dx = box.Max.X - box.Min.X;
+        //    double dy = box.Max.Y - box.Min.Y;
+        //    double extendedValue = Math.Max(dx, dy) / 2;
+
+        //    // 创建offset的退线区域
+        //    List<Curve> cutCurves = new List<Curve>();
+        //    for (int i = 0; i < length; i++)
+        //    {
+
+        //    }
+
+        //}
+
         public override void DrawViewportMeshes(IGH_PreviewArgs args)
         {
             //base.DrawViewportMeshes(args);
@@ -886,6 +2295,16 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(InnerNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
+            }
+
+            // Temp
+            for (int i = 0; i < SCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
+            }
+            for (int i = 0; i < NCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
             }
         }
 
@@ -901,6 +2320,16 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 args.Display.EnableDepthTesting(false);
                 args.Display.DrawDot(InnerNodeTextDots[i], Color.ForestGreen, Color.White, Color.White);
                 args.Display.EnableDepthTesting(true);
+            }
+
+            // Temp
+            for (int i = 0; i < SCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
+            }
+            for (int i = 0; i < NCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
             }
         }
 

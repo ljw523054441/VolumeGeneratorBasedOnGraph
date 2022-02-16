@@ -140,6 +140,44 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return LoL;
         }
 
+        internal static List<T> Shift<T>(List<T> originList, int shift, bool isLeft)
+        {
+            if (isLeft)
+            {
+                // 深拷贝
+                List<T> newList = new List<T>();
+                newList.AddRange(originList);
+
+                int iter = 0;
+                while (iter < shift)
+                {
+                    T item = newList[0];
+                    newList.RemoveAt(0);
+                    newList.Add(item);
+                    iter++;
+                }
+
+                return newList;
+            }
+            else
+            {
+                // 深拷贝
+                List<T> newList = new List<T>();
+                newList.AddRange(originList);
+
+                int iter = 0;
+                while (iter < shift)
+                {
+                    T item = newList[newList.Count - 1];
+                    newList.Insert(0, item);
+                    newList.RemoveAt(newList.Count - 1);
+                    iter++;
+                }
+
+                return newList;
+            }
+        }
+
         #endregion
 
         #region 图形绘制
