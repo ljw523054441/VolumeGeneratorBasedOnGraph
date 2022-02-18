@@ -32,6 +32,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             // Temp
             SCrvForShowList = new List<Curve>();
             NCrvForShowList = new List<Curve>();
+            ECrvForShowList = new List<Curve>();
+            WCrvForShowList = new List<Curve>();
+            GapCenterLineList = new List<Curve>();
         }
 
         private Random m_random;
@@ -44,6 +47,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         // Temp
         private List<Curve> SCrvForShowList;
         private List<Curve> NCrvForShowList;
+        private List<Curve> ECrvForShowList;
+        private List<Curve> WCrvForShowList;
+        private List<Curve> GapCenterLineList;
 
 
         /// <summary>
@@ -66,6 +72,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             pManager.AddNumberParameter("W", "", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("lMin", "", "", GH_ParamAccess.item);
             pManager.AddNumberParameter("lMax", "", "", GH_ParamAccess.item);
+            pManager.AddNumberParameter("d", "", "", GH_ParamAccess.item);
 
             pManager.AddIntegerParameter("Seed", "", "", GH_ParamAccess.item);
         }
@@ -117,6 +124,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             double W = 0;
             double lMin = 0;
             double lMax = 0;
+            double d = 0;
 
             int seed = 0;
 
@@ -125,8 +133,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 && DA.GetDataList("SetbackList", setbackList)
                 && DA.GetData("w", ref w)
                 && DA.GetData("W", ref W)
-                && DA.GetData("lMin",ref lMin)
-                && DA.GetData("lMax",ref lMax)
+                && DA.GetData("lMin", ref lMin)
+                && DA.GetData("lMax", ref lMax)
+                && DA.GetData("d", ref d)
                 && DA.GetData<int>("Seed", ref seed))
             {
                 DA.GetDataTree<GH_Integer>("WhichPairSetbackNeedToChange", out pairNeedToChange);
@@ -475,6 +484,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 SCrvForShowList.Clear();
                 NCrvForShowList.Clear();
+                ECrvForShowList.Clear();
+                WCrvForShowList.Clear();
+                GapCenterLineList.Clear();
 
                 for (int i = 0; i < newAllFaceBS.Count; i++)
                 {
@@ -491,9 +503,25 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                     Curve sCrvForShow = null;
                     Curve nCrvForShow = null;
+                    Curve eCrvForShow = null;
+                    Curve wCrvForShow = null;
+                    List<Curve> gap = new List<Curve>();
                     if (sortedBoundaryPolyline.Count == 5)
                     {
-                        curveUnion = GenerateLayoutLinesOnQuadBlock(sortedBoundaryPolyline, lineForEachEdge, isGenerateables, w, W, lMin, lMax, false, out sCrvForShow, out nCrvForShow);
+                        curveUnion = GenerateLayoutLinesOnQuadBlock(sortedBoundaryPolyline,
+                                                                    lineForEachEdge,
+                                                                    isGenerateables,
+                                                                    w,
+                                                                    W,
+                                                                    lMin,
+                                                                    lMax,
+                                                                    d,
+                                                                    false,
+                                                                    out sCrvForShow,
+                                                                    out nCrvForShow,
+                                                                    out eCrvForShow,
+                                                                    out wCrvForShow,
+                                                                    out gap);
                     }
 
                     if (sCrvForShow != null)
@@ -504,6 +532,15 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     {
                         NCrvForShowList.Add(nCrvForShow);
                     }
+                    if (eCrvForShow != null)
+                    {
+                        ECrvForShowList.Add(eCrvForShow);
+                    }
+                    if (wCrvForShow != null)
+                    {
+                        WCrvForShowList.Add(wCrvForShow);
+                    }
+                    GapCenterLineList.AddRange(gap);
 
                     //List<Curve> regions = new List<Curve>();
                     //for (int j = 0; j < horizontalLayoutLine.Length; j++)
@@ -517,7 +554,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     //        // 如果southBaseLine到northBoundaryLine的距离，小于W后，就直接让体量充满地块
                     //        regions.Add(innerResultPolylines[i].ToNurbsCurve());
                     //    }
-                        
+
                     //}
 
                     curveUnionLoL[i].AddRange(curveUnion);
@@ -1233,9 +1270,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                        double W, 
                                                        double lMin,
                                                        double lMax,
+                                                       double d,
                                                        bool isParallelGeneration,
                                                        out Curve southBaseLineForShow,
-                                                       out Curve northBaseLineForShow)
+                                                       out Curve northBaseLineForShow,
+                                                       out Curve eastBaseLineForShow,
+                                                       out Curve westBaseLineForShow,
+                                                       out List<Curve> gapCenterLineForShow)
         {
             // 从确定南侧基线开始处理
             // 判断是选择起始点左侧的边还是右侧的边作为排布的基准线
@@ -1248,10 +1289,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             //Vector3d layoutDirection = GetLayoutDirection(vector0, vector1, out isFirst, out verticalVector);
 
             Curve boundary = Curve.CreateInterpolatedCurve(sortedBoundaryPolyline, 1);
-            Curve southBoundaryLine;
+            // 确定南侧基线
             int southSegmentIndex = 0;
-            
-            southBoundaryLine = lineForEachEdge.First().ToNurbsCurve();
+
+            Curve southBoundaryLine = lineForEachEdge.First().ToNurbsCurve();
             directionVector = lineForEachEdge[southSegmentIndex].Direction;
             verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
             Curve southCenterLine = TrimBothEnd(boundary, verticalVector, southBoundaryLine, Convert.ToInt32(isGenerateables[southSegmentIndex]), w, W);
@@ -1304,15 +1345,15 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             if (needToGenerateBaseLine)
             {
                 // 确定是否需要在南北基线之间添加新的基线
-                /* 此处不应该是 southBaseLine 和 northBaseLine 而应该是 偏移了 0.5*w 后的 */
+                /* 此处不应该是 southCenterLine 和 northCenterLine 而应该是 偏移了 0.5*w 后的 */
                 Point3d a1 = southBaseLine.PointAtStart;
                 Point3d a2 = southBaseLine.PointAtEnd;
                 Point3d b1 = northBaseLine.PointAtStart;
                 Point3d b2 = northBaseLine.PointAtEnd;
-                int indexBetweenBaseLines = 0;
-                double minDistanceBetweenBaseLines = MinDistanceBetweenTwoLineSegment(a1, a2, b1, b2, out indexBetweenBaseLines);
+                int indexBetween12BaseLines = 0;
+                double minDistanceBetween12BaseLines = MinDistanceBetweenTwoLineSegment(a1, a2, b1, b2, out indexBetween12BaseLines);
 
-                if (minDistanceBetweenBaseLines <= 0)
+                if (minDistanceBetween12BaseLines <= 0)
                 {
                     // 如果两线段直接相交时，或者a1a2在b1b2上面时
 
@@ -1357,54 +1398,54 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
 
                 }
-                else if (minDistanceBetweenBaseLines > 0 && minDistanceBetweenBaseLines < W)
+                else if (minDistanceBetween12BaseLines > 0 && minDistanceBetween12BaseLines < W)
                 {
                     // 两线段之间的距离不足以放置新的基线（进行TweenCurve）
                     // 尝试将NorthBaseLine缩短到使得 minDistanceBetweenSouthAndNorth = W
 
                     #region 计算setback
                     double setback;
-                    if (indexBetweenBaseLines % 2 == 0)
+                    if (indexBetween12BaseLines % 2 == 0)
                     {
                         // index为偶数，右端最近
-                        if (indexBetweenBaseLines == 0)
+                        if (indexBetween12BaseLines == 0)
                         {
                             // 与b1b2垂直
-                            setback = Math.Sqrt(Dis2(a2, b1) - Math.Pow(minDistanceBetweenBaseLines, 2)) + Math.Sqrt(Math.Pow(W, 2) - Math.Pow(minDistanceBetweenBaseLines, 2));
+                            setback = Math.Sqrt(Dis2(a2, b1) - Math.Pow(minDistanceBetween12BaseLines, 2)) + Math.Sqrt(Math.Pow(W, 2) - Math.Pow(minDistanceBetween12BaseLines, 2));
 
                         }
-                        else if (indexBetweenBaseLines == 2)
+                        else if (indexBetween12BaseLines == 2)
                         {
                             // 与a1a2垂直
                             double alpha = Vector3d.VectorAngle(-southBaseLine.TangentAtStart, northBaseLine.TangentAtStart);
-                            setback = (W - minDistanceBetweenBaseLines) / Math.Sin(alpha);
+                            setback = (W - minDistanceBetween12BaseLines) / Math.Sin(alpha);
                         }
                         else
                         {
                             // 都不垂直
                             double D = Dis2PointToStraightLine(b1, b2, a2);
-                            setback = Math.Sqrt(Math.Pow(W, 2) - Math.Pow(D, 2)) - Math.Sqrt(Math.Pow(minDistanceBetweenBaseLines, 2) - Math.Pow(D, 2));
+                            setback = Math.Sqrt(Math.Pow(W, 2) - Math.Pow(D, 2)) - Math.Sqrt(Math.Pow(minDistanceBetween12BaseLines, 2) - Math.Pow(D, 2));
                         }
                     }
                     else
                     {
                         // index为奇数，左端最近
-                        if (indexBetweenBaseLines == 1)
+                        if (indexBetween12BaseLines == 1)
                         {
                             // 与b1b2垂直
-                            setback = Math.Sqrt(Dis2(a1, b2) - Math.Pow(minDistanceBetweenBaseLines, 2)) + Math.Sqrt(Math.Pow(W, 2) - Math.Pow(minDistanceBetweenBaseLines, 2));
+                            setback = Math.Sqrt(Dis2(a1, b2) - Math.Pow(minDistanceBetween12BaseLines, 2)) + Math.Sqrt(Math.Pow(W, 2) - Math.Pow(minDistanceBetween12BaseLines, 2));
                         }
-                        else if (indexBetweenBaseLines == 3)
+                        else if (indexBetween12BaseLines == 3)
                         {
                             // 与a1a2垂直
                             double alpha = Vector3d.VectorAngle(southBaseLine.TangentAtStart, -northBaseLine.TangentAtStart);
-                            setback = (W - minDistanceBetweenBaseLines) / Math.Sin(alpha);
+                            setback = (W - minDistanceBetween12BaseLines) / Math.Sin(alpha);
                         }
                         else
                         {
                             // 都不垂直
                             double D = Dis2PointToStraightLine(b1, b2, a1);
-                            setback = Math.Sqrt(Math.Pow(W, 2) - Math.Pow(D, 2)) - Math.Sqrt(Math.Pow(minDistanceBetweenBaseLines, 2) - Math.Pow(D, 2));
+                            setback = Math.Sqrt(Math.Pow(W, 2) - Math.Pow(D, 2)) - Math.Sqrt(Math.Pow(minDistanceBetween12BaseLines, 2) - Math.Pow(D, 2));
                         }
                     }
                     #endregion
@@ -1443,7 +1484,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     {
                         // 此时场地内有两个体量
                         Curve newNorthCenterLine;
-                        if (indexBetweenBaseLines % 2 == 0)
+                        if (indexBetween12BaseLines % 2 == 0)
                         {
                             newNorthCenterLine = northCenterLine.Trim(CurveEnd.Start, setback);
                         }
@@ -1459,9 +1500,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 else
                 {
                     // 两线段之间的距离足以放置新的基线（进行TweenCurve）
-                    minDistanceBetweenBaseLines -= W;
+                    minDistanceBetween12BaseLines -= W;
 
-                    int insertCount = (int)(Math.Floor(minDistanceBetweenBaseLines / (W + w)));
+                    int insertCount = (int)(Math.Floor(minDistanceBetween12BaseLines / (W + w)));
 
                     if (insertCount != 0)
                     {
@@ -1485,30 +1526,30 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve trimedSouthBaseLine;
                         Curve trimedNorthBaseLine;
                         // 按照最短距离计算的结果，对进行TweenCurve的南北基线进行修正
-                        // (a1, a2, b1):右端，与b1b2垂直，即index = 0
-                        // (a1, a1, b2):左端，与b1b2垂直，即index = 1
-                        // (b1, b2, a2):右端，与a1a2垂直，即index = 2
-                        // (b1, b2, a1):左端，与a1a2垂直，即index = 3
+                        // (a1, a2, b1):右端，与a1a2垂直，即index = 0
+                        // (a1, a2, b2):左端，与a1a2垂直，即index = 1
+                        // (b1, b2, a2):右端，与b1b2垂直，即index = 2
+                        // (b1, b2, a1):左端，与b1b2垂直，即index = 3
                         // index = 4:右端，都不垂直
                         // index = 5:左端，都不垂直
-                        if (indexBetweenBaseLines % 2 == 0)
+                        if (indexBetween12BaseLines % 2 == 0)
                         {
                             // index为偶数，右端最近
-                            if (indexBetweenBaseLines == 0)
-                            {
-                                // 与b1b2垂直
-                                double t;
-                                northBaseLine.ClosestPoint(a2, out t);
-                                trimedNorthBaseLine = northBaseLine.Trim(t, 1.0);
-                                trimedSouthBaseLine = southBaseLine;
-                            }
-                            else if (indexBetweenBaseLines == 2)
+                            if (indexBetween12BaseLines == 0)
                             {
                                 // 与a1a2垂直
                                 double t;
                                 southBaseLine.ClosestPoint(b1, out t);
-                                trimedSouthBaseLine = southBaseLine.Trim(0.0, t);
                                 trimedNorthBaseLine = northBaseLine;
+                                trimedSouthBaseLine = southBaseLine.Trim(0.0, t);
+                            }
+                            else if (indexBetween12BaseLines == 2)
+                            {
+                                // 与b1b2垂直
+                                double t;
+                                northBaseLine.ClosestPoint(a2, out t);
+                                trimedSouthBaseLine = southBaseLine;
+                                trimedNorthBaseLine = northBaseLine.Trim(t, 1.0);
                             }
                             else
                             {
@@ -1520,21 +1561,21 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         else
                         {
                             // index为奇数，左端最近
-                            if (indexBetweenBaseLines == 1)
-                            {
-                                // 与b1b2垂直
-                                double t;
-                                northBaseLine.ClosestPoint(a1, out t);
-                                trimedNorthBaseLine = northBaseLine.Trim(0.0, t);
-                                trimedSouthBaseLine = southBaseLine;
-                            }
-                            else if (indexBetweenBaseLines == 3)
+                            if (indexBetween12BaseLines == 1)
                             {
                                 // 与a1a2垂直
                                 double t;
                                 southBaseLine.ClosestPoint(b2, out t);
-                                trimedSouthBaseLine = southBaseLine.Trim(t, 1.0);
                                 trimedNorthBaseLine = northBaseLine;
+                                trimedSouthBaseLine = southBaseLine.Trim(t, 1.0);
+                            }
+                            else if (indexBetween12BaseLines == 3)
+                            {
+                                // 与b1b2垂直
+                                double t;
+                                northBaseLine.ClosestPoint(a1, out t);
+                                trimedSouthBaseLine = southBaseLine;
+                                trimedNorthBaseLine = northBaseLine.Trim(0.0, t);
                             }
                             else
                             {
@@ -1548,7 +1589,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         {
                             // southCrv不需要修改赋值，重新对northCrv进行赋值即可
                             Vector3d motion;
-                            switch (indexBetweenBaseLines)
+                            switch (indexBetween12BaseLines)
                             {
                                 case 0:
                                     motion = new Vector3d(northBaseLine.PointAtStart - southBaseLine.PointAtEnd);
@@ -1591,7 +1632,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         {
                             directionVector = insectCurves[i].TangentAtStart;
                             verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-                            Curve insectCurve = TrimBothEnd(boundary, verticalVector, insectCurves[i], 1, w, W);
+                            Curve insectCurve = TrimBothEnd(boundary, verticalVector, insectCurves[i], 2, w, W);
                             horizontalCenterLines.Add(insectCurve);
                         }
                         horizontalCenterLines.Add(northCenterLine);
@@ -1608,10 +1649,293 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
 
             // todo：处理东西侧方向
+            // 确定东侧基线
+            int eastSegmentIndex = 1;
+            Curve eastBoundaryLine = lineForEachEdge[eastSegmentIndex].ToNurbsCurve();
+            directionVector = lineForEachEdge[eastSegmentIndex].Direction;
+            verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+            Curve eastCenterLine = TrimBothEnd(boundary, verticalVector, eastBoundaryLine, Convert.ToInt32(isGenerateables[eastSegmentIndex]), w, W);
+            eastCenterLine.Domain = new Interval(0, 1);
 
+            Curve eastBaseLine = eastCenterLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            eastBaseLine.Domain = new Interval(0, 1);
 
+            // 确定西侧基线
+            int westSegmentIndex = 3;
+            Curve westBoundaryLine = lineForEachEdge[westSegmentIndex].ToNurbsCurve();
+            directionVector = lineForEachEdge[westSegmentIndex].Direction;
+            verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+            Curve westCenterLine = TrimBothEnd(boundary, verticalVector, westBoundaryLine, Convert.ToInt32(isGenerateables[westSegmentIndex]), w, W);
+            westCenterLine.Domain = new Interval(0, 1);
 
+            Curve westBaseLine = westCenterLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            westBaseLine.Domain = new Interval(0, 1);
 
+            List<Curve> verticalCenterLines = new List<Curve>();
+            List<Curve> verticalCenterLinesForGap = new List<Curve>();
+            // 确定是否需要在南北基线之间添加新的基线
+            /* 此处不应该是 eastCenterLine 和 westCenterLine 而应该是 偏移了 0.5*w 后的 */
+            Point3d a3 = eastBaseLine.PointAtStart;
+            Point3d a4 = eastBaseLine.PointAtEnd;
+            Point3d b3 = westBaseLine.PointAtStart;
+            Point3d b4 = westBaseLine.PointAtEnd;
+            int indexBetween34BaseLines = 0;
+            double minDistanceBetween34BaseLines = MinDistanceBetweenTwoLineSegment(a3, a4, b3, b4, out indexBetween34BaseLines);
+
+            if (minDistanceBetween34BaseLines <= 0)
+            {
+                // 无法插入Gap，verticalCenterLinesForGap 不添加新的 insectCurves
+
+            }
+            // 两线段之间的距离不足以放置新的基线（进行TweenCurve）
+            else if (minDistanceBetween34BaseLines > 0 && minDistanceBetween34BaseLines < (lMin + 2 * d)) 
+            {
+                // 两线段之间的距离不足以放置新的基线（进行TweenCurve）
+                // 就要考虑两线段之间的最长距离，能够放置几根基线
+                // 基于能够放置基线的位置，来对原有的westBaseLine进行缩短，进而形成TweenCurve式的基线
+
+                // 计算两线段之间的最长距离
+                int indexBetween34BaseLinesMax = 0;
+                double maxDistanceBetween34BaseLine = MaxDistanceBetweenTwoLineSegment(a3, a4, b3, b4, out indexBetween34BaseLinesMax);
+
+                if (minDistanceBetween34BaseLines - maxDistanceBetween34BaseLine < 0.001
+                    && minDistanceBetween34BaseLines - maxDistanceBetween34BaseLine > -0.001)
+                {
+                    // EW两个边平行
+                    // 并且都小于 lMin * 2 + d ，无法插入Gap
+                    // verticalCenterLinesForGap 不添加新的 insectCurves
+                }
+                else
+                {
+                    // EW两个边不平行
+                    // 计算最长距离可以塞下几个 lMax ,以能塞下几个 lMax 为基准
+                    maxDistanceBetween34BaseLine -= d;
+                    int insertCountForLMax = (int)(Math.Floor(maxDistanceBetween34BaseLine / (lMax + d)));
+                    // 因为是求gap的位置，所以+1
+                    int insertGapCount = insertCountForLMax + 1;
+
+                    if (insertCountForLMax > 0)
+                    {
+                        // 如果最长距离能够塞下 lMax
+                        // 计算两线段之间的最短距离那一侧的边，要向最长距离那一侧的边 setback 多少距离
+                        Vector3d a3a4 = new Vector3d(a4 - a3);
+                        Vector3d a4b3 = new Vector3d(b3 - a4);
+                        Vector3d b3b4 = new Vector3d(b4 - b3);
+
+                        Curve trimedEastBaseLine;
+                        Curve trimedWestBaseLine;
+                        if (a4b3.Length >= insertCountForLMax * (lMin + d) + d)
+                        {
+                            trimedEastBaseLine = eastBaseLine;
+                            trimedWestBaseLine = westBaseLine;
+                        }
+                        else
+                        {
+                            double setbackE = 0;
+                            double setbackW = CalSetback(a3a4, a4b3, b3b4, a4b3.Length, insertCountForLMax * (lMin + d) + d, out setbackE);
+
+                            trimedEastBaseLine = eastBaseLine.Trim(CurveEnd.End, setbackE);
+                            trimedWestBaseLine = westBaseLine.Trim(CurveEnd.Start, setbackW);
+                            trimedEastBaseLine.Domain = new Interval(0, 1);
+                            trimedWestBaseLine.Domain = new Interval(0, 1);
+                        }
+                        
+
+                        // 基于能够放置基线的位置，来对原有的westBaseLine进行缩短，进而形成TweenCurve式的基线
+                        List<Curve> insectGapCurves = ConstructTweenCurve(insertGapCount, lMax, d, trimedEastBaseLine, trimedWestBaseLine, true, W);
+                        verticalCenterLinesForGap.AddRange(insectGapCurves);
+                    }
+                    else
+                    {
+                        // 如果最长距离不能塞下 lMax，就看能塞下几个 lMin
+                        //int insertGapCount;
+                        int insertCountForLMin = (int)(Math.Floor(maxDistanceBetween34BaseLine / (lMin + d)));
+                        maxDistanceBetween34BaseLine += d;
+
+                        // 通过在最大插入数量和最小插入数量之间取随机值，得到最终插入Gap的数量 insertCount
+                        //int insertCount;
+                        if (insertCountForLMin != 0)
+                        {
+                            // 此时最大可以插入 insertCountForLMin + 1 个Gap ，即分成 insertCountForLMin 个体量
+                            int maxInsertGapCount = insertCountForLMin + 1;
+                            // 最小可以插入 minInsertCount 个Gap
+                            int minInsertGapCount;
+                            if (maxDistanceBetween34BaseLine > lMax)
+                            {
+                                minInsertGapCount = 1;
+                            }
+                            else
+                            {
+                                minInsertGapCount = 0;
+                            }
+
+                            if (minInsertGapCount == maxInsertGapCount)
+                            {
+                                insertGapCount = minInsertGapCount;
+                            }
+                            else
+                            {
+                                insertGapCount = m_random.Next(minInsertGapCount, maxInsertGapCount + 1);
+                            }
+                        }
+                        else
+                        {
+                            if (maxDistanceBetween34BaseLine > lMax)
+                            {
+                                insertGapCount = 1;
+                            }
+                            else
+                            {
+                                insertGapCount = 0;
+                            }
+                        }
+
+                        if (insertGapCount == 0)
+                        {
+                            // 最终判断为在最长距离一侧的边，无法插入Gap
+
+                            // verticalCenterLinesForGap 不添加新的 insectCurves
+                        }
+                        else
+                        {
+                            // 最终判断为在最长距离一侧的边，可以插入 insertCount 个 Gap
+                            // 计算两线段之间的最短距离那一侧的边，要向最长距离那一侧的边 setback 多少距离
+                            Vector3d a3a4 = new Vector3d(a4 - a3);
+                            Vector3d a4b3 = new Vector3d(b3 - a4);
+                            Vector3d b3b4 = new Vector3d(b4 - b3);
+                            Curve trimedEastBaseLine;
+                            Curve trimedWestBaseLine;
+                            if (a4b3.Length >= (insertGapCount - 1) * (lMin + d) + d)
+                            {
+                                trimedEastBaseLine = eastBaseLine;
+                                trimedWestBaseLine = westBaseLine;
+                            }
+                            else
+                            {
+                                double setbackE = 0;
+                                double setbackW = CalSetback(a3a4, a4b3, b3b4, a4b3.Length, (insertGapCount - 1) * (lMin + d) + d, out setbackE);
+
+                                trimedEastBaseLine = eastBaseLine.Trim(CurveEnd.End, setbackE);
+                                trimedWestBaseLine = westBaseLine.Trim(CurveEnd.Start, setbackW);
+                                trimedEastBaseLine.Domain = new Interval(0, 1);
+                                trimedWestBaseLine.Domain = new Interval(0, 1);
+                            }
+
+                            // 基于能够放置基线的位置，来对原有的westBaseLine进行缩短，进而形成TweenCurve式的基线
+                            List<Curve> insectCurves = ConstructTweenCurve(insertGapCount, lMin, d, trimedEastBaseLine, trimedWestBaseLine, true, W);
+                            verticalCenterLinesForGap.AddRange(insectCurves);
+                        }
+                    }
+                }
+            }
+            // 两线段之间的距离足以放置新的基线（进行TweenCurve）
+            else
+            {
+                minDistanceBetween34BaseLines -= d;
+                int insertLMinCount = (int)(Math.Floor(minDistanceBetween34BaseLines / (lMin + d)));
+                // 因为是求gap的位置，所以+1
+                int insertGapCount = insertLMinCount + 1;
+
+                if (insertLMinCount > 0)
+                {
+                    // 东西基线中间插入新的分割线
+                    double sum = insertLMinCount * (lMin + d) + d;
+                    List<double> eachLengths = new List<double>();
+                    eachLengths.Add(0.5 * d);
+                    for (int i = 1; i < insertGapCount; i++)
+                    {
+                        double num = eachLengths[i - 1] + lMin + d;
+                        eachLengths.Add(num);
+                    }
+
+                    List<double> factors = new List<double>();
+                    for (int i = 0; i < insertGapCount; i++)
+                    {
+                        double factor = eachLengths[i] / sum;
+                        factors.Add(factor);
+                    }
+
+                    Curve trimedEastBaseLine;
+                    Curve trimedWestBaseLine;
+                    // 按照最短距离计算的结果，对进行TweenCurve的东西基线进行修正
+                    // (a3,a4,b3):上端，与a3a4垂直，即index = 0
+                    // (a3,a4,b4):下端，与a3a4垂直，即index = 1
+                    // (b3,b4,a3):上端，与b3b4垂直，即index = 2
+                    // (b3,b4,a4):下端，与b3b4垂直，即index = 3
+                    // index = 4:上端，都不垂直
+                    // index = 5:左端，都不垂直
+                    if (indexBetween34BaseLines % 2 == 0)
+                    {
+                        // index为偶数，上端最近
+                        if (indexBetween34BaseLines == 0)
+                        {
+                            // 与a3a4垂直
+                            double t;
+                            eastBaseLine.ClosestPoint(b3, out t);
+                            trimedWestBaseLine = westBaseLine;
+                            trimedEastBaseLine = eastBaseLine.Trim(0.0, t);
+                        }
+                        else if (indexBetween34BaseLines == 2)
+                        {
+                            // 与b3b4垂直
+                            double t;
+                            westBaseLine.ClosestPoint(a4, out t);
+                            trimedEastBaseLine = eastBaseLine;
+                            trimedWestBaseLine = westBaseLine.Trim(t, 1.0);
+                        }
+                        else
+                        {
+                            // 都不垂直
+                            trimedEastBaseLine = eastBaseLine;
+                            trimedWestBaseLine = westBaseLine;
+                        }
+                    }
+                    else
+                    {
+                        // index为奇数，左端最近
+                        if (indexBetween34BaseLines == 1)
+                        {
+                            // 与a3a4垂直
+                            double t;
+                            eastBaseLine.ClosestPoint(b4, out t);
+                            trimedWestBaseLine = westBaseLine;
+                            trimedEastBaseLine = eastBaseLine.Trim(t, 1.0);
+                        }
+                        else if (indexBetween34BaseLines == 3)
+                        {
+                            // 与b3b4垂直
+                            double t;
+                            westBaseLine.ClosestPoint(a3, out t);
+                            trimedEastBaseLine = eastBaseLine;
+                            trimedWestBaseLine = westBaseLine.Trim(0.0, t);
+                        }
+                        else
+                        {
+                            // 都不垂直
+                            trimedEastBaseLine = eastBaseLine;
+                            trimedWestBaseLine = westBaseLine;
+                        }
+                    }
+
+                    trimedWestBaseLine.Reverse();
+                    Surface surface = NurbsSurface.CreateRuledSurface(trimedEastBaseLine, trimedWestBaseLine);
+                    List<Curve> insectCurves = new List<Curve>();
+                    for (int i = 0; i < factors.Count; i++)
+                    {
+                        double t = surface.Domain(1).ParameterAt(factors[i]);
+                        Curve curve = surface.IsoCurve(0, t);
+                        curve.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
+                        insectCurves.Add(curve);
+                    }
+                    surface.Dispose();
+
+                    verticalCenterLinesForGap.AddRange(insectCurves);
+                }
+                else
+                {
+                    // verticalCenterLinesForGap 不添加新的 insectCurves
+                }
+            }
 
 
 
@@ -1620,8 +1944,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
 
             // Temp
-            southBaseLineForShow = southCenterLine;
-            northBaseLineForShow = northCenterLine;
+            southBaseLineForShow = southBaseLine;
+            northBaseLineForShow = northBaseLine;
+            eastBaseLineForShow = eastBaseLine;
+            westBaseLineForShow = westBaseLine;
+            gapCenterLineForShow = verticalCenterLinesForGap;
+
+
 
             List<Curve> singleRegions = new List<Curve>();
             if (horizontalCenterLines.Count != 0)
@@ -1637,6 +1966,16 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 // 此时horizontalCenterLines这个列表中没有元素，singleRegions列表只有一个元素
                 singleRegions.Add(sortedBoundaryPolyline.ToNurbsCurve());
             }
+
+            // Temp添加GapCurve
+            if (verticalCenterLinesForGap.Count != 0)
+            {
+                for (int i = 0; i < verticalCenterLinesForGap.Count; i++)
+                {
+                    singleRegions.Add(GenerateSingleLayoutRegion(verticalCenterLinesForGap[i], w));
+                }
+            }
+
 
             Curve[] curveUnion;
             if (singleRegions.Count > 1)
@@ -1677,52 +2016,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
             return crv;
         }
-
-        //// todo:把这个函数优化掉
-        //private Vector3d GetLayoutDirection(Vector3d vector0, Vector3d vector1, out bool isFirst, out Vector3d verticalVector)
-        //{
-        //    double rad0 = Vector3d.VectorAngle(vector0, Vector3d.XAxis);
-        //    double rad1 = Vector3d.VectorAngle(vector1, Vector3d.XAxis);
-
-        //    Vector3d layoutDirection;
-        //    //if (rad0 > Math.PI / 4 && rad1 > Math.PI / 4)
-        //    //{
-        //    //    layoutDirection = new Vector3d(1, 0, 0);
-        //    //}
-        //    //else
-        //    //{
-                
-        //    //}
-
-        //    if (rad0 < rad1)
-        //    {
-        //        layoutDirection = vector0;
-        //        isFirst = true;
-        //    }
-        //    else if (rad0 == rad1)
-        //    {
-        //        double length0 = vector0.Length;
-        //        double length1 = vector1.Length;
-        //        if (length0 >= length1)
-        //        {
-        //            layoutDirection = vector0;
-        //            isFirst = true;
-        //        }
-        //        else
-        //        {
-        //            layoutDirection = vector1;
-        //            isFirst = false;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        layoutDirection = vector1;
-        //        isFirst = false;
-        //    }
-        //    verticalVector = new Vector3d(-layoutDirection.Y, layoutDirection.X, layoutDirection.Z);
-
-        //    return layoutDirection;
-        //}
 
         private Curve TrimBothEnd(Curve boundary, Vector3d depthDirection, Curve needToTrim, int type, double w, double W)
         {
@@ -1872,6 +2165,155 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return trimedCurve;
         }
 
+        private List<Curve> ConstructTweenCurve(int insertGapCount, double lMinOrlMax, double d, Curve baseLine0, Curve baseLine1, bool isGap, double W)
+        {
+            //double sum = (insertLMinOrLMaxCount * 1) * lMinOrlMax + insertLMinOrLMaxCount * d;
+            double sum = (insertGapCount - 1) * (lMinOrlMax + d) + d;
+            List<double> eachLengths = new List<double>();
+            eachLengths.Add(0.5 * d);
+            for (int i = 1; i < insertGapCount; i++)
+            {
+                double num = eachLengths[i - 1] + lMinOrlMax + d;
+                eachLengths.Add(num);
+            }
+
+            List<double> factors = new List<double>();
+            for (int i = 0; i < insertGapCount; i++)
+            {
+                double factor = eachLengths[i] / sum;
+                factors.Add(factor);
+            }
+
+            baseLine1.Reverse();
+            Surface surface = NurbsSurface.CreateRuledSurface(baseLine0, baseLine1);
+            List<Curve> insectCurves = new List<Curve>();
+            for (int i = 0; i < factors.Count; i++)
+            {
+                double t = surface.Domain(1).ParameterAt(factors[i]);
+                Curve curve = surface.IsoCurve(0, t);
+                if (isGap)
+                {
+                    curve.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
+                }
+                insectCurves.Add(curve);
+            }
+            surface.Dispose();
+
+            return insectCurves;
+        }
+
+        private double CalSetback(Vector3d a1a2, Vector3d a2b1, Vector3d b1b2, double a2b1Length, double targetLength, out double setbackE)
+        {
+            double angle0 = Vector3d.VectorAngle(a1a2, a2b1);
+            double angle1 = Vector3d.VectorAngle(a2b1, b1b2);
+            double a = Rhino.RhinoMath.ToDegrees(angle0);
+            double b = Rhino.RhinoMath.ToDegrees(angle1);
+
+            double x = 0;
+            if (angle0 < Math.PI * 0.5 && angle1 < Math.PI * 0.5)
+            {
+                double tan0 = Math.Tan(angle0);
+                double tan1 = Math.Tan(angle1);
+
+                x = (targetLength - a2b1Length) * tan0 * tan1 / (tan0 + tan1);
+            }
+            else if (angle0 < Math.PI * 0.5 && angle1 == Math.PI * 0.5)
+            {
+                double tan0 = Math.Tan(angle0);
+
+                x = (targetLength - a2b1Length) * tan0;
+            }
+            else if (angle0 < Math.PI * 0.5 && angle1 > Math.PI * 0.5)
+            {
+                double tan0 = Math.Tan(angle0);
+                double tan1 = Math.Tan(Math.PI - angle1);
+
+                if (tan0 == tan1)
+                {
+                    x = -1;
+                }
+                else
+                {
+                    x = (targetLength - a2b1Length) * tan0 * tan1 / (tan1 - tan0);
+                }
+            }
+            else if (angle0 == Math.PI * 0.5 && angle1 < Math.PI * 0.5)
+            {
+                double tan1 = Math.Tan(angle1);
+
+                x = (targetLength - a2b1Length) * tan1;
+            }
+            //else if (angle0 == Math.PI * 0.5 && angle1 == Math.PI * 0.5)
+            //{
+            //    // x = 任意
+            //}
+            else if (angle0 == Math.PI * 0.5 && angle1 > Math.PI * 0.5)
+            {
+                double tan1 = Math.Tan(Math.PI - angle1);
+                x = (a2b1Length - targetLength) * tan1;
+            }
+            else if (angle0 > Math.PI * 0.5 && angle1 < Math.PI * 0.5)
+            {
+                double tan0 = Math.Tan(Math.PI - angle0);
+                double tan1 = Math.Tan(angle1);
+
+                if (tan0 == tan1)
+                {
+                    x = -1;
+                }
+                else
+                {
+                    x = (targetLength - a2b1Length) * tan0 * tan1 / (tan0 - tan1);
+                }
+            }
+            else if (angle0 > Math.PI * 0.5 && angle1 == Math.PI * 0.5)
+            {
+                double tan0 = Math.Tan(Math.PI - angle0);
+
+                x = (a2b1Length - targetLength) * tan0;
+            }
+            else if (angle0 > Math.PI * 0.5 && angle1 > Math.PI * 0.5)
+            {
+                double tan0 = Math.Tan(Math.PI - angle0);
+                double tan1 = Math.Tan(Math.PI - angle1);
+                x = (a2b1Length - targetLength) * tan0 * tan1 / (tan0 + tan1);
+            }
+            else
+            {
+                // x = 任意
+                x = -1;
+            }
+
+            double setbackW;
+            if (angle1 < Math.PI * 0.5)
+            {
+                setbackW = x / Math.Sin(angle1);
+            }
+            else if (angle1 > Math.PI * 0.5)
+            {
+                setbackW = x / Math.Sin(Math.PI  - angle1);
+            }
+            else
+            {
+                setbackW = x;
+            }
+
+            if (angle0 < Math.PI * 0.5)
+            {
+                setbackE = x / Math.Sin(angle0);
+            }
+            else if (angle0 > Math.PI * 0.5)
+            {
+                setbackE = x / Math.Sin(Math.PI - angle0);
+            }
+            else
+            {
+                setbackE = x;
+            }
+
+            return setbackW;
+        }
+        
         /// <summary>
         /// 向量AB与向量AP的外积（叉积）
         /// </summary>
@@ -2020,10 +2462,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 distance.Add(DisMin(b1, b2, a1));
                 
                 double min = distance.Min();
-                // (a1, a2, b1):右端，与b1b2垂直，即index = 0
-                // (a1, a1, b2):左端，与b1b2垂直，即index = 1
-                // (b1, b2, a2):右端，与a1a2垂直，即index = 2
-                // (b1, b2, a1):左端，与a1a2垂直，即index = 3
+                // (a1, a2, b1):右端，与a1a2垂直，即index = 0
+                // (a1, a1, b2):左端，与a1a2垂直，即index = 1
+                // (b1, b2, a2):右端，与b1b2垂直，即index = 2
+                // (b1, b2, a1):左端，与b1b2垂直，即index = 3
                 index = distance.IndexOf(min);
                 List<double> distanceForSecondMin = new List<double>();
                 distanceForSecondMin.AddRange(distance);
@@ -2053,6 +2495,42 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
             }
         }
+
+        /// <summary>
+        /// 两个线段之间的最大距离
+        /// </summary>
+        /// <param name="a1"></param>
+        /// <param name="a2"></param>
+        /// <param name="b1"></param>
+        /// <param name="b2"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        private double MaxDistanceBetweenTwoLineSegment(Point3d a1,Point3d a2,Point3d b1,Point3d b2,out int index)
+        {
+            // 因为这里用到的两条线段是反向的，所以是a1b2,a2b1
+            double a1b2Dis2 = Dis2(a1, b2);
+            double a2b1Dis2 = Dis2(a2, b1);
+
+            if (a1b2Dis2 - a2b1Dis2 > 0.5 * GH_Component.DocumentTolerance())
+            {
+                // 最大值的位置在左端
+                index = 0;
+                return Math.Sqrt(a1b2Dis2);
+            }
+            else if (a1b2Dis2 - a2b1Dis2 <= 0.0001 && a1b2Dis2 - a2b1Dis2 >= -0.0001)
+            {
+                // 两线段平行
+                index = 2;
+                return Math.Sqrt(a1b2Dis2);
+            }
+            else
+            {
+                // 最大值的位置在右端
+                index = 1;
+                return Math.Sqrt(a2b1Dis2);
+            }
+        }
+
 
         /// <summary>
         /// 判断多边形是顺时针还是逆时针, -1表示可能是不可计算的图形，比如多点共线；0表示逆时针；1表示顺时针
@@ -2306,6 +2784,18 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             {
                 args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
             }
+            for (int i = 0; i < ECrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
+            }
+            for (int i = 0; i < WCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(WCrvForShowList[i], Color.Yellow, 2);
+            }
+            for (int i = 0; i < GapCenterLineList.Count; i++)
+            {
+                args.Display.DrawCurve(GapCenterLineList[i], Color.Black, 3);
+            }
         }
 
         public override void DrawViewportWires(IGH_PreviewArgs args)
@@ -2330,6 +2820,18 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             for (int i = 0; i < NCrvForShowList.Count; i++)
             {
                 args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
+            }
+            for (int i = 0; i < ECrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
+            }
+            for (int i = 0; i < WCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(WCrvForShowList[i], Color.Yellow, 2);
+            }
+            for (int i = 0; i < GapCenterLineList.Count; i++)
+            {
+                args.Display.DrawCurve(GapCenterLineList[i], Color.Black, 3);
             }
         }
 
