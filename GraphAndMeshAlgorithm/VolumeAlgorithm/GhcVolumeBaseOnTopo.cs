@@ -10,6 +10,7 @@ using Rhino.Geometry;
 using Rhino.Geometry.Intersect;
 using System;
 using System.Linq;
+using System.Collections;
 using System.Drawing;
 using System.Collections.Generic;
 using VolumeGeneratorBasedOnGraph.Class;
@@ -1310,6 +1311,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
             Curve northCenterLine = TrimBothEnd(boundary, verticalVector, northBoundaryLine, Convert.ToInt32(isGenerateables[northSegmentIndex]), w, W);
             northCenterLine.Domain = new Interval(0, 1);
+            Curve northCenterLineReverse = northCenterLine.DuplicateCurve();
+            northCenterLineReverse.Reverse();
 
             Curve northBaseLine = northCenterLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
             //nCrvForCalDistance = TrimBothEnd(boundary, verticalVector, nCrvForCalDistance, true, w, W);
@@ -1371,10 +1374,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     else
                     {
                         // 此时场地内只有一个体量，因此要考虑在南侧，中间，还是北侧？
-                        Curve northCenterLineDP = northCenterLine.DuplicateCurve();
-                        northCenterLineDP.Reverse();
+                        //Curve northCenterLineDP = northCenterLine.DuplicateCurve();
+                        //northCenterLineDP.Reverse();
 
-                        Surface surface = NurbsSurface.CreateRuledSurface(southCenterLine, northCenterLineDP);
+                        Surface surface = NurbsSurface.CreateRuledSurface(southCenterLine, northCenterLineReverse);
                         //List<double> pList = new List<double>() { 0.0, 0.5, 1.0 };
                         int pIndex = m_random.Next(3);
                         if (pIndex == 1)
@@ -1393,7 +1396,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         }
                         else
                         {
-                            horizontalCenterLines.Add(northCenterLine);
+                            horizontalCenterLines.Add(northCenterLineReverse);
                         }
                     }
 
@@ -1492,6 +1495,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         {
                             newNorthCenterLine = northCenterLine.Trim(CurveEnd.End, setback);
                         }
+                        newNorthCenterLine.Reverse();
+                        newNorthCenterLine.Domain = new Interval(0, 1);
 
                         horizontalCenterLines.Add(southCenterLine);
                         horizontalCenterLines.Add(newNorthCenterLine);
@@ -1635,13 +1640,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             Curve insectCurve = TrimBothEnd(boundary, verticalVector, insectCurves[i], 2, w, W);
                             horizontalCenterLines.Add(insectCurve);
                         }
-                        horizontalCenterLines.Add(northCenterLine);
+                        horizontalCenterLines.Add(northCenterLineReverse);
                     }
                     else
                     {
                         // 南北基线中间不插入新的基线
                         horizontalCenterLines.Add(southCenterLine);
-                        horizontalCenterLines.Add(northCenterLine);
+                        horizontalCenterLines.Add(northCenterLineReverse);
                     }
                 }
             }
@@ -1657,7 +1662,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             Curve eastCenterLine = TrimBothEnd(boundary, verticalVector, eastBoundaryLine, Convert.ToInt32(isGenerateables[eastSegmentIndex]), w, W);
             eastCenterLine.Domain = new Interval(0, 1);
 
-            Curve eastBaseLine = eastCenterLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            Curve eastBaseLine = eastBoundaryLine.Offset(Plane.WorldXY, -(lMin + w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            eastBaseLine = eastBaseLine.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
+            eastBaseLine = TrimByBoundaryWithCurve(eastBaseLine, boundary);
             eastBaseLine.Domain = new Interval(0, 1);
 
             // 确定西侧基线
@@ -1668,7 +1675,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             Curve westCenterLine = TrimBothEnd(boundary, verticalVector, westBoundaryLine, Convert.ToInt32(isGenerateables[westSegmentIndex]), w, W);
             westCenterLine.Domain = new Interval(0, 1);
 
-            Curve westBaseLine = westCenterLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            Curve westBaseLine = westBoundaryLine.Offset(Plane.WorldXY, -(lMin + w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            westBaseLine = westBaseLine.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
+            westBaseLine = TrimByBoundaryWithCurve(westBaseLine, boundary);
             westBaseLine.Domain = new Interval(0, 1);
 
             List<Curve> verticalCenterLines = new List<Curve>();
@@ -1681,193 +1690,375 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             Point3d b4 = westBaseLine.PointAtEnd;
             int indexBetween34BaseLines = 0;
             double minDistanceBetween34BaseLines = MinDistanceBetweenTwoLineSegment(a3, a4, b3, b4, out indexBetween34BaseLines);
+            // dw用于求Gap偏移后形成的CenterLines
             double dw = d + w;
 
-            if (minDistanceBetween34BaseLines <= 0)
+            // 这一部分的目标就是保证lMin
+
+            double distanceBetweenBaseLinesA4B3 = Dis2(eastBaseLine.PointAtEnd, westBaseLine.PointAtStart);
+
+            int indexBetween34BoundaryLines = 0;
+            double minDistanceBetween34BoundaryLines = MinDistanceBetweenTwoLineSegment(eastBoundaryLine.PointAtStart, eastBoundaryLine.PointAtEnd, westBoundaryLine.PointAtStart, westBoundaryLine.PointAtEnd, out indexBetween34BoundaryLines);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            if (minDistanceBetween34BaseLines < dw)
             {
-                // 无法插入Gap，verticalCenterLinesForGap 不添加新的 insectCurves
-
-            }
-            // 两线段之间的距离不足以放置新的基线（进行TweenCurve）
-            else if (minDistanceBetween34BaseLines > 0 && minDistanceBetween34BaseLines < (2 * lMin + dw)) 
-            {
-                // 两线段之间的距离不足以放置新的基线（进行TweenCurve）
-                // 就要考虑两线段之间的最长距离，能够放置几根基线
-                // 基于能够放置基线的位置，来对原有的westBaseLine进行缩短，进而形成TweenCurve式的基线
-
-                // 计算两线段之间的最长距离
-                int indexBetween34BaseLinesMax = 0;
-                double maxDistanceBetween34BaseLine = MaxDistanceBetweenTwoLineSegment(a3, a4, b3, b4, out indexBetween34BaseLinesMax);
-
-                if (minDistanceBetween34BaseLines - maxDistanceBetween34BaseLine < 0.001
-                    && minDistanceBetween34BaseLines - maxDistanceBetween34BaseLine > -0.001)
+                /* 已检查完成 */
+                // 此时需要需要检查 minDistanceBetween34BoundaryLines的大小
+                if (minDistanceBetween34BoundaryLines > lMax)
                 {
-                    // EW两个边平行
-                    // 并且都小于 lMin * 2 + d ，无法插入Gap
-                    // verticalCenterLinesForGap 不添加新的 insectCurves
+                    // 即此时已经长过了lMax，需要再判断，能否至少分成 2 个 lMin 体量
+                    if (minDistanceBetween34BoundaryLines < 2 * lMin + dw)
+                    {
+                        // verticalCenterLinesForGap 不用添加新的 GapCurves
+                        // 等待下一步真正构造体量时，进行长度检查即可，长度缩减直到满足lMax的约束即可
+                    }
+                    else
+                    {
+                        // verticalCenterLinesForGap 添加 1 条新的 GapCurves
+                        double tMin = (lMin + 0.5 * dw) / minDistanceBetween34BoundaryLines;
+                        double tMax = 1 - (lMin + 0.5 * dw) / minDistanceBetween34BoundaryLines;
+                        double t = m_random.NextDouble() * (tMax - tMin) + tMin;
+                        //double t = 0.5;
+
+                        Curve westBoundaryLineDP = westBoundaryLine.DuplicateCurve();
+                        westBoundaryLineDP.Reverse();
+                        Surface surface = NurbsSurface.CreateRuledSurface(eastBoundaryLine, westBoundaryLineDP);
+                        Curve gapCrv = surface.IsoCurve(0, t);
+
+                        verticalCenterLinesForGap.Add(gapCrv);
+                        surface.Dispose();
+                    }
                 }
                 else
                 {
-                    // EW两个边不平行
-                    // 计算最长距离可以塞下几个 lMax ,以能塞下几个 lMax 为基准
-                    maxDistanceBetween34BaseLine -= dw;
-                    int insertCountForLMax = (int)(Math.Floor(maxDistanceBetween34BaseLine / (lMax + dw)));
-                    // 因为是求gap的位置，所以+1
-                    int insertGapCount = insertCountForLMax + 1;
-
-                    if (insertCountForLMax > 0)
+                    // verticalCenterLinesForGap 不用添加新的 GapCurves
+                    // 等待下一步真正构造体量时，进行长度检查即可，长度不用缩减，能够直接满足约束
+                }
+            }
+            // 两线段之间的距离不足以放置新的基线（进行TweenCurve）
+            // minDistanceBetween34BaseLines的长度，小于放置1个lMin体量及其中间的间距，还有整体与baseLine之间的两个 0.5 * dw 间距
+            // minDistanceBetween34BaseLines的长度，大于等于 dw ，即等于 dw 时只有两个体量，每部分距离为 lMin + w，dw，lMin + w
+            else if (minDistanceBetween34BaseLines >= dw && minDistanceBetween34BaseLines < (lMin + dw + dw))
+            {
+                // minDistanceBetween34BaseLines的距离不足以放置 1 个 lMin
+                if (minDistanceBetween34BaseLines > lMax)
+                {
+                    // minDistanceBetween34BoundaryLines的长度，一定也大约lMax，所以要看minDistanceBetween34BoundaryLines能放几个lMax，几个lMin
+                    int volumeMinCount = (int)Math.Floor((minDistanceBetween34BoundaryLines - lMax) / (lMax + 0.5 * dw)) + 1;
+                    int volumeMaxCount = (int)Math.Floor((minDistanceBetween34BoundaryLines - lMin) / (lMin + 0.5 * dw)) + 1;
+                    int volumeCount = 0;
+                    if (volumeMinCount != volumeMaxCount)
                     {
-                        // 如果最长距离能够塞下 lMax
-                        // 计算两线段之间的最短距离那一侧的边，要向最长距离那一侧的边 setback 多少距离
-                        Vector3d a3a4 = new Vector3d(a4 - a3);
-                        Vector3d a4b3 = new Vector3d(b3 - a4);
-                        Vector3d b3b4 = new Vector3d(b4 - b3);
+                        volumeCount = m_random.Next(volumeMinCount, volumeMaxCount);
+                    }
+                    else
+                    {
+                        volumeCount = volumeMinCount;
+                    }
 
-                        Curve trimedEastBaseLine;
-                        Curve trimedWestBaseLine;
-                        if (a4b3.Length >= insertCountForLMax * (lMin + dw) + dw)
+                    int gapCount = volumeCount - 1;
+
+                    List<Curve> insectCurves = ConstructTweenCurve(gapCount, lMin, lMax, dw, w, eastBoundaryLine, westBoundaryLine, Point3d.Unset, Point3d.Unset, false, false, false);
+                    verticalCenterLinesForGap.AddRange(insectCurves);
+                }
+                else if (minDistanceBetween34BoundaryLines < lMin)
+                {
+                    // 如果minDistanceBetween34BoundaryLines < lMin，那么A4B3要进行setback，直到其长度等于 2 * lMin + dw 或 lMax 这两者中的较小值
+                    // 如果是lMax更小，那么不用添加新的 GapCurves
+                    // 如果是2 * lMin + dw更小，那么添加新的GapCurves
+                    // lMax 与 2 * lMin + dw 同样小时，那么选择 2 * lMin + dw
+                    double targetLength = 0;
+                    bool needToAddGap = false;
+                    if (2 * lMin + dw <= lMax)
+                    {
+                        targetLength = 2 * lMin + dw;
+                        needToAddGap = true;
+                    }
+                    else
+                    {
+                        targetLength = lMax;
+                        needToAddGap = false;
+                    }
+
+                    if (needToAddGap)
+                    {
+                        // 计算两线段之间的最短距离那一侧的边，要向最长距离那一侧的边 setback 多少距离
+                        Vector3d a3a4 = new Vector3d(eastBoundaryLine.PointAtEnd - eastBoundaryLine.PointAtStart);
+                        Vector3d a4b3 = new Vector3d(westBoundaryLine.PointAtStart - eastBoundaryLine.PointAtEnd);
+                        Vector3d b3b4 = new Vector3d(westBoundaryLine.PointAtEnd - westBoundaryLine.PointAtStart);
+
+                        Curve trimedEastBoundaryLine;
+                        Curve trimedWestBoundaryLine;
+                        Point3d ePoint = Point3d.Unset;
+                        Point3d wPoint = Point3d.Unset;
+
+                        double setbackE = 0;
+                        double setbackW = CalSetback(a3a4, a4b3, b3b4, a4b3.Length, targetLength, out setbackE);
+
+                        trimedEastBoundaryLine = eastBoundaryLine.Trim(CurveEnd.End, setbackE);
+                        trimedWestBoundaryLine = westBoundaryLine.Trim(CurveEnd.Start, setbackW);
+
+                        if (trimedEastBoundaryLine != null)
                         {
-                            trimedEastBaseLine = eastBaseLine;
-                            trimedWestBaseLine = westBaseLine;
+                            trimedEastBoundaryLine.Domain = new Interval(0, 1);
                         }
                         else
                         {
-                            double setbackE = 0;
-                            double setbackW = CalSetback(a3a4, a4b3, b3b4, a4b3.Length, insertCountForLMax * (lMin + dw) + dw, out setbackE);
-
-                            trimedEastBaseLine = eastBaseLine.Trim(CurveEnd.End, setbackE);
-                            trimedWestBaseLine = westBaseLine.Trim(CurveEnd.Start, setbackW);
-                            if (trimedEastBaseLine != null)
-                            {
-                                trimedEastBaseLine.Domain = new Interval(0, 1);
-                            }
-                            if (trimedWestBaseLine != null)
-                            {
-                                trimedWestBaseLine.Domain = new Interval(0, 1);
-                            }
+                            ePoint = eastBoundaryLine.PointAtStart;
+                        }
+                        if (trimedWestBoundaryLine != null)
+                        {
+                            trimedWestBoundaryLine.Domain = new Interval(0, 1);
+                        }
+                        else
+                        {
+                            wPoint = westBoundaryLine.PointAtEnd;
                         }
 
                         // 基于能够放置基线的位置，来对原有的westBaseLine进行缩短，进而形成TweenCurve式的基线
-                        List<Curve> insectGapCurves = ConstructTweenCurve(insertGapCount, lMax, dw, trimedEastBaseLine, trimedWestBaseLine, true, W);
+                        List<Curve> insectGapCurves = ConstructTweenCurve(1, lMin, lMax, dw, w, trimedEastBoundaryLine, trimedWestBoundaryLine, ePoint, wPoint, false, false, false);
                         verticalCenterLinesForGap.AddRange(insectGapCurves);
                     }
                     else
                     {
-                        // 如果最长距离不能塞下 lMax，就看能塞下几个 lMin
-                        //int insertGapCount;
-                        int insertCountForLMin = (int)(Math.Floor(maxDistanceBetween34BaseLine / (lMin + dw)));
-                        maxDistanceBetween34BaseLine += dw;
-
-                        // 通过在最大插入数量和最小插入数量之间取随机值，得到最终插入Gap的数量 insertCount
-                        //int insertCount;
-                        if (insertCountForLMin != 0)
-                        {
-                            // 此时最大可以插入 insertCountForLMin + 1 个Gap ，即分成 insertCountForLMin 个体量
-                            int maxInsertGapCount = insertCountForLMin + 1;
-                            // 最小可以插入 minInsertCount 个Gap
-                            int minInsertGapCount;
-                            if (maxDistanceBetween34BaseLine > lMax)
-                            {
-                                minInsertGapCount = 1;
-                            }
-                            else
-                            {
-                                minInsertGapCount = 0;
-                            }
-
-                            if (minInsertGapCount == maxInsertGapCount)
-                            {
-                                insertGapCount = minInsertGapCount;
-                            }
-                            else
-                            {
-                                insertGapCount = m_random.Next(minInsertGapCount, maxInsertGapCount + 1);
-                            }
-                        }
-                        else
-                        {
-                            if (maxDistanceBetween34BaseLine > lMax)
-                            {
-                                insertGapCount = 1;
-                            }
-                            else
-                            {
-                                insertGapCount = 0;
-                            }
-                        }
-
-                        if (insertGapCount == 0)
-                        {
-                            // 最终判断为在最长距离一侧的边，无法插入Gap
-
-                            // verticalCenterLinesForGap 不添加新的 insectCurves
-                        }
-                        else
-                        {
-                            // 最终判断为在最长距离一侧的边，可以插入 insertCount 个 Gap
-                            // 计算两线段之间的最短距离那一侧的边，要向最长距离那一侧的边 setback 多少距离
-                            Vector3d a3a4 = new Vector3d(a4 - a3);
-                            Vector3d a4b3 = new Vector3d(b3 - a4);
-                            Vector3d b3b4 = new Vector3d(b4 - b3);
-                            Curve trimedEastBaseLine;
-                            Curve trimedWestBaseLine;
-                            if (a4b3.Length >= (insertGapCount - 1) * (lMin + dw) + dw)
-                            {
-                                trimedEastBaseLine = eastBaseLine;
-                                trimedWestBaseLine = westBaseLine;
-                            }
-                            else
-                            {
-                                double setbackE = 0;
-                                double setbackW = CalSetback(a3a4, a4b3, b3b4, a4b3.Length, (insertGapCount - 1) * (lMin + dw) + dw, out setbackE);
-
-                                trimedEastBaseLine = eastBaseLine.Trim(CurveEnd.End, setbackE);
-                                trimedWestBaseLine = westBaseLine.Trim(CurveEnd.Start, setbackW);
-                                if (trimedEastBaseLine != null)
-                                {
-                                    trimedEastBaseLine.Domain = new Interval(0, 1);
-                                }
-                                if (trimedWestBaseLine != null)
-                                {
-                                    trimedWestBaseLine.Domain = new Interval(0, 1);
-                                }
-                            }
-
-                            // 基于能够放置基线的位置，来对原有的westBaseLine进行缩短，进而形成TweenCurve式的基线
-                            List<Curve> insectCurves = ConstructTweenCurve(insertGapCount, lMin, dw, trimedEastBaseLine, trimedWestBaseLine, true, W);
-                            verticalCenterLinesForGap.AddRange(insectCurves);
-                        }
+                        // verticalCenterLinesForGap 不用添加新的 GapCurves
+                        // 等待下一步真正构造体量时，进行长度检查即可，A4B3会被剔除掉，以满足约束条件
                     }
+
                 }
+                else
+                {
+                    // verticalCenterLinesForGap 不用添加新的 GapCurves
+                    // 等待下一步真正构造体量时，进行长度检查即可，长度不用缩减，能够直接满足约束
+                }
+
+                #region 暂存
+                //// 计算两线段之间的最长距离
+                //int indexBetween34BaseLinesMax = 0;
+                //double maxDistanceBetween34BaseLine = MaxDistanceBetweenTwoLineSegment(a3, a4, b3, b4, out indexBetween34BaseLinesMax);
+
+                //if (minDistanceBetween34BaseLines - maxDistanceBetween34BaseLine < 0.001
+                //    && minDistanceBetween34BaseLines - maxDistanceBetween34BaseLine > -0.001)
+                //{
+                //    // EW两个边平行
+                //    // 并且都小于 2 * lMin + 2 * dw ，无法插入Gap
+                //    // verticalCenterLinesForGap 不添加新的 insectCurves
+                //}
+                //else
+                //{
+                //    // EW两个边不平行
+                //    // baseLine外侧有体量
+                //    // 计算最长距离可以塞下几个 lMax ,以能塞下几个 lMax 为基准
+                //    // maxDistanceBetween34BaseLine首先要减去整体与baseLine之间的两个 0.5 * dw 间距
+                //    maxDistanceBetween34BaseLine -= dw;
+                //    // 注意这里是取上界，（假设最长距离比 2 * （lMax + dw） 大，此时是需要放置 3 个体量的）
+                //    int insertCountForLMax = 0;
+                //    if (maxDistanceBetween34BaseLine / (lMax + dw) >= 1)
+                //    {
+                //        insertCountForLMax = (int)(Math.Ceiling(maxDistanceBetween34BaseLine / (lMax + dw)));
+                //    }
+                //    else
+                //    {
+                //        insertCountForLMax = 0;
+                //    }
+                //    // 因为是求gap的位置，所以是体量的数量 - 1
+                //    int insertGapCount = insertCountForLMax - 1;
+
+                //    if (insertCountForLMax > 0)
+                //    {
+                //        // 如果最长距离能够塞下 lMax
+                //        // 计算两线段之间的最短距离那一侧的边，要向最长距离那一侧的边 setback 多少距离
+                //        Vector3d a3a4 = new Vector3d(eastBoundaryLine.PointAtEnd - eastBoundaryLine.PointAtStart);
+                //        Vector3d a4b3 = new Vector3d(westBoundaryLine.PointAtStart - eastBoundaryLine.PointAtEnd);
+                //        Vector3d b3b4 = new Vector3d(westBoundaryLine.PointAtEnd - westBoundaryLine.PointAtStart);
+
+                //        Curve trimedEastBoundaryLine;
+                //        Curve trimedWestBoundaryLine;
+                //        Point3d ePoint = Point3d.Unset;
+                //        Point3d wPoint = Point3d.Unset;
+                //        if (a4b3.Length >= insertCountForLMax * (lMin + dw) + dw)
+                //        {
+                //            trimedEastBoundaryLine = eastBoundaryLine;
+                //            trimedWestBoundaryLine = westBoundaryLine;
+                //        }
+                //        else
+                //        {
+                //            double setbackE = 0;
+                //            // 因为最长距离要生成insertCountForLMax个体量，所以最短距离也要生成insertCountForLMax个体量
+                //            // 因a4b3.Length的长度，实际上包含了整体两侧与baseLine之间的两个 0.5 * dw 间距，所以后面要 + dw
+                //            double setbackW = CalSetback(a3a4, a4b3, b3b4, a4b3.Length, insertCountForLMax * (lMin + dw) + dw, out setbackE);
+
+                //            trimedEastBoundaryLine = eastBoundaryLine.Trim(CurveEnd.End, setbackE);
+                //            trimedWestBoundaryLine = westBoundaryLine.Trim(CurveEnd.Start, setbackW);
+
+                //            if (trimedEastBoundaryLine != null)
+                //            {
+                //                trimedEastBoundaryLine.Domain = new Interval(0, 1);
+                //            }
+                //            else
+                //            {
+                //                ePoint = eastBoundaryLine.PointAtStart;
+                //            }
+                //            if (trimedWestBoundaryLine != null)
+                //            {
+                //                trimedWestBoundaryLine.Domain = new Interval(0, 1);
+                //            }
+                //            else
+                //            {
+                //                wPoint = westBoundaryLine.PointAtEnd;
+                //            }
+                //        }
+
+                //        // 基于能够放置基线的位置，来对原有的westBaseLine进行缩短，进而形成TweenCurve式的基线
+                //        List<Curve> insectGapCurves = ConstructTweenCurve(insertGapCount, lMin, lMax, dw, w, trimedEastBoundaryLine, trimedWestBoundaryLine, ePoint, wPoint, true, true, false);
+                //        verticalCenterLinesForGap.AddRange(insectGapCurves);
+                //    }
+                //    else
+                //    {
+                //        // 如果最长距离不能塞下 lMax，就看能塞下几个 lMin
+                //        int insertCountForLMin = (int)(Math.Floor(maxDistanceBetween34BaseLine / (lMin + dw)));
+                //        // maxDistanceBetween34BaseLine += dw;
+
+                //        // 通过在最大插入数量和最小插入数量之间取随机值，得到最终插入Gap的数量 insertCount
+                //        //int insertCount;
+                //        if (insertCountForLMin != 0)
+                //        {
+                //            // 此时最大可以插入 insertCountForLMin - 1 个Gap ，即分成 insertCountForLMin 个体量
+                //            int maxInsertGapCount = insertCountForLMin - 1;
+                //            // 最小可以插入 minInsertCount 个Gap
+                //            int minInsertGapCount;
+                //            if (maxDistanceBetween34BaseLine > lMax + dw)
+                //            {
+                //                minInsertGapCount = 1;
+                //            }
+                //            else
+                //            {
+                //                minInsertGapCount = 0;
+                //            }
+
+                //            if (minInsertGapCount == maxInsertGapCount)
+                //            {
+                //                insertGapCount = minInsertGapCount;
+                //            }
+                //            else
+                //            {
+                //                insertGapCount = m_random.Next(minInsertGapCount, maxInsertGapCount + 1);
+                //            }
+                //        }
+                //        else
+                //        {
+                //            if (maxDistanceBetween34BaseLine > lMax + dw)
+                //            {
+                //                insertGapCount = 1;
+                //            }
+                //            else
+                //            {
+                //                insertGapCount = 0;
+                //            }
+                //        }
+
+                //        if (insertGapCount == 0)
+                //        {
+                //            // 最终判断为在最长距离一侧的边，无法插入Gap
+                //            // verticalCenterLinesForGap 只能添加新的 eastBaseLine 和 westBaseLine 作为新的 GapCurves
+                //            // 中间的体量，按lMax进行计算，然后折算成生成 insertCurve 的 Factor
+                //            List<Curve> insectCurves = ConstructTweenCurve(insertGapCount, lMin, lMax, dw, w, eastBoundaryLine, westBoundaryLine, Point3d.Unset, Point3d.Unset, true, true, false);
+                //            verticalCenterLinesForGap.AddRange(insectCurves);
+                //        }
+                //        else
+                //        {
+                //            // 最终判断为在最长距离一侧的边，可以插入 insertCount 个 Gap
+                //            // 计算两线段之间的最短距离那一侧的边，要向最长距离那一侧的边 setback 多少距离
+                //            Vector3d a3a4 = new Vector3d(eastBoundaryLine.PointAtEnd - eastBoundaryLine.PointAtStart);
+                //            Vector3d a4b3 = new Vector3d(westBoundaryLine.PointAtStart - eastBoundaryLine.PointAtEnd);
+                //            Vector3d b3b4 = new Vector3d(westBoundaryLine.PointAtEnd - westBoundaryLine.PointAtStart);
+                //            Curve trimedEastBoundaryLine;
+                //            Curve trimedWestBoundaryLine;
+                //            Point3d ePoint = Point3d.Unset;
+                //            Point3d wPoint = Point3d.Unset;
+                //            if (a4b3.Length >= (insertGapCount - 1) * (lMin + dw) + dw)
+                //            {
+                //                trimedEastBoundaryLine = eastBoundaryLine;
+                //                trimedWestBoundaryLine = westBoundaryLine;
+                //            }
+                //            else
+                //            {
+                //                double setbackE = 0;
+                //                // insertGapCount + 1 为体量的数量
+                //                // 因a4b3.Length的长度，实际上包含了整体两侧与baseLine之间的两个 0.5 * dw 间距，所以后面要 + dw
+                //                double setbackW = CalSetback(a3a4, a4b3, b3b4, a4b3.Length, (insertGapCount + 1) * (lMin + dw) + dw, out setbackE);
+                //                double eLength = eastBoundaryLine.GetLength();
+                //                double wLength = westBoundaryLine.GetLength();
+
+                //                trimedEastBoundaryLine = eastBoundaryLine.Trim(CurveEnd.End, setbackE);
+                //                trimedWestBoundaryLine = westBoundaryLine.Trim(CurveEnd.Start, setbackW);
+                //                if (trimedEastBoundaryLine != null)
+                //                {
+                //                    trimedEastBoundaryLine.Domain = new Interval(0, 1);
+                //                }
+                //                else
+                //                {
+                //                    ePoint = eastBoundaryLine.PointAtStart;
+                //                }
+                //                if (trimedWestBoundaryLine != null)
+                //                {
+                //                    trimedWestBoundaryLine.Domain = new Interval(0, 1);
+                //                }
+                //                else
+                //                {
+                //                    wPoint = westBoundaryLine.PointAtEnd;
+                //                }
+                //            }
+
+                //            // 基于能够放置基线的位置，来对原有的westBaseLine进行缩短，进而形成TweenCurve式的基线
+                //            List<Curve> insectCurves = ConstructTweenCurve(insertGapCount, lMin, lMax, dw, w, trimedEastBoundaryLine, trimedWestBoundaryLine, ePoint, wPoint, true, false, false);
+                //            verticalCenterLinesForGap.AddRange(insectCurves);
+                //        }
+                //    }
+                //}
+                #endregion
+
             }
             // 两线段之间的距离足以放置新的基线（进行TweenCurve）
             else
             {
+                /* 已检查完成 */
                 minDistanceBetween34BaseLines -= dw;
                 int insertLMinCount = (int)(Math.Floor(minDistanceBetween34BaseLines / (lMin + dw)));
-                // 因为是求gap的位置，所以+1
-                int insertGapCount = insertLMinCount + 1;
+                // 因为是求gap的位置，所以是体量的数量 - 1
+                int insertGapCount = insertLMinCount - 1;
 
+                #region 修正BoundaryLine
                 // insertLMinCount 必定 > 0
                 // 东西基线中间插入新的分割线
-                //double sum = insertLMinCount * (lMin + dw) + dw;
-                //List<double> eachLengths = new List<double>();
-                //eachLengths.Add(0.5 * dw);
-                //for (int i = 1; i < insertGapCount; i++)
-                //{
-                //    double num = eachLengths[i - 1] + lMin + dw;
-                //    eachLengths.Add(num);
-                //}
-
-                //List<double> factors = new List<double>();
-                //for (int i = 0; i < insertGapCount; i++)
-                //{
-                //    double factor = eachLengths[i] / sum;
-                //    factors.Add(factor);
-                //}
-
-                Curve trimedEastBaseLine;
-                Curve trimedWestBaseLine;
+                Curve trimedEastBoundaryLine;
+                Curve trimedWestBoundaryLine;
+                Point3d ePoint = Point3d.Unset;
+                Point3d wPoint = Point3d.Unset;
                 // 按照最短距离计算的结果，对进行TweenCurve的东西基线进行修正
                 // (a3,a4,b3):上端，与a3a4垂直，即index = 0
                 // (a3,a4,b4):下端，与a3a4垂直，即index = 1
@@ -1882,23 +2073,23 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     {
                         // 与a3a4垂直
                         double t;
-                        eastBaseLine.ClosestPoint(b3, out t);
-                        trimedWestBaseLine = westBaseLine;
-                        trimedEastBaseLine = eastBaseLine.Trim(0.0, t);
+                        eastBoundaryLine.ClosestPoint(b3, out t);
+                        trimedWestBoundaryLine = westBoundaryLine;
+                        trimedEastBoundaryLine = eastBoundaryLine.Trim(0.0, t);
                     }
                     else if (indexBetween34BaseLines == 2)
                     {
                         // 与b3b4垂直
                         double t;
-                        westBaseLine.ClosestPoint(a4, out t);
-                        trimedEastBaseLine = eastBaseLine;
-                        trimedWestBaseLine = westBaseLine.Trim(t, 1.0);
+                        westBoundaryLine.ClosestPoint(a4, out t);
+                        trimedEastBoundaryLine = eastBoundaryLine;
+                        trimedWestBoundaryLine = westBoundaryLine.Trim(t, 1.0);
                     }
                     else
                     {
                         // 都不垂直
-                        trimedEastBaseLine = eastBaseLine;
-                        trimedWestBaseLine = westBaseLine;
+                        trimedEastBoundaryLine = eastBoundaryLine;
+                        trimedWestBoundaryLine = westBoundaryLine;
                     }
                 }
                 else
@@ -1908,40 +2099,28 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     {
                         // 与a3a4垂直
                         double t;
-                        eastBaseLine.ClosestPoint(b4, out t);
-                        trimedWestBaseLine = westBaseLine;
-                        trimedEastBaseLine = eastBaseLine.Trim(t, 1.0);
+                        eastBoundaryLine.ClosestPoint(b4, out t);
+                        trimedWestBoundaryLine = westBoundaryLine;
+                        trimedEastBoundaryLine = eastBoundaryLine.Trim(t, 1.0);
                     }
                     else if (indexBetween34BaseLines == 3)
                     {
                         // 与b3b4垂直
                         double t;
-                        westBaseLine.ClosestPoint(a3, out t);
-                        trimedEastBaseLine = eastBaseLine;
-                        trimedWestBaseLine = westBaseLine.Trim(0.0, t);
+                        westBoundaryLine.ClosestPoint(a3, out t);
+                        trimedEastBoundaryLine = eastBoundaryLine;
+                        trimedWestBoundaryLine = westBoundaryLine.Trim(0.0, t);
                     }
                     else
                     {
                         // 都不垂直
-                        trimedEastBaseLine = eastBaseLine;
-                        trimedWestBaseLine = westBaseLine;
+                        trimedEastBoundaryLine = eastBoundaryLine;
+                        trimedWestBoundaryLine = westBoundaryLine;
                     }
                 }
+                #endregion
 
-                List<Curve> insectCurves = ConstructTweenCurve(insertGapCount, lMin, dw, trimedEastBaseLine, trimedWestBaseLine, true, W);
-
-                //trimedWestBaseLine.Reverse();
-                //Surface surface = NurbsSurface.CreateRuledSurface(trimedEastBaseLine, trimedWestBaseLine);
-                
-                //for (int i = 0; i < factors.Count; i++)
-                //{
-                //    double t = surface.Domain(1).ParameterAt(factors[i]);
-                //    Curve curve = surface.IsoCurve(0, t);
-                //    curve.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
-                //    insectCurves.Add(curve);
-                //}
-                //surface.Dispose();
-
+                List<Curve> insectCurves = ConstructTweenCurve(insertGapCount, lMin, lMax, dw, w, trimedEastBoundaryLine, trimedWestBoundaryLine, ePoint, wPoint, true, false, false);
                 verticalCenterLinesForGap.AddRange(insectCurves);
             }
 
@@ -1960,19 +2139,92 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
 
             // 利用Gap线对horizontalCenterLines做切割
+            //List<List<Curve>> cuttedHorizontalCenterLines = new List<List<Curve>>();
+            // 将GapLine的顺序，由自东向西排列，改为自西向东排列
+            verticalCenterLinesForGap.Reverse();
+            DataTree<Curve> cuttedHorizontalCenterLines = new DataTree<Curve>();
+            for (int i = 0; i < horizontalCenterLines.Count; i++)
+            {
+                cuttedHorizontalCenterLines.EnsurePath(i);
 
+                //List<double[]> horizontalTPairs = new List<double[]>();
+                //List<double[]> verticalTPairs = new List<double[]>();
+                List<double> horizontalTPairs = new List<double>();
+                List<double> verticalTPairs = new List<double>();
+                for (int j = 0; j < verticalCenterLinesForGap.Count; j++)
+                {
+                    Curve[] centerLines = GenerateCenterLineNearGapCurve(verticalCenterLinesForGap[j], d, w);
+                    double[] horizontalTPair = new double[2] { -1, -1 };
+                    double[] verticalTPair = new double[2] { -1, -1 };
+                    for (int k = 0; k < centerLines.Length; k++)
+                    {
+                        CurveIntersections curveIntersections = Intersection.CurveCurve(horizontalCenterLines[i], centerLines[k], GH_Component.DocumentTolerance(), 5.0 * GH_Component.DocumentTolerance());
 
+                        if (curveIntersections.Count == 1)
+                        {
+                            Interval overlapA = curveIntersections[0].OverlapA;
+                            Interval overlapB = curveIntersections[0].OverlapB;
+                            horizontalTPair[k] = overlapA.T0;
+                            verticalTPair[k] = overlapB.T0;
+                        }
+                    }
+                    //List<double> horizontalTPairList = horizontalTPair.ToList();
+                    //horizontalTPairList.Sort();
+                    //List<double> verticalTPairList = verticalTPair.ToList();
+                    //verticalTPairList.Sort();
 
+                    //horizontalTPairs.Add(horizontalTPairList.ToArray());
+                    //verticalTPairs.Add(verticalTPairList.ToArray());
+                    horizontalTPairs.AddRange(horizontalTPair);
+                    verticalTPairs.AddRange(verticalTPair);
+                }
 
+                double t0 = horizontalCenterLines[i].Domain.T0;
+                double t1 = horizontalCenterLines[i].Domain.T1;
 
+                List<double> horizontalT = new List<double>(horizontalTPairs);
+                horizontalT.RemoveAll(a => a == -1);
+                if (horizontalT.Count != 0)
+                {
+                    if (t0 != horizontalT.First())
+                    {
+                        horizontalT.Insert(0, t0);
+                    }
+                    if (t1 != horizontalT.Last())
+                    {
+                        horizontalT.Add(t1);
+                    }
+                }
+                else
+                {
+                    horizontalT.Add(t0);
+                    horizontalT.Add(t1);
+                }
 
+                if (horizontalT.Count % 2 != 0)
+                {
+                    horizontalT.RemoveAt(horizontalT.Count - 1);
+                }
+
+                int index = 0;
+                while (index != horizontalT.Count)
+                {
+                    Curve cut = horizontalCenterLines[i].Trim(horizontalT[index], horizontalT[index + 1]);
+                    cuttedHorizontalCenterLines.Branch(i).Add(cut);
+                    index += 2;
+                }
+                
+            }
 
             List<Curve> singleRegions = new List<Curve>();
-            if (horizontalCenterLines.Count != 0)
+            if (cuttedHorizontalCenterLines.DataCount != 0)
             {
-                for (int i = 0; i < horizontalCenterLines.Count; i++)
+                for (int i = 0; i < cuttedHorizontalCenterLines.BranchCount; i++)
                 {
-                    singleRegions.Add(GenerateSingleLayoutRegion(horizontalCenterLines[i], w));
+                    for (int j = 0; j < cuttedHorizontalCenterLines.Branch(i).Count; j++)
+                    {
+                        singleRegions.Add(GenerateSingleLayoutRegion(cuttedHorizontalCenterLines.Branch(i)[j], w));
+                    }
                 }
             }
             else
@@ -1982,14 +2234,31 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 singleRegions.Add(sortedBoundaryPolyline.ToNurbsCurve());
             }
 
-            // Temp添加GapCurve
-            if (verticalCenterLinesForGap.Count != 0)
-            {
-                for (int i = 0; i < verticalCenterLinesForGap.Count; i++)
-                {
-                    singleRegions.Add(GenerateSingleLayoutRegion(verticalCenterLinesForGap[i], w));
-                }
-            }
+
+            //if (horizontalCenterLines.Count != 0)
+            //{
+            //    for (int i = 0; i < horizontalCenterLines.Count; i++)
+            //    {
+            //        singleRegions.Add(GenerateSingleLayoutRegion(horizontalCenterLines[i], w));
+            //    }
+            //}
+            //else
+            //{
+            //    // 如果southBaseLine到northBoundaryLine的距离，小于W后，就直接让体量充满地块
+            //    // 此时horizontalCenterLines这个列表中没有元素，singleRegions列表只有一个元素
+            //    singleRegions.Add(sortedBoundaryPolyline.ToNurbsCurve());
+            //}
+
+
+
+            //// Temp添加GapCurve
+            //if (verticalCenterLinesForGap.Count != 0)
+            //{
+            //    for (int i = 0; i < verticalCenterLinesForGap.Count; i++)
+            //    {
+            //        singleRegions.Add(GenerateSingleLayoutRegion(verticalCenterLinesForGap[i], w));
+            //    }
+            //}
 
 
             Curve[] curveUnion;
@@ -2108,7 +2377,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
                 else
                 {
-                    return null;
+                    return newCurrent;
                 }
                 
             }
@@ -2123,12 +2392,12 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
                 else
                 {
-                    return null;
+                    return newCurrent;
                 }
             }
             else
             {
-                return null;
+                return newCurrent;
             }
 
             Point3d point00Transformed = new Point3d(point00);
@@ -2176,45 +2445,180 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
             Interval interval = new Interval(tStart, tEnd);
             trimedCurve = newCurrent.Trim(interval);
+            if (trimedCurve == null)
+            {
+                return newCurrent;
+            }
 
             return trimedCurve;
         }
 
-        private List<Curve> ConstructTweenCurve(int insertGapCount, double lMinOrlMax, double d, Curve baseLine0, Curve baseLine1, bool isGap, double W)
+        private Curve TrimByBoundaryWithCurve(Curve crv, Curve boundary)
         {
-            if (baseLine0 == null || baseLine1 == null)
+            Brep plan = Brep.CreatePlanarBreps(boundary, GH_Component.DocumentTolerance())[0];
+            BrepFace planFace = plan.Faces[0]; ;
+
+            Curve[] overlapCurves = null;
+            Point3d[] intersectionPoints = null;
+            Intersection.CurveBrepFace(crv, planFace, GH_Component.DocumentTolerance(), out overlapCurves, out intersectionPoints);
+
+            if (overlapCurves.Length != 0)
+            {
+                return overlapCurves[0];
+            }
+            else
+            {
+                return crv;
+            }
+        }
+
+        private List<Curve> ConstructTweenCurve(int insertGapCount, 
+                                                double lMin,
+                                                double lMax, 
+                                                double dw,
+                                                double w, 
+                                                Curve baseLine0, 
+                                                Curve baseLine1,
+                                                Point3d point0, 
+                                                Point3d point1, 
+                                                bool isGap,
+                                                bool isLMax,
+                                                bool NeedRandom)
+        {
+            if (baseLine0 == null && baseLine1 == null)
             {
                 return new List<Curve>();
             }
-            
-            //double sum = (insertLMinOrLMaxCount * 1) * lMinOrlMax + insertLMinOrLMaxCount * d;
-            double sum = (insertGapCount - 1) * (lMinOrlMax + d) + d;
-            List<double> eachLengths = new List<double>();
-            eachLengths.Add(0.5 * d);
-            for (int i = 1; i < insertGapCount; i++)
-            {
-                double num = eachLengths[i - 1] + lMinOrlMax + d;
-                eachLengths.Add(num);
-            }
 
             List<double> factors = new List<double>();
-            for (int i = 0; i < insertGapCount; i++)
+            if (isGap)
             {
-                double factor = eachLengths[i] / sum;
-                factors.Add(factor);
+                // 如果是进行GapCurve的计算
+                double sum = 0.0;
+                if (isLMax)
+                {
+                    sum = 2 * (lMin + w) + dw + (insertGapCount + 1) * (lMax + dw);
+                }
+                else
+                {
+                    sum = 2 * (lMin + w) + dw + (insertGapCount + 1) * (lMin + dw);
+                }
+
+                //// 在计算完总长度 sum 后，要将输入的 insertGapCount + 2，因为要重新生成新的eastBaseLine和westBaseLine，也作为GapCurve
+                // insertGapCount = insertGapCount + 2;
+
+                List<double> eachLengths = new List<double>();
+                eachLengths.Add(lMin + w + dw * 0.5);
+                for (int i = 0; i < insertGapCount + 1; i++)
+                {
+                    if (isLMax)
+                    {
+                        eachLengths.Add(lMax + dw);
+                    }
+                    else
+                    {
+                        eachLengths.Add(lMin + dw);
+                    }
+                }
+                eachLengths.Add(lMin + w + dw * 0.5);
+
+                if (NeedRandom)
+                {
+                    eachLengths = RandomSort(eachLengths);
+                }
+                //List<double> randomEachLengths = RandomSort(eachLengths);
+                List<double> cumulatives = CalCumulative(eachLengths);
+
+                //List<double> factors = new List<double>();
+                for (int i = 0; i < insertGapCount + 2; i++)
+                {
+                    double factor = cumulatives[i] / sum;
+                    factors.Add(factor);
+                }
+            }
+            else
+            {
+                double sum = 0.0;
+                if (isLMax)
+                {
+                    sum = (insertGapCount + 1) * (lMax + dw) - dw;
+                }
+                else
+                {
+                    sum = (insertGapCount + 1) * (lMin + dw) - dw;
+                }
+                List<double> eachLengths = new List<double>();
+                eachLengths.Add(lMin + 0.5 * dw);
+                for (int i = 1; i < insertGapCount; i++)
+                {
+                    if (isLMax)
+                    {
+                        eachLengths.Add(lMax + dw);
+                    }
+                    else
+                    {
+                        eachLengths.Add(lMin + dw);
+                    }
+                }
+                eachLengths.Add(lMin + 0.5 * dw);
+
+                if (NeedRandom)
+                {
+                    eachLengths = RandomSort(eachLengths);
+                }
+                List<double> cumulatives = CalCumulative(eachLengths);
+                for (int i = 0; i < insertGapCount; i++)
+                {
+                    double factor = cumulatives[i] / sum;
+                    factors.Add(factor);
+                }
+            }
+            
+            ////double sum = (insertLMinOrLMaxCount * 1) * lMinOrlMax + insertLMinOrLMaxCount * d;
+            //double sum = (insertGapCount - 1) * (lMinOrlMax + dw) + dw;
+            //List<double> eachLengths = new List<double>();
+            //eachLengths.Add(0.5 * dw);
+            //for (int i = 1; i < insertGapCount; i++)
+            //{
+            //    double num = eachLengths[i - 1] + lMinOrlMax + dw;
+            //    eachLengths.Add(num);
+            //}
+
+            //List<double> factors = new List<double>();
+            //for (int i = 0; i < insertGapCount; i++)
+            //{
+            //    double factor = eachLengths[i] / sum;
+            //    factors.Add(factor);
+            //}
+
+            Surface surface;
+            if (baseLine0 == null && baseLine1 != null)
+            {
+                baseLine1.Reverse();
+                surface = Surface.CreateExtrusionToPoint(baseLine1, point0);
+                surface = surface.Transpose();
+                surface = surface.Reverse(0);
+            }
+            else if (baseLine0 != null && baseLine1 == null)
+            {
+                surface = Surface.CreateExtrusionToPoint(baseLine0, point1);
+                surface = surface.Transpose();
+            }
+            else
+            {
+                baseLine1.Reverse();
+                surface = NurbsSurface.CreateRuledSurface(baseLine0, baseLine1);
             }
 
-            baseLine1.Reverse();
-            Surface surface = NurbsSurface.CreateRuledSurface(baseLine0, baseLine1);
             List<Curve> insectCurves = new List<Curve>();
             for (int i = 0; i < factors.Count; i++)
             {
                 double t = surface.Domain(1).ParameterAt(factors[i]);
                 Curve curve = surface.IsoCurve(0, t);
-                if (isGap)
-                {
-                    curve.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
-                }
+                //if (isGap)
+                //{
+                //    curve.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
+                //}
                 insectCurves.Add(curve);
             }
             surface.Dispose();
@@ -2332,6 +2736,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
 
             return setbackW;
+        }
+
+        private Curve[] GenerateCenterLineNearGapCurve(Curve gapCurve, double d, double w)
+        {
+            Curve offset0 = gapCurve.Offset(Plane.WorldXY, -(0.5 * d + 0.5 * w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            Curve offset1 = gapCurve.Offset(Plane.WorldXY, 0.5 * d + 0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            return new Curve[2] { offset0, offset1 };
         }
         
         /// <summary>
@@ -2780,6 +3191,29 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         //    }
 
         //}
+
+        private List<T> RandomSort<T>(List<T> list)
+        {
+            //var random = new Random();
+            var newList = new List<T>();
+            foreach (var item in list)
+            {
+                newList.Insert(m_random.Next(newList.Count), item);
+            }
+            return newList;
+        }
+
+        private List<double> CalCumulative(List<double> list)
+        {
+            List<double> cumulatives = new List<double>();
+            cumulatives.Add(list[0]);
+            for (int i = 1; i < list.Count; i++)
+            {
+                cumulatives.Add(cumulatives[i - 1] + list[i]);
+            }
+
+            return cumulatives;
+        }
 
         public override void DrawViewportMeshes(IGH_PreviewArgs args)
         {
