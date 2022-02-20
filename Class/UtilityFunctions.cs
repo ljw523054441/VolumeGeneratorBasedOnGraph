@@ -178,6 +178,74 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
         }
 
+        /// <summary>
+        /// 二维数组转置函数
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="array"></param>
+        /// <returns></returns>
+        internal static T[,] Transpose<T>(T[,] array)
+        {
+            int x = array.GetUpperBound(0);// 一维
+            int y = array.GetUpperBound(1);// 二维
+            T[,] newArray = new T[y + 1, x + 1];// 构造转置二维数组
+            for (int i = 0; i <= x; i++)
+            {
+                for (int j = 0; j <= y; j++)
+                {
+                    newArray[j, i] = array[i, j];
+                }
+            }
+
+            return newArray;
+        }
+
+        /// <summary>
+        /// 将二维列表(List)转换成二维数组，二维数组转置，然后将二维数组转换成列表
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="original"></param>
+        /// <returns></returns>
+        internal static List<List<T>> Transpose<T>(List<List<T>> original)
+        {
+            List<T>[] array = original.ToArray();
+            List<List<T>> lists = new List<List<T>>();
+            if (array.Length == 0)
+            {
+                throw new IndexOutOfRangeException("Index Out Of Range");
+            }
+            int x = array[0].Count;
+            int y = original.Count;
+
+            // 将列表转换成数组
+            T[,] twoArray = new T[y, x];
+            for (int i = 0; i < y; i++)
+            {
+                int j = 0;
+                foreach (T item in array[i])
+                {
+                    twoArray[i, j] = item;
+                    j++;
+                }
+            }
+
+            T[,] newTwoArray = new T[x, y];
+            newTwoArray = Transpose<T>(twoArray);// 转置
+
+            // 二维数组转换成二维List集合
+            for (int i = 0; i < x; i++)
+            {
+                List<T> list = new List<T>();
+                for (int j = 0; j < y; j++)
+                {
+                    list.Add(newTwoArray[i, j]);
+                }
+                lists.Add(list);
+            }
+
+            return lists;
+        }
+
         #endregion
 
         #region 图形绘制
