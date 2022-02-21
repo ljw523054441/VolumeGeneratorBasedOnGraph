@@ -246,6 +246,38 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return lists;
         }
 
+        internal static DataTree<T> FlipMatrix<T>(DataTree<T> source)
+        {
+            DataTree<T> target = new DataTree<T>();
+            int rowCount = source.BranchCount;
+            int columnCount = 0;
+            for (int i = 0; i < source.BranchCount; i++)
+            {
+                int num = source.Branch(i).Count;
+                if (num > columnCount)
+                {
+                    columnCount = num;
+                }
+            }
+            for (int i = 0; i < columnCount; i++)
+            {
+                target.EnsurePath(i);
+                for (int j = 0; j < rowCount; j++)
+                {
+                    if (source.ItemExists(new GH_Path(j),i))
+                    {
+                        target.Branch(i).Add(source.Branch(j)[i]);
+                    }
+                    else
+                    {
+                        target.Branch(i).Add(default(T));
+                    }
+                }
+            }
+
+            return target;
+        }
+
         #endregion
 
         #region 图形绘制

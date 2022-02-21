@@ -67,6 +67,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Class\Cell.cs" />
     <Compile Include="Class\clipper_library.cs" />
     <Compile Include="Class\ConvexPolygon.cs" />
     <Compile Include="Class\CurveSets.cs" />
