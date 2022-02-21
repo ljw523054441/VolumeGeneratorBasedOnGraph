@@ -524,8 +524,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     List<Line> lineForEachEdge;
                     List<BoundarySegment> sortedBS = SortBoundarySegment(newAllFaceBS[i], innerResultPolylines[i], out isHorizontalLayout, out lineForEachEdge, out sortedBoundaryPolyline);
 
-                    // Curve[] curveUnion = new Curve[] { };
-                    //Curve[] hCurves = new Curve[] { };
                     List<bool> isGenerateables = new List<bool>() { true, true, true, true };
                     // todo:根据BS的属性（两个Face相连的BS的setback值），来生成 List<bool> isGenerateables
 
@@ -534,12 +532,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     Curve eCrvForShow = null;
                     Curve wCrvForShow = null;
                     List<Curve> gap = new List<Curve>();
-                    //DataTree<Curve> cuttedVerticalCenterLines;
                     
                     List<Curve> hCurves = new List<Curve>();
                     List<Curve> vCurves = new List<Curve>();
-                    Curve new0 = null;
-                    Curve new1 = null;
                     if (sortedBoundaryPolyline.Count == 5)
                     {
                         singleRegion = GenerateLayoutLinesOnQuadBlock(sortedBoundaryPolyline,
@@ -578,6 +573,15 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                         if (singleRegion == null)
                         {
+                            // todo:随机修改 hCurves 和 vCurves，然后用修改后的来进行后面的步骤
+
+
+
+
+
+
+
+                            #region 生成building
                             List<Curve> allCurves = new List<Curve>();
                             allCurves.AddRange(hCurves);
                             allCurves.AddRange(vCurves);
@@ -605,7 +609,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                             Brep[] breps = BoundarySurfaces(contoursAndHolesCrv);
                             brepLoL[i].AddRange(breps);
-
+                            #endregion
                         }
                         else
                         {
@@ -626,9 +630,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 DataTree<Curve> hCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(hCurvesLoL);
                 DataTree<Curve> vCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(vCurvesLoL);
-
-                //DataTree<Curve> tree = UtilityFunctions.LoLToDataTree<Curve>(horizontalLayoutLineLoL);
-                //GH_Curve
                 DA.SetDataTree(5, hCurvesDT);
                 DA.SetDataTree(6, vCurvesDT);
 
