@@ -280,6 +280,78 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         #endregion
 
+        #region 求解不定方程
+
+        private static int Exgcd(int m, int n, ref int x , ref int y)
+        {
+            int x1, y1, x0, y0;
+            x0 = 1;y0 = 0;
+            x1 = 0;y1 = 1;
+            x = 0;y = 1;
+            int r = m % n;
+            int q = (m - r) / n;
+            while (r != 0)
+            {
+                x = x0 - q * x1;
+                y = y0 - q * y1;
+                x0 = x1; y0 = y1;
+                x1 = x; y1 = y;
+                m = n ;n = r; r = m % n;
+                q = (m - r) / n;
+            }
+            return n;
+        }
+
+        /// <summary>
+        /// 返回了一个特解
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="c"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        private static void Linear_equation(int a, int b, int c, ref int x, ref int y)
+        {
+            int d = Exgcd(a, b, ref x, ref y);
+            if (c % d != 0)
+            {
+                return;
+            }
+            int k = c / d;
+            x *= k;
+            y *= k;
+            return;
+        }
+
+        internal static List<int[]> GetAllPositiveIntegerSolution(int a, int b, int c)
+        {
+            List<int[]> pairs = new List<int[]>();
+            
+            int x = 0, y = 0;
+            Linear_equation(a, b, c, ref x, ref y);
+
+            int t0 = (int)Math.Floor((double)-x/ (double)b);
+            int t1 = (int)Math.Floor((double)y / (double)a);
+            if (t0 > t1)
+            {
+                return null;
+            }
+            int startT = t0 + 1;
+            if (t0 == t1)
+            {
+                startT = t0;
+            }
+            while (startT <= t1)
+            {
+                pairs.Add(new int[2] { x + b * startT, y - a * startT });
+                startT++;
+            }
+
+            return pairs;
+        }
+
+        #endregion
+
         #region 图形绘制
 
         /// <summary>
