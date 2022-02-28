@@ -67,6 +67,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Class\BilinearCell.cs" />
     <Compile Include="Class\Cell.cs" />
     <Compile Include="Class\clipper_library.cs" />
     <Compile Include="Class\ConvexPolygon.cs" />
@@ -77,6 +78,7 @@
     <Compile Include="Class\MeshEdgeClass.cs" />
     <Compile Include="Class\Node.cs" />
     <Compile Include="Class\Polyline3D.cs" />
+    <Compile Include="Class\TrilinearCell.cs" />
     <Compile Include="Class\Volume\BasicFunctions.cs" />
     <Compile Include="Class\Volume\Building.cs" />
     <Compile Include="Class\Volume\ExtraFunctions.cs" />
