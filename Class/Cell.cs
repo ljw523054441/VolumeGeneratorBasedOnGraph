@@ -9,7 +9,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class Cell
     {
-        
+        public static double MinT { get; set; }
+        public static double MaxT { get; set; }
 
         public Line SouthBaseLine { get; set; } = Line.Unset;
         public Line NorthBaseLine { get; set; } = Line.Unset;
@@ -21,10 +22,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
         //public List<Line> EastLines { get; set; }
         //public List<Line> WestLines { get; set; }
 
-        public List<Interval> South_Interval { get; set; } = new List<Interval>() { new Interval(0, 1) };
-        public List<Interval> North_Interval { get; set; } = new List<Interval>() { new Interval(0, 1) };
-        public List<Interval> East_Interval { get; set; } = new List<Interval>() { new Interval(0, 1) };
-        public List<Interval> West_Interval { get; set; } = new List<Interval>() { new Interval(0, 1) };
+        public List<Interval> South_Interval { get; set; }
+        public List<Interval> North_Interval { get; set; }
+        public List<Interval> East_Interval { get; set; }
+        public List<Interval> West_Interval { get; set; }
 
         public int[] CurrentIndex { get; set; }
         public int[] PrevSouthIndex { get; set; }

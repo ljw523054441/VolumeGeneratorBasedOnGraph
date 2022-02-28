@@ -186,6 +186,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 Thickness = 2;
 
+                Cell.MinT = w / lMin;
+                Cell.MaxT = 2 * w / lMin;
+
                 dualGraphWithHM.DualPlanktonMesh = new PlanktonMesh(dual);
 
                 graph = dualGraphWithHM.PlanktonMesh;
@@ -578,9 +581,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                         if (singleRegion == null)
                         {
-                            // todo:随机修改 hCurves 和 vCurves，然后用修改后的来进行后面的步骤
-                            List<List<Cell>> cellLoL = GenerateCells(hCurvesDT, vCurvesDT, isJitter);
-
+                            #region 由得到的baseLine构造生成初步的Cell对象，并且对初步生成的Cell对象进行随机修改，形成工，口，C
+                            List<List<Cell>> cellLoL = GenerateCells(hCurvesDT, vCurvesDT, isJitter,
+                                                                     lMin, lMax, d, w);
+                            #endregion
 
 
                             #region 生成building
@@ -708,10 +712,12 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return numList;
         }
 
-        private List<List<Cell>> GenerateCells(DataTree<Curve> hCurvesDT, DataTree<Curve> vCurvesDT, bool isJitter)
+        private List<List<Cell>> GenerateCells(DataTree<Curve> hCurvesDT, DataTree<Curve> vCurvesDT, bool isJitter,
+                                               double lMin, double lMax, double d, double w)
         {
+            
             List<List<Cell>> cellLoL = new List<List<Cell>>();
-
+            #region 由得到的baseLine构造生成初步的Cell对象
             // 如果有两排以上的HCurve
             if (hCurvesDT.BranchCount > 1)
             {
@@ -834,55 +840,227 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             // HCurve为1排或以下
             else
             {
-                for (int i = 0; i < hCurvesDT.BranchCount; i++)
+                if (HBranchType == HorizontalVolumeBranchType.OnlyOneCenter)
                 {
                     cellLoL.Add(new List<Cell>());
-                    for (int j = 0; j < hCurvesDT.Branch(i).Count; j++)
+
+                    Curve centerH = hCurvesDT.Branch(0)[0];
+                    Curve westLine = null;
+                    if (vCurvesDT.ItemExists(new GH_Path(0), 0))
                     {
-                        if (HBranchType == HorizontalVolumeBranchType.OnlyOneCenter)
+                        westLine = vCurvesDT.Branch(0)[0];
+                    }
+                    Curve eastLine = null;
+                    if (vCurvesDT.ItemExists(new GH_Path(0), 1))
+                    {
+                        eastLine = vCurvesDT.Branch(0)[1];
+                    }
+
+                    BilinearCell cell = new BilinearCell(centerH, westLine, eastLine, 0, 0);
+                    cellLoL[0].Add(cell);
+                }
+                else
+                {
+                    #region 得到3或2的排列组合
+                    List<int[]> countPairs = UtilityFunctions.GetAllPositiveIntegerSolution(3, 2, hCurvesDT.Branch(0).Count);
+
+                    int randomIndex = m_random.Next(countPairs.Count);
+                    int countForThree = countPairs[randomIndex][0];
+                    int countForTwo = countPairs[randomIndex][1];
+
+                    //bool isSame = true;
+
+                    List<List<int>> randomNumLoL = new List<List<int>>();
+                    if (isJitter)
+                    {
+                        for (int i = 0; i < hCurvesDT.BranchCount; i++)
                         {
-                            Curve centerH = hCurvesDT.Branch(i)[j];
-                            Curve westLine = null;
-                            if (vCurvesDT.ItemExists(new GH_Path(j), i))
+                            randomNumLoL.Add(new List<int>());
+                            randomNumLoL[i].AddRange(RandomGetNum(countForThree, countForTwo));
+                        }
+                    }
+                    else
+                    {
+                        List<int> randomNum = RandomGetNum(countForThree, countForTwo);
+                        for (int i = 0; i < hCurvesDT.BranchCount; i++)
+                        {
+                            randomNumLoL.Add(new List<int>());
+                            randomNumLoL[i].AddRange(randomNum);
+                        }
+                    }
+                    #endregion
+
+                    for (int i = 0; i < hCurvesDT.BranchCount; i++)
+                    {
+                        cellLoL.Add(new List<Cell>());
+
+                        int randomNumListIndex = 0;
+                        int j = 0;
+                        while (randomNumListIndex != randomNumLoL[i].Count)
+                        {
+                            int current = randomNumLoL[i][randomNumListIndex];
+
+                            if (randomNumLoL[i][randomNumListIndex] == 2)
                             {
-                                westLine = vCurvesDT.Branch(j)[i];
+                                // 两条线的情况
+                                if (HBranchType == HorizontalVolumeBranchType.OnlyOneCenter)
+                                {
+                                    Curve centerH = hCurvesDT.Branch(i)[j];
+                                    Curve westLine = null;
+                                    if (vCurvesDT.ItemExists(new GH_Path(i), j))
+                                    {
+                                        westLine = vCurvesDT.Branch(i)[j];
+                                    }
+                                    Curve eastLine = null;
+                                    if (vCurvesDT.ItemExists(new GH_Path(i), j + 1))
+                                    {
+                                        eastLine = vCurvesDT.Branch(i)[j + 1];
+                                    }
+
+                                    BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, i, j);
+                                    cellLoL[i].Add(bilinearCell);
+                                }
+                                else
+                                {
+                                    Curve southLine = hCurvesDT.Branch(i)[j];
+                                    Curve northLine = null;
+                                    if (hCurvesDT.ItemExists(new GH_Path(i), j + 1))
+                                    {
+                                        northLine = hCurvesDT.Branch(i)[j + 1];
+                                    }
+                                    Curve westLine = null;
+                                    if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i))
+                                    {
+                                        westLine = vCurvesDT.Branch(j)[2 * i];
+                                    }
+                                    Curve eastLine = null;
+                                    if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i + 1))
+                                    {
+                                        eastLine = vCurvesDT.Branch(j)[2 * i + 1];
+                                    }
+
+                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, i, j);
+                                    cellLoL[i].Add(bilinearCell);
+                                }
                             }
-                            Curve eastLine = null;
-                            if (vCurvesDT.ItemExists(new GH_Path(j), i + 1))
+                            else
                             {
-                                eastLine = vCurvesDT.Branch(j)[i + 1];
+                                // 三条线的情况
+                                Curve southLine = hCurvesDT.Branch(i)[j];
+                                Curve middleLine = hCurvesDT.Branch(i)[j + 1];
+                                Curve northLine = hCurvesDT.Branch(i)[j + 2];
+
+                                Curve westLine = null;
+                                if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i))
+                                {
+                                    westLine = vCurvesDT.Branch(j)[2 * i];
+                                }
+                                Curve eastLine = null;
+                                if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i + 1))
+                                {
+                                    eastLine = vCurvesDT.Branch(j)[2 * i + 1];
+                                }
+                                Curve westLine1 = null;
+                                if (vCurvesDT.ItemExists(new GH_Path(j + 1), 2 * i))
+                                {
+                                    westLine1 = vCurvesDT.Branch(j + 1)[2 * i];
+                                }
+                                Curve eastLine1 = null;
+                                if (vCurvesDT.ItemExists(new GH_Path(j + 1), 2 * i + 1))
+                                {
+                                    eastLine1 = vCurvesDT.Branch(j + 1)[2 * i + 1];
+                                }
+
+                                TrilinearCell trilinearCell = new TrilinearCell(southLine, middleLine, northLine, westLine, westLine1, eastLine, eastLine1, i, j);
+                                cellLoL[i].Add(trilinearCell);
                             }
 
-                            BilinearCell cell = new BilinearCell(centerH, westLine, eastLine, i, j);
-                            cellLoL[i].Add(cell);
+                            j += current;
+                            randomNumListIndex++;
+                        }
+                    }
+                }
+                
+            }
+            #endregion
+
+            #region 把面宽方向上过长（即长度大于lMax）的体量线，分解为多个
+            for (int i = 0; i < cellLoL.Count; i++)
+            {
+                for (int j = 0; j < cellLoL[i].Count; j++)
+                {
+                    if (cellLoL[i][j].IsBilinearCell())
+                    {
+                        BilinearCell bCell = cellLoL[i][j] as BilinearCell;
+                        bCell.LengthConstraint(lMin, lMax, d, w);
+                    }
+                    else
+                    {
+                        TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
+                        tCell.LengthConstraint(lMin, lMax, d, w);
+                    }
+                }
+            }
+            #endregion
+
+            #region 对初步生成的Cell对象进行随机修改，形成工，口，C
+            for (int i = 0; i < cellLoL.Count; i++)
+            {
+                for (int j = 0; j < cellLoL[i].Count; j++)
+                {
+                    int random = m_random.Next(0, 3);
+                    int randomT0 = m_random.Next(0, 4);
+                    int randomT1 = m_random.Next(0, 4);
+                    int directionCode0 = m_random.Next(0, 3);
+                    int directionCode1 = m_random.Next(0, 4);
+                    if (cellLoL[i][j].IsBilinearCell())
+                    {
+                        if (random == 0)
+                        {
+                            BilinearCell bCell = cellLoL[i][j] as BilinearCell;
+                            cellLoL[i][j] = bCell.GenerateIShape(randomT0, directionCode0);
+                        }
+                        else if (random == 1)
+                        {
+                            BilinearCell bCell = cellLoL[i][j] as BilinearCell;
+                            cellLoL[i][j] = bCell.GenerateCShape(randomT0, directionCode0);
                         }
                         else
                         {
-                            Curve southLine = hCurvesDT.Branch(i)[j];
-                            Curve northLine = null;
-                            if (hCurvesDT.ItemExists(new GH_Path(i + 1), j))
-                            {
-                                northLine = hCurvesDT.Branch(i + 1)[j];
-                            }
-                            Curve westLine = null;
-                            if (vCurvesDT.ItemExists(new GH_Path(j), i))
-                            {
-                                westLine = vCurvesDT.Branch(j)[i];
-                            }
-                            Curve eastLine = null;
-                            if (vCurvesDT.ItemExists(new GH_Path(j), i + 1))
-                            {
-                                eastLine = vCurvesDT.Branch(j)[i + 1];
-                            }
-
-                            BilinearCell cell = new BilinearCell(southLine, northLine, westLine, eastLine, i, j);
-                            cellLoL[i].Add(cell);
+                            BilinearCell bCell = cellLoL[i][j] as BilinearCell;
+                            cellLoL[i][j] = bCell.GenerateRecShape(randomT0, directionCode0);
+                        }
+                    }
+                    else
+                    {
+                        if (random == 0)
+                        {
+                            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
+                            cellLoL[i][j] = tCell.GenerateEShape(directionCode1);
+                        }
+                        else if (random == 1)
+                        {
+                            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
+                            cellLoL[i][j] = tCell.GenerateEVariantShape(directionCode1, randomT0, randomT1);
+                        }
+                        else if (random == 2)
+                        {
+                            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
+                            cellLoL[i][j] = tCell.GenerateZShape(directionCode1);
+                        }
+                        else
+                        {
+                            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
+                            cellLoL[i][j] = tCell.GenerateIIShape(directionCode1, randomT0);
                         }
                     }
                 }
             }
+            #endregion
+
             return cellLoL;
         } 
+
 
         private List<List<BoundarySegment>> OffsetBS(List<List<BoundarySegment>> allFaceBS, 
                                                      List<Polyline> facePolylines,
@@ -2642,7 +2820,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             //List<Polyline> outContourLoL;
             //List<Polyline> outHolesLoL;
             //Polyline3D.Offset(polylines, openType, closedType, pln, tolerance, new List<double> { 0.5 * w }, 2, 0.25, out outContourLoL, out outHolesLoL);
-            Polyline3D.Offset(polylines, Polyline3D.OpenFilletType.Butt, Polyline3D.ClosedFilletType.Miter, 0.5 * w, pln, tolerance, out outContour, out outHoles);
+            Polyline3D.Offset(polylines, Polyline3D.OpenFilletType.Square, Polyline3D.ClosedFilletType.Miter, 0.5 * w, pln, tolerance, out outContour, out outHoles);
 
             //outContour = outContourLoL.First();
             //outHoles = outHolesLoL.First();

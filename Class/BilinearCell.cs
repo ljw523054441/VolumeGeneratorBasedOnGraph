@@ -15,8 +15,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         //public List<Line> HLines { get; set; }
         //public List<Line> VLines { get; set; }
 
-        public List<Interval> HCenter_Interval { get; set; } = new List<Interval>() { new Interval(0, 1) };
-        public List<Interval> VCenter_Interval { get; set; } = new List<Interval>() { new Interval(0, 1) };
+        public List<Interval> HCenter_Interval { get; set; }
+        public List<Interval> VCenter_Interval { get; set; }
 
         public double CenterTValue { get; set; }
 
@@ -135,19 +135,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.BoundaryBaseLineCount = count;
             this.CenterBaseLineCount = count;
         }
-    
-        //private BilinearCell(BilinearCell initialCell, int i ,int j)
-        //{
-        //    this.SouthBaseLine = initialCell.SouthBaseLine;
-        //    this.NorthBaseLine = initialCell.NorthBaseLine;
-        //    this.WestBaseLine = initialCell.WestBaseLine;
-        //    this.EastBaseLine = initialCell.EastBaseLine;
-        //    this.HCenterBaseLine = initialCell.HCenterBaseLine;
-        //    this.VCenterBaseLine = initialCell.VCenterBaseLine;
 
-        //    this.CellShapeType = ShapeType.NullShape;
-        //}
-
+        // todo:要新增对于面宽方向上分解过的体量线 interval 值的规避
         /// <summary>
         /// 生成IShape
         /// </summary>
@@ -159,7 +148,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="t"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
-        private BilinearCell(BilinearCell initialCell, bool isSouthNorth, Line centerLine, Line line0, Line line1, double t, int i, int j)
+        private BilinearCell(BilinearCell initialCell, bool isSouthNorth, double t, int i, int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -169,6 +158,51 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.NexEastIndex = new int[2] { i, j + 1 };
             #endregion
 
+            #region Interval
+            if (isSouthNorth)
+            {
+                this.South_Interval = new List<Interval>();
+                if (initialCell.South_Interval == null)
+                {
+                    this.South_Interval.Add(new Interval(0, 1));
+                }
+                else
+                {
+                    this.South_Interval.AddRange(initialCell.South_Interval);
+                }
+
+                this.North_Interval = new List<Interval>();
+                if (initialCell.North_Interval == null)
+                {
+                    this.North_Interval.Add(new Interval(0, 1));
+                }
+                else
+                {
+                    this.North_Interval.AddRange(initialCell.North_Interval);
+                }
+
+                this.VCenter_Interval = new List<Interval>();
+                this.VCenter_Interval.Add(new Interval(0, 1));
+            }
+            else
+            {
+                this.West_Interval = new List<Interval>();
+                this.West_Interval.Add(new Interval(0, 1));
+                this.East_Interval = new List<Interval>();
+                this.East_Interval.Add(new Interval(0, 1));
+
+                this.HCenter_Interval = new List<Interval>();
+                if (initialCell.HCenter_Interval == null)
+                {
+                    this.HCenter_Interval.Add(new Interval(0, 1));
+                }
+                else
+                {
+                    this.HCenter_Interval.AddRange(initialCell.HCenter_Interval);
+                }
+            }
+            #endregion
+
             #region BaseLine
             // 父类属性
             this.SouthBaseLine = initialCell.SouthBaseLine;
@@ -176,48 +210,27 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.WestBaseLine = initialCell.WestBaseLine;
             this.EastBaseLine = initialCell.EastBaseLine;
             // 子类属性
-            this.HCenterBaseLine = initialCell.HCenterBaseLine;
-            this.VCenterBaseLine = initialCell.VCenterBaseLine;
-            #endregion
-
-            #region Lines
             if (isSouthNorth)
             {
-                //// 父类属性
-                //this.SouthLines = new List<Line>();
-                //this.SouthLines.Add(new Line(line0.From, line0.To));
-                //this.NorthLines = new List<Line>();
-                //this.NorthLines.Add(new Line(line1.From, line1.To));
-                //// 子类属性
-                //this.VLines = new List<Line>();
-                //this.VLines.Add(new Line(centerLine.From, centerLine.To));
+                // 南北体量为主
+                Line south = this.SouthBaseLine;
+                Line north = this.NorthBaseLine;
+                Point3d pointOnSouth = south.PointAt(t);
+                Point3d pointOnNorth = north.PointAt(t);
+                this.VCenterBaseLine = new Line(pointOnSouth, pointOnNorth);
 
-                this.South_Interval = new List<Interval>();
-                this.South_Interval.Add(new Interval(0, 1));
-                this.North_Interval = new List<Interval>();
-                this.North_Interval.Add(new Interval(0, 1));
-
-                this.VCenter_Interval = new List<Interval>();
-                this.VCenter_Interval.Add(new Interval(0, 1));
+                this.HCenterBaseLine = initialCell.HCenterBaseLine;
             }
             else
             {
-                //// 父类属性
-                //this.WestLines = new List<Line>();
-                //this.WestLines.Add(new Line(line0.From, line0.To));
-                //this.EastLines = new List<Line>();
-                //this.EastLines.Add(new Line(line1.From, line1.To));
-                //// 子类属性
-                //this.HLines = new List<Line>();
-                //this.HLines.Add(new Line(centerLine.From, centerLine.To));
+                // 东西体量为主
+                Line west = this.WestBaseLine;
+                Line east = this.EastBaseLine;
+                Point3d pointOnWest = west.PointAt(t);
+                Point3d pointOnEast = east.PointAt(t);
+                this.HCenterBaseLine = new Line(pointOnWest, pointOnEast);
 
-                this.West_Interval = new List<Interval>();
-                this.West_Interval.Add(new Interval(0, 1));
-                this.East_Interval = new List<Interval>();
-                this.East_Interval.Add(new Interval(0, 1));
-
-                this.HCenter_Interval = new List<Interval>();
-                this.HCenter_Interval.Add(new Interval(0, 1));
+                this.VCenterBaseLine = initialCell.VCenterBaseLine;
             }
             #endregion
 
@@ -247,7 +260,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="line1"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
-        private BilinearCell(BilinearCell initialCell, int directionCode, Line columnLine, Line line0, Line line1, int i, int j)
+        private BilinearCell(BilinearCell initialCell, int directionCode, int i, int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -255,6 +268,100 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.NexNorthIndex = new int[2] { i + 1, j };
             this.PrevWestIndex = new int[2] { i, j - 1 };
             this.NexEastIndex = new int[2] { i, j + 1 };
+            #endregion
+
+            #region Interval
+            switch (directionCode)
+            {
+                case 0:
+                    this.South_Interval = new List<Interval>();
+                    if (initialCell.South_Interval == null)
+                    {
+                        this.South_Interval.Add(new Interval(0, 1));
+                    }
+                    else
+                    {
+                        this.South_Interval.AddRange(initialCell.South_Interval);
+                    }
+
+                    this.West_Interval = new List<Interval>();
+                    this.West_Interval.Add(new Interval(0, 1));
+                    this.East_Interval = new List<Interval>();
+                    this.East_Interval.Add(new Interval(0, 1));
+
+                    this.MainVolumeDirection = MainDirection.WestEast;
+                    this.CenterTValue = 0;
+                    break;
+                case 1:
+                    this.North_Interval = new List<Interval>();
+                    if (initialCell.North_Interval == null)
+                    {
+                        this.North_Interval.Add(new Interval(0, 1));
+                    }
+                    else
+                    {
+                        this.North_Interval.AddRange(initialCell.North_Interval);
+                    }
+
+                    this.West_Interval = new List<Interval>();
+                    this.West_Interval.Add(new Interval(0, 1));
+                    this.East_Interval = new List<Interval>();
+                    this.East_Interval.Add(new Interval(0, 1));
+
+                    this.MainVolumeDirection = MainDirection.WestEast;
+                    this.CenterTValue = 1;
+                    break;
+                case 2:
+                    this.South_Interval = new List<Interval>();
+                    if (initialCell.South_Interval == null)
+                    {
+                        this.South_Interval.Add(new Interval(0, 1));
+                    }
+                    else
+                    {
+                        this.South_Interval.AddRange(initialCell.South_Interval);
+                    }
+                    this.North_Interval = new List<Interval>();
+                    if (initialCell.North_Interval == null)
+                    {
+                        this.North_Interval.Add(new Interval(0, 1));
+                    }
+                    else
+                    {
+                        this.North_Interval.AddRange(initialCell.North_Interval);
+                    }
+                    this.West_Interval = new List<Interval>();
+                    this.West_Interval.Add(new Interval(0, 1));
+
+                    this.MainVolumeDirection = MainDirection.SouthNorth;
+                    this.CenterTValue = 0;
+                    break;
+                case 3:
+                    this.South_Interval = new List<Interval>();
+                    if (initialCell.South_Interval == null)
+                    {
+                        this.South_Interval.Add(new Interval(0, 1));
+                    }
+                    else
+                    {
+                        this.South_Interval.AddRange(initialCell.South_Interval);
+                    }
+                    this.North_Interval = new List<Interval>();
+                    if (initialCell.North_Interval == null)
+                    {
+                        this.North_Interval.Add(new Interval(0, 1));
+                    }
+                    else
+                    {
+                        this.North_Interval.AddRange(initialCell.North_Interval);
+                    }
+                    this.East_Interval = new List<Interval>();
+                    this.East_Interval.Add(new Interval(0, 1));
+
+                    this.MainVolumeDirection = MainDirection.SouthNorth;
+                    this.CenterTValue = 1;
+                    break;
+            }
             #endregion
 
             #region BaseLine
@@ -266,84 +373,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // 子类属性
             this.HCenterBaseLine = initialCell.HCenterBaseLine;
             this.VCenterBaseLine = initialCell.VCenterBaseLine;
-            #endregion
-
-            #region Lines
-            switch (directionCode)
-            {
-                case 0:
-                    //this.SouthLines = new List<Line>();
-                    //this.SouthLines.Add(new Line(columnLine.From, columnLine.To));
-                    //this.WestLines = new List<Line>();
-                    //this.WestLines.Add(new Line(line0.From, line0.To));
-                    //this.EastLines = new List<Line>();
-                    //this.EastLines.Add(new Line(line1.From, line1.To));
-
-                    this.South_Interval = new List<Interval>();
-                    this.South_Interval.Add(new Interval(0, 1));
-                    this.West_Interval = new List<Interval>();
-                    this.West_Interval.Add(new Interval(0, 1));
-                    this.East_Interval = new List<Interval>();
-                    this.East_Interval.Add(new Interval(0, 1));
-
-                    this.MainVolumeDirection = MainDirection.WestEast;
-                    this.CenterTValue = 0;
-                    break;
-                case 1:
-                    //this.NorthLines = new List<Line>();
-                    //this.NorthLines.Add(new Line(columnLine.From, columnLine.To));
-                    //this.WestLines = new List<Line>();
-                    //this.WestLines.Add(new Line(line0.From, line0.To));
-                    //this.EastLines = new List<Line>();
-                    //this.EastLines.Add(new Line(line1.From, line1.To));
-
-                    this.North_Interval = new List<Interval>();
-                    this.North_Interval.Add(new Interval(0, 1));
-                    this.West_Interval = new List<Interval>();
-                    this.West_Interval.Add(new Interval());
-                    this.East_Interval = new List<Interval>();
-                    this.East_Interval.Add(new Interval());
-
-                    this.MainVolumeDirection = MainDirection.WestEast;
-                    this.CenterTValue = 1;
-                    break;
-                case 2:
-                    //this.SouthLines = new List<Line>();
-                    //this.SouthLines.Add(new Line(line0.From, line0.To));
-                    //this.NorthLines = new List<Line>();
-                    //this.NorthLines.Add(new Line(line1.From, line1.To));
-                    //this.WestLines = new List<Line>();
-                    //this.WestLines.Add(new Line(columnLine.From, columnLine.To));
-
-                    this.South_Interval = new List<Interval>();
-                    this.South_Interval.Add(new Interval(0, 1));
-                    this.North_Interval = new List<Interval>();
-                    this.North_Interval.Add(new Interval(0, 1));
-                    this.West_Interval = new List<Interval>();
-                    this.West_Interval.Add(new Interval(0, 1));
-
-                    this.MainVolumeDirection = MainDirection.SouthNorth;
-                    this.CenterTValue = 0;
-                    break;
-                case 3:
-                    //this.SouthLines = new List<Line>();
-                    //this.SouthLines.Add(new Line(line0.From, line0.To));
-                    //this.NorthLines = new List<Line>();
-                    //this.NorthLines.Add(new Line(line1.From, line1.To));
-                    //this.EastLines = new List<Line>();
-                    //this.EastLines.Add(new Line(columnLine.From, columnLine.To));
-
-                    this.South_Interval = new List<Interval>();
-                    this.South_Interval.Add(new Interval(0, 1));
-                    this.North_Interval = new List<Interval>();
-                    this.North_Interval.Add(new Interval(0, 1));
-                    this.East_Interval = new List<Interval>();
-                    this.East_Interval.Add(new Interval(0, 1));
-
-                    this.MainVolumeDirection = MainDirection.SouthNorth;
-                    this.CenterTValue = 1;
-                    break;
-            }
             #endregion
 
             this.ShapeType = BilinearShapeType.CShape;
@@ -362,7 +391,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="east"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
-        private BilinearCell(BilinearCell initialCell, Line south, Line north, Line west, Line east, int i, int j)
+        private BilinearCell(BilinearCell initialCell, int i, int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -382,20 +411,25 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.VCenterBaseLine = initialCell.VCenterBaseLine;
             #endregion
 
-            #region Lines
-            //this.SouthLines = new List<Line>();
-            //this.SouthLines.Add(new Line(south.From, south.To));
-            //this.NorthLines = new List<Line>();
-            //this.NorthLines.Add(new Line(north.From, north.To));
-            //this.WestLines = new List<Line>();
-            //this.WestLines.Add(new Line(west.From, west.To));
-            //this.EastLines = new List<Line>();
-            //this.EastLines.Add(new Line(east.From, east.To));
-
+            #region Interval
             this.South_Interval = new List<Interval>();
-            this.South_Interval.Add(new Interval(0, 1));
+            if (initialCell.South_Interval == null)
+            {
+                this.South_Interval.Add(new Interval(0, 1));
+            }
+            else
+            {
+                this.South_Interval.AddRange(initialCell.South_Interval);
+            }
             this.North_Interval = new List<Interval>();
-            this.North_Interval.Add(new Interval(0, 1));
+            if (initialCell.North_Interval == null)
+            {
+                this.North_Interval.Add(new Interval(0, 1));
+            }
+            else
+            {
+                this.North_Interval.AddRange(initialCell.North_Interval);
+            }
             this.West_Interval = new List<Interval>();
             this.West_Interval.Add(new Interval(0, 1));
             this.East_Interval = new List<Interval>();
@@ -419,7 +453,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 Line west = this.WestBaseLine;
                 Line east = this.EastBaseLine;
 
-                newGeneratedCell = new BilinearCell(this, false, this.HCenterBaseLine, west, east, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
+                newGeneratedCell = new BilinearCell(this, false, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
             }
             else if (this.ShapeType == BilinearShapeType.CShape)
             {
@@ -437,7 +471,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     Point3d pointOnNorth = north.PointAt(0.2 + randomT * 0.2);
                     Line newVCenter = new Line(pointOnSouth, pointOnNorth);
 
-                    newGeneratedCell = new BilinearCell(this, true, newVCenter, south, north, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, true, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
                 }
                 else
                 {
@@ -448,7 +482,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     Point3d pointOnEast = east.PointAt(0.2 + randomT * 0.2);
                     Line newHCenter = new Line(pointOnWest, pointOnEast);
 
-                    newGeneratedCell = new BilinearCell(this, false, newHCenter, west, east, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, false, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
                 }
             }
             return newGeneratedCell;
@@ -466,19 +500,19 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 if (this.SouthBaseLine != Line.Unset)
                 {
-                    newGeneratedCell = new BilinearCell(this, 0, this.SouthBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, 0, this.CurrentIndex[0], this.CurrentIndex[1]);
                 }
                 else if (this.NorthBaseLine != Line.Unset)
                 {
-                    newGeneratedCell = new BilinearCell(this, 1, this.NorthBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, 1, this.CurrentIndex[0], this.CurrentIndex[1]);
                 }
                 else if (this.WestBaseLine != Line.Unset)
                 {
-                    newGeneratedCell = new BilinearCell(this, 2, this.WestBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, 2, this.CurrentIndex[0], this.CurrentIndex[1]);
                 }
                 else
                 {
-                    newGeneratedCell = new BilinearCell(this, 3, this.EastBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, 3, this.CurrentIndex[0], this.CurrentIndex[1]);
                 }
             }
             else
@@ -486,19 +520,19 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 switch (directionCode)
                 {
                     case 0:
-                        newGeneratedCell = new BilinearCell(this, 0, this.SouthBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 0, this.CurrentIndex[0], this.CurrentIndex[1]);
                         break;
                     case 1:
-                        newGeneratedCell = new BilinearCell(this, 1, this.NorthBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 1, this.CurrentIndex[0], this.CurrentIndex[1]);
                         break;
                     case 2:
-                        newGeneratedCell = new BilinearCell(this, 2, this.WestBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 2, this.CurrentIndex[0], this.CurrentIndex[1]);
                         break;
                     case 3:
-                        newGeneratedCell = new BilinearCell(this, 3, this.EastBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 3, this.CurrentIndex[0], this.CurrentIndex[1]);
                         break;
                     default:
-                        newGeneratedCell = new BilinearCell(this, 0, this.SouthBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 0, this.CurrentIndex[0], this.CurrentIndex[1]);
                         break;
                 }
             }
@@ -520,7 +554,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             else
             {
-                newGeneratedCell = new BilinearCell(this, this.SouthBaseLine, this.NorthBaseLine, this.WestBaseLine, this.EastBaseLine, this.CurrentIndex[0], this.CurrentIndex[1]);
+                newGeneratedCell = new BilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
             }
             return newGeneratedCell;
         }
@@ -564,7 +598,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public override List<Curve> GetAllHorizontal()
         {
             List<Curve> horizontalLines = new List<Curve>();
-            if (this.SouthBaseLine != Line.Unset)
+            if (this.SouthBaseLine != Line.Unset && this.South_Interval != null)
             {
                 for (int i = 0; i < this.South_Interval.Count; i++)
                 {
@@ -573,7 +607,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     horizontalLines.Add(new Line(p0, p1).ToNurbsCurve());
                 }
             }
-            if (this.NorthBaseLine != Line.Unset)
+            if (this.NorthBaseLine != Line.Unset && this.North_Interval != null)
             {
                 for (int i = 0; i < this.North_Interval.Count; i++)
                 {
@@ -583,7 +617,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 }
             }
 
-            if (this.HCenterBaseLine != Line.Unset)
+            if (this.HCenterBaseLine != Line.Unset && this.HCenter_Interval != null)
             {
                 for (int i = 0; i < this.HCenter_Interval.Count; i++)
                 {
@@ -599,7 +633,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public override List<Curve> GetAllVertical()
         {
             List<Curve> verticalLines = new List<Curve>();
-            if (this.WestBaseLine != Line.Unset)
+            if (this.WestBaseLine != Line.Unset && this.West_Interval != null)
             {
                 for (int i = 0; i < this.West_Interval.Count; i++)
                 {
@@ -608,7 +642,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     verticalLines.Add(new Line(p0, p1).ToNurbsCurve());
                 }
             }
-            if (this.EastBaseLine != Line.Unset)
+            if (this.EastBaseLine != Line.Unset && this.East_Interval != null)
             {
                 for (int i = 0; i < this.East_Interval.Count; i++)
                 {
@@ -618,7 +652,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 }
             }
 
-            if (this.VCenterBaseLine != Line.Unset)
+            if (this.VCenterBaseLine != Line.Unset && this.VCenter_Interval != null)
             {
                 for (int i = 0; i < this.VCenter_Interval.Count; i++)
                 {
@@ -628,6 +662,211 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 }
             }
             return verticalLines;
+        }
+
+        public void LengthConstraint(double lMin, double lMax, double d, double w)
+        {
+            if (this.SouthBaseLine != Line.Unset)
+            {
+                double dw = d + w;
+                Line line = new Line(this.SouthBaseLine.PointAt(0), this.SouthBaseLine.PointAt(1));
+                double length = line.Length;
+
+                if (length > lMax)
+                {
+                    int lMaxCount = (int)Math.Floor((length - lMax) / (lMax + dw)) + 1;
+                    int lMinCount = (int)Math.Floor((length - lMin) / (lMin + dw)) + 1;
+
+                    if (lMinCount == 1 && lMaxCount == 1)
+                    {
+                        Point3d newEnd = line.PointAtLength(lMax);
+                        double tEnd = line.ClosestParameter(newEnd);
+                        this.South_Interval = new List<Interval>();
+                        this.South_Interval.Add(new Interval(0, tEnd));
+                    }
+                    else if (lMinCount == 2 && lMaxCount == 1)
+                    {
+                        List<double> factors = GetFactors(false, lMin, lMax, dw, lMinCount);
+
+                        this.South_Interval = new List<Interval>();
+                        for (int i = 0; i < lMinCount; i++)
+                        {
+                            this.South_Interval.Add(new Interval(factors[i], factors[i + 1]));
+                        }
+                    }
+                    else
+                    {
+                        // 按照 lMaxCount 和 lMinCount 中的小的数目走
+                        int count = lMinCount > lMaxCount ? lMaxCount : lMinCount;
+                        bool flag = lMinCount > lMaxCount ? true : false;
+                        if (flag && lMaxCount == 1)
+                        {
+                            count = lMinCount;
+                            flag = false;
+                        }
+                        List<double> factors = GetFactors(flag, lMin, lMax, dw, count);
+
+                        this.South_Interval = new List<Interval>();
+                        int iter = 0;
+                        while (iter < factors.Count)
+                        {
+                            this.South_Interval.Add(new Interval(factors[iter], factors[iter + 1]));
+                            iter += 2;
+                        }
+                    }
+                }
+            }
+            if (this.NorthBaseLine != Line.Unset)
+            {
+                double dw = d + w;
+                Line line = new Line(this.NorthBaseLine.PointAt(0), this.NorthBaseLine.PointAt(1));
+                double length = line.Length;
+
+                if (length > lMax)
+                {
+                    int lMaxCount = (int)Math.Floor((length - lMax) / (lMax + dw)) + 1;
+                    int lMinCount = (int)Math.Floor((length - lMin) / (lMin + dw)) + 1;
+
+                    if (lMinCount == 1 && lMaxCount == 1)
+                    {
+                        Point3d newEnd = line.PointAtLength(lMax);
+                        double tEnd = line.ClosestParameter(newEnd);
+                        this.North_Interval = new List<Interval>();
+                        this.North_Interval.Add(new Interval(0, tEnd));
+                    }
+                    else if (lMinCount == 2 && lMaxCount == 1)
+                    {
+                        List<double> factors = GetFactors(false, lMin, lMax, dw, lMinCount);
+
+                        this.North_Interval = new List<Interval>();
+                        for (int i = 0; i < lMinCount; i++)
+                        {
+                            this.North_Interval.Add(new Interval(factors[i], factors[i + 1]));
+                        }
+                    }
+                    else
+                    {
+                        // 按照 lMaxCount 和 lMinCount 中的小的数目走
+                        int count = lMinCount > lMaxCount ? lMaxCount : lMinCount;
+                        bool flag = lMinCount > lMaxCount ? true : false;
+                        if (flag && lMaxCount == 1)
+                        {
+                            count = lMinCount;
+                            flag = false;
+                        }
+                        List<double> factors = GetFactors(flag, lMin, lMax, dw, count);
+
+                        this.North_Interval = new List<Interval>();
+                        int iter = 0;
+                        while (iter < factors.Count)
+                        {
+                            this.North_Interval.Add(new Interval(factors[iter], factors[iter + 1]));
+                            iter += 2;
+                        }
+                    }
+                }
+            }
+            if (this.HCenterBaseLine != Line.Unset)
+            {
+                double dw = d + w;
+                Line line = new Line(this.HCenterBaseLine.PointAt(0), this.HCenterBaseLine.PointAt(1));
+                double length = line.Length;
+
+                if (length > lMax)
+                {
+                    int lMaxCount = (int)Math.Floor((length - lMax) / (lMax + dw)) + 1;
+                    int lMinCount = (int)Math.Floor((length - lMin) / (lMin + dw)) + 1;
+
+                    if (lMinCount == 1 && lMaxCount == 1)
+                    {
+                        Point3d newEnd = line.PointAtLength(lMax);
+                        double tEnd = line.ClosestParameter(newEnd);
+                        this.HCenter_Interval = new List<Interval>();
+                        this.HCenter_Interval.Add(new Interval(0, tEnd));
+                    }
+                    else if (lMinCount == 2 && lMaxCount == 1)
+                    {
+                        List<double> factors = GetFactors(false, lMin, lMax, dw, lMinCount);
+
+                        this.HCenter_Interval = new List<Interval>();
+                        for (int i = 0; i < lMinCount; i++)
+                        {
+                            this.HCenter_Interval.Add(new Interval(factors[i], factors[i + 1]));
+                        }
+                    }
+                    else
+                    {
+                        // 按照 lMaxCount 和 lMinCount 中的小的数目走
+                        int count = lMinCount > lMaxCount ? lMaxCount : lMinCount;
+                        bool flag = lMinCount > lMaxCount ? true : false;
+                        if (flag && lMaxCount == 1)
+                        {
+                            count = lMinCount;
+                            flag = false;
+                        }
+                        List<double> factors = GetFactors(flag, lMin, lMax, dw, count);
+
+                        this.HCenter_Interval = new List<Interval>();
+                        int iter = 0;
+                        while (iter < factors.Count)
+                        {
+                            this.HCenter_Interval.Add(new Interval(factors[iter], factors[iter + 1]));
+                            iter += 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static List<double> GetFactors(bool flag, double lMin, double lMax, double dw, int count)
+        {
+            double sum = 0;
+            if (flag)
+            {
+                sum = (lMax + dw) * count - dw;
+            }
+            else
+            {
+                sum = (lMin + dw) * count - dw;
+            }
+            List<double> eachLength = new List<double>();
+            //eachLength.Add(0);
+            for (int i = 0; i < 2 * count - 1; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    if (flag)
+                    {
+                        eachLength.Add(lMax);
+                    }
+                    else
+                    {
+                        eachLength.Add(lMin);
+                    }
+                }
+                else
+                {
+                    eachLength.Add(dw);
+                }
+            }
+            List<double> cumulatives = new List<double>();
+            cumulatives.Add(eachLength[0]);
+            for (int i = 1; i < eachLength.Count; i++)
+            {
+                cumulatives.Add(cumulatives[i - 1] + eachLength[i]);
+            }
+            //cumulatives.Add(0);
+            //cumulatives.Add(lMin);
+            //cumulatives.Add(lMin + dw);
+            //cumulatives.Add((lMin + dw) * 2 - dw);
+            List<double> factors = new List<double>();
+            factors.Add(0.0);
+            for (int i = 0; i < 2 * count - 1; i++)
+            {
+                double factor = cumulatives[i] / sum;
+                factors.Add(factor);
+            }
+            return factors;
         }
     }
 }
