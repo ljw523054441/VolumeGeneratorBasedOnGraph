@@ -39,17 +39,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public enum BilinearShapeType
         {
             Unset = 0,
-            // 奇数排的形式种类
             CShape = 1,
             IShape = 2,
-            //TShape = 3,
-            RecShape = 3
-            // 偶数排的形式种类
-            //NullShape = 4,
-            //LineShape = 5,
-            //ParallelShape = 6,
-            // 单个体量的形式种类
-            //SingleRegion = 7
+            RecShape = 3,
+            RecVariantShape = 4
         }
 
         public BilinearShapeType ShapeType { get; set; }
@@ -136,15 +129,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CenterBaseLineCount = count;
         }
 
-        // todo:要新增对于面宽方向上分解过的体量线 interval 值的规避
         /// <summary>
         /// 生成IShape
         /// </summary>
         /// <param name="initialCell"></param>
         /// <param name="isSouthNorth"></param>
-        /// <param name="centerLine"></param>
-        /// <param name="line0"></param>
-        /// <param name="line1"></param>
         /// <param name="t"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
@@ -255,9 +244,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// </summary>
         /// <param name="initialCell"></param>
         /// <param name="directionCode"></param>
-        /// <param name="columnLine"></param>
-        /// <param name="line0"></param>
-        /// <param name="line1"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
         private BilinearCell(BilinearCell initialCell, int directionCode, int i, int j)
@@ -385,10 +371,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// 生成RecShape
         /// </summary>
         /// <param name="initialCell"></param>
-        /// <param name="south"></param>
-        /// <param name="north"></param>
-        /// <param name="west"></param>
-        /// <param name="east"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
         private BilinearCell(BilinearCell initialCell, int i, int j)
@@ -399,16 +381,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.NexNorthIndex = new int[2] { i + 1, j };
             this.PrevWestIndex = new int[2] { i, j - 1 };
             this.NexEastIndex = new int[2] { i, j + 1 };
-            #endregion
-
-            #region baseLine
-            this.SouthBaseLine = initialCell.SouthBaseLine;
-            this.NorthBaseLine = initialCell.NorthBaseLine;
-            this.WestBaseLine = initialCell.WestBaseLine;
-            this.EastBaseLine = initialCell.EastBaseLine;
-
-            this.HCenterBaseLine = initialCell.HCenterBaseLine;
-            this.VCenterBaseLine = initialCell.VCenterBaseLine;
             #endregion
 
             #region Interval
@@ -436,6 +408,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.East_Interval.Add(new Interval(0, 1));
             #endregion
 
+            #region baseLine
+            this.SouthBaseLine = initialCell.SouthBaseLine;
+            this.NorthBaseLine = initialCell.NorthBaseLine;
+            this.WestBaseLine = initialCell.WestBaseLine;
+            this.EastBaseLine = initialCell.EastBaseLine;
+
+            this.HCenterBaseLine = initialCell.HCenterBaseLine;
+            this.VCenterBaseLine = initialCell.VCenterBaseLine;
+            #endregion
+
             this.MainVolumeDirection = MainDirection.Unset;
             this.CenterTValue = 0;
 
@@ -445,56 +427,128 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CenterBaseLineCount = 0;
         }
 
-        public BilinearCell GenerateIShape(int randomT,int directionCode)
+        /// <summary>
+        /// 生成RecVariantShape
+        /// </summary>
+        /// <param name="initialCell"></param>
+        /// <param name="t"></param>
+        /// <param name="i"></param>
+        /// <param name="j"></param>
+        private BilinearCell(BilinearCell initialCell ,double t, int i, int j)
+        {
+            #region index
+            this.CurrentIndex = new int[2] { i, j };
+            this.PrevSouthIndex = new int[2] { i - 1, j };
+            this.NexNorthIndex = new int[2] { i + 1, j };
+            this.PrevWestIndex = new int[2] { i, j - 1 };
+            this.NexEastIndex = new int[2] { i, j + 1 };
+            #endregion
+
+            #region interval
+            this.South_Interval = new List<Interval>();
+            if (initialCell.South_Interval == null)
+            {
+                this.South_Interval.Add(new Interval(0, 1));
+            }
+            else
+            {
+                this.South_Interval.AddRange(initialCell.South_Interval);
+            }
+            this.North_Interval = new List<Interval>();
+            if (initialCell.North_Interval == null)
+            {
+                this.North_Interval.Add(new Interval(0, 1));
+            }
+            else
+            {
+                this.North_Interval.AddRange(initialCell.North_Interval);
+            }
+
+            this.West_Interval = new List<Interval>();
+            this.West_Interval.Add(new Interval(0, 1));
+            this.East_Interval = new List<Interval>();
+            this.East_Interval.Add(new Interval(0, 1));
+            #endregion
+
+            #region baseLine
+            this.SouthBaseLine = initialCell.SouthBaseLine;
+            this.NorthBaseLine = initialCell.NorthBaseLine;
+
+            this.HCenterBaseLine = initialCell.HCenterBaseLine;
+            this.VCenterBaseLine = initialCell.VCenterBaseLine;
+
+            Point3d pointOnSouth0 = this.SouthBaseLine.PointAt(t);
+            Point3d pointOnSouth1 = this.SouthBaseLine.PointAt(1 - t);
+            Point3d pointOnNorth0 = this.NorthBaseLine.PointAt(t);
+            Point3d pointOnNorth1 = this.NorthBaseLine.PointAt(1 - t);
+            this.WestBaseLine = new Line(pointOnSouth0, pointOnNorth0);
+            this.EastBaseLine = new Line(pointOnSouth1, pointOnNorth1);
+            #endregion
+
+            this.MainVolumeDirection = MainDirection.SouthNorth;
+            this.CenterTValue = t;
+            this.ShapeType = BilinearShapeType.RecVariantShape;
+
+            this.BoundaryBaseLineCount = GetBoundaryBaseLinesCount();
+            this.CenterBaseLineCount = GetCenterBaseLineCount();
+        }
+
+        public BilinearCell GenerateIAndIVariantShape(int randomT,int directionCode, double w)
         {
             BilinearCell newGeneratedCell;
             if (this.ShapeType == BilinearShapeType.IShape)
             {
-                Line west = this.WestBaseLine;
-                Line east = this.EastBaseLine;
+                double length0 = this.WestBaseLine.Length;
+                double length1 = this.EastBaseLine.Length;
+                double length = length0 < length1 ? length0 : length1;
+                double tMin = w / length;
+                double tMax = (length - w) / length;
+                double t = Math.Abs(tMin + (tMax - tMin) * randomT);
 
-                newGeneratedCell = new BilinearCell(this, false, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
+                newGeneratedCell = new BilinearCell(this, false, t, this.CurrentIndex[0], this.CurrentIndex[1]);
             }
             else if (this.ShapeType == BilinearShapeType.CShape)
             {
                 // 执行GenerateCShape函数
-                newGeneratedCell = GenerateCShape(randomT, directionCode);
+                newGeneratedCell = GenerateCAndCVariantShape(randomT, directionCode, w);
             }
             else
             {
                 if (directionCode >= 2)
                 {
                     // 南北体量为主
-                    Line south = this.SouthBaseLine;
-                    Line north = this.NorthBaseLine;
-                    Point3d pointOnSouth = south.PointAt(0.2 + randomT * 0.2);
-                    Point3d pointOnNorth = north.PointAt(0.2 + randomT * 0.2);
-                    Line newVCenter = new Line(pointOnSouth, pointOnNorth);
+                    double length0 = this.SouthBaseLine.Length;
+                    double length1 = this.NorthBaseLine.Length;
+                    double length = length0 < length1 ? length0 : length1;
+                    double tMin = w / length;
+                    double tMax = (length - w) / length;
+                    double t = Math.Abs(tMin + (tMax - tMin) * randomT);
 
-                    newGeneratedCell = new BilinearCell(this, true, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, true, t, this.CurrentIndex[0], this.CurrentIndex[1]);
                 }
                 else
                 {
                     // 东西体量为主
-                    Line west = this.WestBaseLine;
-                    Line east = this.EastBaseLine;
-                    Point3d pointOnWest = west.PointAt(0.2 + randomT * 0.2);
-                    Point3d pointOnEast = east.PointAt(0.2 + randomT * 0.2);
-                    Line newHCenter = new Line(pointOnWest, pointOnEast);
+                    double length0 = this.WestBaseLine.Length;
+                    double length1 = this.EastBaseLine.Length;
+                    double length = length0 < length1 ? length0 : length1;
+                    double tMin = w / length;
+                    double tMax = (length - w) / length;
+                    double t = Math.Abs(tMin + (tMax - tMin) * randomT);
 
-                    newGeneratedCell = new BilinearCell(this, false, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, false, t, this.CurrentIndex[0], this.CurrentIndex[1]);
                 }
             }
             return newGeneratedCell;
         }
 
-        public BilinearCell GenerateCShape(int randomT,int directionCode)
+        public BilinearCell GenerateCAndCVariantShape(int randomT,int directionCode, double w)
         {
             BilinearCell newGeneratedCell;
             if (this.ShapeType == BilinearShapeType.IShape)
             {
                 // 执行GenerateIShape函数
-                newGeneratedCell = GenerateIShape(randomT, directionCode);
+                newGeneratedCell = GenerateIAndIVariantShape(randomT, directionCode, w);
             }
             else if (this.ShapeType == BilinearShapeType.CShape)
             {
@@ -539,22 +593,55 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return newGeneratedCell;
         }
 
-        public BilinearCell GenerateRecShape(int randomT, int directionCode)
+        public BilinearCell GenerateRecAndRecVariantShape(int randomT, int directionCode, double lMin, double w, bool flag)
         {
             BilinearCell newGeneratedCell;
             if (this.ShapeType == BilinearShapeType.IShape)
             {
                 // 执行GenerateIShape函数
-                newGeneratedCell = GenerateIShape(randomT, directionCode);
+                newGeneratedCell = GenerateIAndIVariantShape(randomT, directionCode, w);
             }
             else if (this.ShapeType == BilinearShapeType.CShape)
             {
                 // 执行GenerateCShape函数
-                newGeneratedCell = GenerateCShape(randomT, directionCode);
+                newGeneratedCell = GenerateCAndCVariantShape(randomT, directionCode, w);
             }
             else
             {
-                newGeneratedCell = new BilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                if (directionCode < 2)
+                {
+                    // 执行GenerateRecShape函数
+                    newGeneratedCell = new BilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                }
+                else
+                {
+                    if (flag)
+                    {
+                        // 执行GenerateRecShape函数
+                        newGeneratedCell = new BilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    }
+                    else
+                    {
+                        double length0 = this.SouthBaseLine.Length;
+                        double length1 = this.NorthBaseLine.Length;
+
+                        double length = length0 < length1 ? length0 : length1;
+                        if (length >= lMin + 3 * w)
+                        {
+                            double deltaW = length - 2 * w - w - lMin;
+                            double t0 = w / length;
+                            double t1 = (w + 0.5 * deltaW) / length;
+                            double t = t0 + (t1 - t0) * randomT;
+
+                            newGeneratedCell = new BilinearCell(this, t, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        }
+                        else
+                        {
+                            // 执行GenerateRecShape函数
+                            newGeneratedCell = new BilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        }
+                    }
+                }
             }
             return newGeneratedCell;
         }

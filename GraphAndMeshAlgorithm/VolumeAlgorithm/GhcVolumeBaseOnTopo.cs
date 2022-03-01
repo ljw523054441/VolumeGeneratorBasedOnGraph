@@ -1008,54 +1008,74 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             {
                 for (int j = 0; j < cellLoL[i].Count; j++)
                 {
-                    int random = m_random.Next(0, 3);
-                    int randomT0 = m_random.Next(0, 4);
-                    int randomT1 = m_random.Next(0, 4);
+                    int random0 = m_random.Next(0, 3);// 取值范围是0,1,2
+                    int random1 = m_random.Next(0, 4);// 取值范围是0,1,2,3
+                    int randomT0 = m_random.Next(0, 3) / 2;
+                    int randomT1 = m_random.Next(0, 3) / 2;
                     int directionCode0 = m_random.Next(0, 3);
                     int directionCode1 = m_random.Next(0, 4);
                     if (cellLoL[i][j].IsBilinearCell())
                     {
-                        if (random == 0)
+                        BilinearCell bCell = cellLoL[i][j] as BilinearCell;
+                        bool flag = false;
+                        // 如果在面宽方向上被切割过，就不走IShape分支，不走RecVariantShape分支
+                        if ((bCell.South_Interval != null && bCell.South_Interval.Count > 1) 
+                            || (bCell.North_Interval != null && bCell.North_Interval.Count > 1))
                         {
-                            BilinearCell bCell = cellLoL[i][j] as BilinearCell;
-                            cellLoL[i][j] = bCell.GenerateIShape(randomT0, directionCode0);
+                            random0 = m_random.Next(1, 3);
+                            flag = true;
                         }
-                        else if (random == 1)
+                        
+                        if (random0 == 0)
                         {
-                            BilinearCell bCell = cellLoL[i][j] as BilinearCell;
-                            cellLoL[i][j] = bCell.GenerateCShape(randomT0, directionCode0);
+                            cellLoL[i][j] = bCell.GenerateIAndIVariantShape(randomT0, directionCode0, w);
+                        }
+                        else if (random0 == 1)
+                        {
+                            cellLoL[i][j] = bCell.GenerateCAndCVariantShape(randomT0, directionCode0, w);
                         }
                         else
                         {
-                            BilinearCell bCell = cellLoL[i][j] as BilinearCell;
-                            cellLoL[i][j] = bCell.GenerateRecShape(randomT0, directionCode0);
+                            cellLoL[i][j] = bCell.GenerateRecAndRecVariantShape(randomT0, directionCode0, lMin, w, flag);
                         }
                     }
                     else
                     {
-                        if (random == 0)
+                        TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
+                        bool flag = false;
+                        // 如果在面宽方向上被切割过，就不走EVariantShape分支，不走EightVariantShape分支
+                        if ((tCell.South_Interval !=null && tCell.South_Interval.Count > 1)
+                            || (tCell.Middle_Interval != null && tCell.Middle_Interval.Count > 1)
+                            || (tCell.North_Interval != null && tCell.North_Interval.Count > 1))
                         {
-                            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
+                            random1 = m_random.Next(1, 4);
+                            flag = true;
+                        }
+
+                        if (random1 == 0)
+                        {
+                            cellLoL[i][j] = tCell.GenerateEVariantShape(directionCode1, randomT0, randomT1, w);
+                        }
+                        else if (random1 == 1)
+                        {
                             cellLoL[i][j] = tCell.GenerateEShape(directionCode1);
                         }
-                        else if (random == 1)
+                        else if (random1 == 2)
                         {
-                            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
-                            cellLoL[i][j] = tCell.GenerateEVariantShape(directionCode1, randomT0, randomT1);
-                        }
-                        else if (random == 2)
-                        {
-                            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
                             cellLoL[i][j] = tCell.GenerateZShape(directionCode1);
                         }
                         else
                         {
-                            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
-                            cellLoL[i][j] = tCell.GenerateIIShape(directionCode1, randomT0);
+                            cellLoL[i][j] = tCell.GenerateEightAndEightVariantShape(directionCode1, randomT1, lMin, w, flag);
                         }
                     }
                 }
             }
+            #endregion
+
+
+            #region todo 边缘裁切
+
             #endregion
 
             return cellLoL;
@@ -2767,30 +2787,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 path++;
             }
-
-            //hCurves = new List<Curve>();
-            //if (cuttedHorizontalCenterLines.DataCount != 0)
-            //{
-            //    for (int i = 0; i < cuttedHorizontalCenterLines.BranchCount; i++)
-            //    {
-            //        for (int j = 0; j < cuttedHorizontalCenterLines.Branch(i).Count; j++)
-            //        {
-            //            hCurves.Add(cuttedHorizontalCenterLines.Branch(i)[j]);
-            //        }
-            //    }
-            //}
-            
-            //vCurves = new List<Curve>();
-            //if (cuttedVerticalCenterLines.DataCount != 0)
-            //{
-            //    for (int i = 0; i < cuttedVerticalCenterLines.BranchCount; i++)
-            //    {
-            //        for (int j = 0; j < cuttedVerticalCenterLines.Branch(i).Count; j++)
-            //        {
-            //            vCurves.Add(cuttedVerticalCenterLines.Branch(i)[j]);
-            //        }
-            //    }
-            //}
 
             if (cuttedHorizontalCenterLines.DataCount == 0)
             {

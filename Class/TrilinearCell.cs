@@ -48,7 +48,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             EShape = 1,
             EVarientShape = 2,
             ZShape = 3,
-            IIShape = 4,
+            EightVariantShape = 4,
             EightShape = 5
         }
 
@@ -216,7 +216,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CenterBaseLineCount = 0;
         }
 
-        // todo:要新增对于面宽方向上分解过的体量线 interval 值的规避
         /// <summary>
         /// 生成EVariantShape
         /// </summary>
@@ -314,12 +313,83 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CenterBaseLineCount = 2;
         }
 
-        // todo:要新增对于面宽方向上分解过的体量线 interval 值的规避
         /// <summary>
-        /// 生成IIshape
+        /// 生成EightShape
         /// </summary>
         /// <param name="initialCell"></param>
-        /// <param name="directionCode"></param>
+        /// <param name="i"></param>
+        /// <param name="j"></param>
+        private TrilinearCell(TrilinearCell initialCell , int i ,int j)
+        {
+            #region index
+            this.CurrentIndex = new int[2] { i, j };
+            this.PrevSouthIndex = new int[2] { i - 1, j };
+            this.NexNorthIndex = new int[2] { i + 1, j };
+            this.PrevWestIndex = new int[2] { i, j - 1 };
+            this.NexEastIndex = new int[2] { i, j + 1 };
+            #endregion
+
+            #region Interval
+            this.South_Interval = new List<Interval>();
+            if (initialCell.South_Interval == null)
+            {
+                this.South_Interval.Add(new Interval(0, 1));
+            }
+            else
+            {
+                this.South_Interval.AddRange(initialCell.South_Interval);
+            }
+            this.Middle_Interval = new List<Interval>();
+            if (initialCell.Middle_Interval == null)
+            {
+                this.Middle_Interval.Add(new Interval(0, 1));
+            }
+            else
+            {
+                this.Middle_Interval.AddRange(initialCell.Middle_Interval);
+            }
+            this.North_Interval = new List<Interval>();
+            if (initialCell.North_Interval == null)
+            {
+                this.North_Interval.Add(new Interval(0, 1));
+            }
+            else
+            {
+                this.North_Interval.AddRange(initialCell.North_Interval);
+            }
+
+
+            this.West_Interval = new List<Interval>();
+            this.West_Interval.Add(new Interval(0, 1));
+            this.West1_Interval = new List<Interval>();
+            this.West1_Interval.Add(new Interval(0, 1));
+            this.East_Interval = new List<Interval>();
+            this.East_Interval.Add(new Interval(0, 1));
+            this.East1_Interval = new List<Interval>();
+            this.East1_Interval.Add(new Interval(0, 1));
+            #endregion
+
+            #region baseLine
+            // 父类属性
+            this.SouthBaseLine = initialCell.SouthBaseLine;
+            this.NorthBaseLine = initialCell.NorthBaseLine;
+            this.WestBaseLine = initialCell.WestBaseLine;
+            this.EastBaseLine = initialCell.EastBaseLine;
+            // 子类属性
+            this.MiddleBaseLine = initialCell.MiddleBaseLine;
+            this.WestBaseLine1 = initialCell.WestBaseLine1;
+            this.EastBaseLine1 = initialCell.EastBaseLine1;
+            #endregion
+
+            this.ShapeType = TrilinearShapeType.EightShape;
+            this.BoundaryBaseLineCount = 6;
+            this.CenterBaseLineCount = 0;
+        }
+
+        /// <summary>
+        /// 生成EightVariantShape
+        /// </summary>
+        /// <param name="initialCell"></param>
         /// <param name="t"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
@@ -379,30 +449,23 @@ namespace VolumeGeneratorBasedOnGraph.Class
             // 父类属性
             this.SouthBaseLine = initialCell.SouthBaseLine;
             this.NorthBaseLine = initialCell.NorthBaseLine;
-            
             // 子类属性
             this.MiddleBaseLine = initialCell.MiddleBaseLine;
 
-            /* t要小于0.3 */
-            //if (t > 0.1)
-            //{
-            //    t = t * 0.1;
-            //}
-            double remapT = Cell.MinT + (Cell.MaxT - Cell.MinT) * t;
-            Point3d vStart00 = this.SouthBaseLine.PointAt(remapT);
-            Point3d vEnd01 = this.MiddleBaseLine.PointAt(remapT);
-            Point3d vEnd02 = this.NorthBaseLine.PointAt(remapT);
-            Point3d vStart10 = this.SouthBaseLine.PointAt(1 - remapT);
-            Point3d vEnd11 = this.MiddleBaseLine.PointAt(1 - remapT);
-            Point3d vEnd12 = this.NorthBaseLine.PointAt(1 - remapT);
-            this.WestBaseLine = new Line(vStart00, vEnd01);
-            this.WestBaseLine1 = new Line(vEnd01, vEnd02);
-            this.EastBaseLine = new Line(vStart10, vEnd11);
-            this.EastBaseLine1 = new Line(vEnd11, vEnd12);
+            Point3d pointOnSouth0 = this.SouthBaseLine.PointAt(t);
+            Point3d pointOnMiddel0 = this.MiddleBaseLine.PointAt(t);
+            Point3d pointOnNorth0 = this.NorthBaseLine.PointAt(t);
+            Point3d pointOnSouth1 = this.SouthBaseLine.PointAt(1 - t);
+            Point3d pointOnMiddel1 = this.MiddleBaseLine.PointAt(1 - t);
+            Point3d pointOnNorth1 = this.NorthBaseLine.PointAt(1 - t);
+            this.WestBaseLine = new Line(pointOnSouth0, pointOnMiddel0);
+            this.WestBaseLine1 = new Line(pointOnMiddel0, pointOnNorth0);
+            this.EastBaseLine = new Line(pointOnSouth1, pointOnMiddel1);
+            this.EastBaseLine1 = new Line(pointOnMiddel1, pointOnNorth1);
 
             #endregion
 
-            this.ShapeType = TrilinearShapeType.IIShape;
+            this.ShapeType = TrilinearShapeType.EightVariantShape;
             this.BoundaryBaseLineCount = 7;
             this.CenterBaseLineCount = 0;
         }
@@ -413,22 +476,20 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return newGeneratedCell;
         }
 
-        public TrilinearCell GenerateEVariantShape(int directionCode, int randomT0, int randomT1)
+        public TrilinearCell GenerateEVariantShape(int directionCode, int randomT0, int randomT1, double w)
         {
             TrilinearCell newGeneratedCell = null;
-            newGeneratedCell = new TrilinearCell(this, directionCode, 0.2 + randomT0 * 0.2, 0.2 + randomT1 * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
 
-            // todo：基于水平分割进行Vertical位置的修改
-            //if (this.South_Interval.Count != 0 || this.Middle_Interval.Count != 0 || this.North_Interval.Count != 0)
-            //{
-                  // todo
-            //}
-            //else
-            //{
-            //    newGeneratedCell = new TrilinearCell(this, directionCode, 0.2 + randomT0 * 0.2, 0.2 + randomT1 * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
-            //}
+            double length0 = this.SouthBaseLine.Length;
+            double length1 = this.NorthBaseLine.Length;
 
+            double length = length0 < length1 ? length0 : length1;
+            double tMin = w / length;
+            double tMax = (length - w) / length;
+            double t0 = Math.Abs(tMin + (tMax - tMin) * randomT0);
+            double t1 = Math.Abs(tMin + (tMax - tMin) * randomT1);
 
+            newGeneratedCell = new TrilinearCell(this, directionCode, t0, t1, this.CurrentIndex[0], this.CurrentIndex[1]);
             return newGeneratedCell;
         }
 
@@ -438,9 +499,43 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return newGeneratedCell;
         }
 
-        public TrilinearCell GenerateIIShape(int directionCode, int randomT)
+        public TrilinearCell GenerateEightAndEightVariantShape(int randomT, int directionCode, double lMin, double w, bool flag)
         {
-            TrilinearCell newGeneratedCell = new TrilinearCell(this, 0.2 + randomT * 0.2, this.CurrentIndex[0], this.CurrentIndex[1]);
+            TrilinearCell newGeneratedCell;
+            if (directionCode < 2)
+            {
+                // 执行GenerateEightShape函数
+                newGeneratedCell = new TrilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+            }
+            else
+            {
+                if (flag)
+                {
+                    // 执行GenerateEightShape函数
+                    newGeneratedCell = new TrilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                }
+                else
+                {
+                    double length0 = this.SouthBaseLine.Length;
+                    double length1 = this.NorthBaseLine.Length;
+
+                    double length = length0 < length1 ? length0 : length1;
+                    if (length >= lMin + 3 * w)
+                    {
+                        double deltaW = length - 2 * w - w - lMin;
+                        double t0 = w / length;
+                        double t1 = (w + 0.5 * deltaW) / length;
+                        double t = t0 + (t1 - t0) * randomT;
+
+                        newGeneratedCell = new TrilinearCell(this, t, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    }
+                    else
+                    {
+                        // 执行GenerateEightShape函数
+                        newGeneratedCell = new TrilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    }
+                }
+            }
             return newGeneratedCell;
         }
 
