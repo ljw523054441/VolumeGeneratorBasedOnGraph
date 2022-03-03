@@ -502,157 +502,272 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
                 DA.SetData("DualGraphWithHM with BS", dualGraphWithHM);
 
-                List<List<Curve>> allCenterLinesLoL = new List<List<Curve>>();
-                List<List<Curve>> allHCurvesLoL = new List<List<Curve>>();
-                List<List<Curve>> allVCurvesLoL = new List<List<Curve>>();
-                List<List<Polyline>> contourLoL = new List<List<Polyline>>();
-                List<List<Polyline>> holeLoL = new List<List<Polyline>>();
-                List<List<Brep>> brepLoL = new List<List<Brep>>();
-                Curve singleRegion = null;
-
                 SCrvForShowList.Clear();
                 NCrvForShowList.Clear();
                 ECrvForShowList.Clear();
                 WCrvForShowList.Clear();
                 GapCenterLineList.Clear();
 
+                DataTree<Brep> allBlockBrepDT = new DataTree<Brep>();
+                DataTree<Curve> allBlockHCurvesDT = new DataTree<Curve>();
+                DataTree<Curve> allBlockVCurvesDT = new DataTree<Curve>();
+                DataTree<Polyline> allBlockContourDT = new DataTree<Polyline>();
+                DataTree<Polyline> allBlockHoleDT = new DataTree<Polyline>();
+
                 for (int i = 0; i < newAllFaceBS.Count; i++)
                 {
-                    allHCurvesLoL.Add(new List<Curve>());
-                    allVCurvesLoL.Add(new List<Curve>());
-                    allCenterLinesLoL.Add(new List<Curve>());
-                    contourLoL.Add(new List<Polyline>());
-                    holeLoL.Add(new List<Polyline>());
-                    brepLoL.Add(new List<Brep>());
+                    #region 向path中添加第一层大Block层级的序号
+                    GH_Path ghPathForBrep = new GH_Path(i);
+                    GH_Path ghPathForHCurve = new GH_Path(i);
+                    GH_Path ghPathForVCurve = new GH_Path(i);
+                    GH_Path ghPathForContour = new GH_Path(i);
+                    GH_Path ghPathForHole = new GH_Path(i);
+                    #endregion
 
                     bool isHorizontalLayout;
                     Polyline sortedBoundaryPolyline;
                     List<Line> lineForEachEdge;
                     List<BoundarySegment> sortedBS = SortBoundarySegment(newAllFaceBS[i], innerResultPolylines[i], out isHorizontalLayout, out lineForEachEdge, out sortedBoundaryPolyline);
 
-                    List<bool> isGenerateables = new List<bool>() { true, true, true, true };
+                    List<bool> isGenerateables;
                     // todo:根据BS的属性（两个Face相连的BS的setback值），来生成 List<bool> isGenerateables
 
-                    Curve sCrvForShow = null;
-                    Curve nCrvForShow = null;
-                    Curve eCrvForShow = null;
-                    Curve wCrvForShow = null;
-                    List<Curve> gap = new List<Curve>();
-
-                    //List<Curve> hCurves = new List<Curve>();
-                    //List<Curve> vCurves = new List<Curve>();
-                    DataTree<Curve> hCurvesDT;
-                    DataTree<Curve> vCurvesDT;
+                    //Curve sCrvForShow = null;
+                    //Curve nCrvForShow = null;
+                    //Curve eCrvForShow = null;
+                    //Curve wCrvForShow = null;
+                    //List<Curve> gap = new List<Curve>();
                     if (sortedBoundaryPolyline.Count == 5)
                     {
-                        singleRegion = GenerateLayoutLinesOnQuadBlock(sortedBoundaryPolyline,
-                                                                    lineForEachEdge,
-                                                                    isGenerateables,
-                                                                    w,
-                                                                    W,
-                                                                    lMin,
-                                                                    lMax,
-                                                                    d,
-                                                                    false,
-                                                                    out sCrvForShow,
-                                                                    out nCrvForShow,
-                                                                    out eCrvForShow,
-                                                                    out wCrvForShow,
-                                                                    out gap,
-                                                                    out hCurvesDT,
-                                                                    out vCurvesDT);
-                        //if (sCrvForShow != null)
-                        //{
-                        //    SCrvForShowList.Add(sCrvForShow);
-                        //}
-                        //if (nCrvForShow != null)
-                        //{
-                        //    NCrvForShowList.Add(nCrvForShow);
-                        //}
-                        //if (eCrvForShow != null)
-                        //{
-                        //    ECrvForShowList.Add(eCrvForShow);
-                        //}
-                        //if (wCrvForShow != null)
-                        //{
-                        //    WCrvForShowList.Add(wCrvForShow);
-                        //}
-                        //GapCenterLineList.AddRange(gap);
+                        #region 向path中添加第二层小Block层级的序号
+                        ghPathForBrep = ghPathForBrep.AppendElement(0);
+                        ghPathForHCurve = ghPathForHCurve.AppendElement(0);
+                        ghPathForVCurve = ghPathForVCurve.AppendElement(0);
+                        ghPathForContour = ghPathForContour.AppendElement(0);
+                        ghPathForHole = ghPathForHole.AppendElement(0);
+                        #endregion
 
-                        if (singleRegion == null)
+                        #region isGenerateables控制
+                        isGenerateables = new List<bool>() { true, true, true, true };
+                        #endregion
+
+                        List<List<List<Curve>>> hCurveLoL;
+                        List<List<List<Curve>>> vCurveLoL;
+                        List<Polyline> contourList;
+                        List<Polyline> holeList;
+
+                        // Temp
+                        Curve southBaseLineForShow;
+                        Curve northBaseLineForShow;
+                        Curve eastBaseLineForShow;
+                        Curve westBaseLineForShow;
+
+                        List<Brep> brepList = GenerateVolumeBaseLine(w, 
+                                                                     W, 
+                                                                     lMin, 
+                                                                     lMax, 
+                                                                     d, 
+                                                                     isJitter, 
+                                                                     out hCurveLoL, 
+                                                                     out vCurveLoL, 
+                                                                     out contourList, 
+                                                                     out holeList,
+
+                                                                     out southBaseLineForShow,
+                                                                     out northBaseLineForShow,
+                                                                     out eastBaseLineForShow,
+                                                                     out westBaseLineForShow,
+
+                                                                     sortedBoundaryPolyline, 
+                                                                     lineForEachEdge, 
+                                                                     isGenerateables);
+
+                        // Temp
+                        SCrvForShowList.Add(southBaseLineForShow);
+                        NCrvForShowList.Add(northBaseLineForShow);
+                        ECrvForShowList.Add(eastBaseLineForShow);
+                        WCrvForShowList.Add(westBaseLineForShow);
+
+                        #region output dataTree
+                        allBlockBrepDT.EnsurePath(ghPathForBrep);
+                        allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepList);
+
+                        for (int j = 0; j < hCurveLoL.Count; j++)
                         {
-                            #region 由得到的baseLine构造生成初步的Cell对象，并且对初步生成的Cell对象进行随机修改，形成工，口，C
-                            List<List<Cell>> cellLoL = GenerateCells(hCurvesDT, vCurvesDT, isJitter,
-                                                                     lMin, lMax, d, w);
+                            ghPathForHCurve = ghPathForHCurve.AppendElement(j);
+                            for (int k = 0; k < hCurveLoL[j].Count; k++)
+                            {
+                                ghPathForHCurve = ghPathForHCurve.AppendElement(k);
+
+                                allBlockHCurvesDT.EnsurePath(ghPathForHCurve);
+                                allBlockHCurvesDT.Branch(ghPathForHCurve).AddRange(hCurveLoL[j][k]);
+
+                                ghPathForHCurve = ghPathForHCurve.CullElement();
+                            }
+                            ghPathForHCurve = ghPathForHCurve.CullElement();
+                        }
+
+                        for (int j = 0; j < vCurveLoL.Count; j++)
+                        {
+                            ghPathForVCurve = ghPathForVCurve.AppendElement(j);
+                            for (int k = 0; k < vCurveLoL[j].Count; k++)
+                            {
+                                ghPathForVCurve = ghPathForVCurve.AppendElement(k);
+
+                                allBlockVCurvesDT.EnsurePath(ghPathForVCurve);
+                                allBlockVCurvesDT.Branch(ghPathForVCurve).AddRange(vCurveLoL[j][k]);
+
+                                ghPathForVCurve = ghPathForVCurve.CullElement();
+                            }
+                            ghPathForVCurve = ghPathForVCurve.CullElement();
+                        }
+
+                        allBlockContourDT.EnsurePath(ghPathForContour);
+                        allBlockContourDT.Branch(ghPathForContour).AddRange(contourList);
+
+                        allBlockHoleDT.EnsurePath(ghPathForHole);
+                        allBlockHoleDT.Branch(ghPathForHole).AddRange(holeList);
+                        #endregion
+
+                        #region 清除当前第二层级的序号
+                        ghPathForBrep = ghPathForBrep.CullElement();
+                        ghPathForHCurve = ghPathForHCurve.CullElement();
+                        ghPathForVCurve = ghPathForVCurve.CullElement();
+                        ghPathForContour = ghPathForContour.CullElement();
+                        ghPathForHole = ghPathForHole.CullElement();
+                        #endregion
+                    }
+                    else
+                    {
+                        List<List<Line>> newLineforEachEdgeLoL = new List<List<Line>>();
+                        List<List<bool>> isGenerateablesLoL = new List<List<bool>>();
+                        List<Polyline> splitedPolylines = SplitBlockIntoQuadBlock(sortedBoundaryPolyline, out newLineforEachEdgeLoL, out isGenerateablesLoL);
+
+                        for (int j = 0; j < splitedPolylines.Count; j++)
+                        {
+                            #region 向path中添加第二层小Block层级的序号
+                            ghPathForBrep = ghPathForBrep.AppendElement(j);
+                            ghPathForHCurve = ghPathForHCurve.AppendElement(j);
+                            ghPathForVCurve = ghPathForVCurve.AppendElement(j);
+                            ghPathForContour = ghPathForContour.AppendElement(j);
+                            ghPathForHole = ghPathForHole.AppendElement(j);
                             #endregion
 
-
-                            #region 生成building
-                            List<Curve> allCurves = new List<Curve>();
-                            //allCurves.AddRange(hCurves);
-                            //allCurves.AddRange(vCurves);
-                            //allCurves.AddRange(hCurvesDT.AllData());
-                            //allCurves.AddRange(vCurvesDT.AllData());
-
-                            for (int j = 0; j < cellLoL.Count; j++)
+                            if (splitedPolylines[j].Count == 5)
                             {
-                                for (int k = 0; k < cellLoL[j].Count; k++)
+                                List<List<List<Curve>>> hCurveLoL;
+                                List<List<List<Curve>>> vCurveLoL;
+                                List<Polyline> contourList;
+                                List<Polyline> holeList;
+
+                                // Temp
+                                Curve southBaseLineForShow;
+                                Curve northBaseLineForShow;
+                                Curve eastBaseLineForShow;
+                                Curve westBaseLineForShow;
+
+                                List<Brep> brepList = GenerateVolumeBaseLine(w,
+                                                                             W,
+                                                                             lMin,
+                                                                             lMax,
+                                                                             d,
+                                                                             isJitter,
+                                                                             out hCurveLoL,
+                                                                             out vCurveLoL,
+                                                                             out contourList,
+                                                                             out holeList,
+
+                                                                             out southBaseLineForShow,
+                                                                             out northBaseLineForShow,
+                                                                             out eastBaseLineForShow,
+                                                                             out westBaseLineForShow,
+
+                                                                             splitedPolylines[j],
+                                                                             newLineforEachEdgeLoL[j],
+                                                                             isGenerateablesLoL[j]);
+
+                                // Temp
+                                SCrvForShowList.Add(southBaseLineForShow);
+                                NCrvForShowList.Add(northBaseLineForShow);
+                                ECrvForShowList.Add(eastBaseLineForShow);
+                                WCrvForShowList.Add(westBaseLineForShow);
+
+                                #region output dataTree
+                                allBlockBrepDT.EnsurePath(ghPathForBrep);
+                                allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepList);
+
+                                for (int k = 0; k < hCurveLoL.Count; k++)
                                 {
-                                    allCurves.AddRange(cellLoL[j][k].GetAllHorizontal());
-                                    allCurves.AddRange(cellLoL[j][k].GetAllVertical());
+                                    ghPathForHCurve = ghPathForHCurve.AppendElement(k);
+                                    for (int l = 0; l < hCurveLoL[k].Count; l++)
+                                    {
+                                        ghPathForHCurve = ghPathForHCurve.AppendElement(l);
+
+                                        allBlockHCurvesDT.EnsurePath(ghPathForHCurve);
+                                        allBlockHCurvesDT.Branch(ghPathForHCurve).AddRange(hCurveLoL[k][l]);
+
+                                        ghPathForHCurve = ghPathForHCurve.CullElement();
+                                    }
+                                    ghPathForHCurve = ghPathForHCurve.CullElement();
                                 }
+
+                                for (int k = 0; k < vCurveLoL.Count; k++)
+                                {
+                                    ghPathForVCurve = ghPathForVCurve.AppendElement(k);
+                                    for (int l = 0; l < vCurveLoL[k].Count; l++)
+                                    {
+                                        ghPathForVCurve = ghPathForVCurve.AppendElement(l);
+
+                                        allBlockVCurvesDT.EnsurePath(ghPathForVCurve);
+                                        allBlockVCurvesDT.Branch(ghPathForVCurve).AddRange(vCurveLoL[k][l]);
+
+                                        ghPathForVCurve = ghPathForVCurve.CullElement();
+                                    }
+                                    ghPathForVCurve = ghPathForVCurve.CullElement();
+                                }
+
+                                allBlockContourDT.EnsurePath(ghPathForContour);
+                                allBlockContourDT.Branch(ghPathForContour).AddRange(contourList);
+
+                                allBlockHoleDT.EnsurePath(ghPathForHole);
+                                allBlockHoleDT.Branch(ghPathForHole).AddRange(holeList);
+                                #endregion
                             }
-
-
-                            allHCurvesLoL[i].AddRange(hCurvesDT.AllData());
-                            allVCurvesLoL[i].AddRange(vCurvesDT.AllData());
-                            allCenterLinesLoL[i].AddRange(allCurves);
-
-                            Curve[] joinedCenterCurve = Curve.JoinCurves(allCurves);
-                            List<Polyline> outContours;
-                            List<Polyline> outHoles;
-                            GenerateBuilding(joinedCenterCurve, w, out outContours, out outHoles);
-
-                            contourLoL[i].AddRange(outContours);
-                            holeLoL[i].AddRange(outHoles);
-
-                            List<Curve> contoursAndHolesCrv = new List<Curve>();
-                            for (int j = 0; j < outContours.Count; j++)
+                            else
                             {
-                                contoursAndHolesCrv.Add(outContours[j].ToPolylineCurve());
-                            }
-                            for (int j = 0; j < outHoles.Count; j++)
-                            {
-                                contoursAndHolesCrv.Add(outHoles[j].ToPolylineCurve());
+                                #region output dataTree
+                                allBlockBrepDT.EnsurePath(ghPathForBrep);
+                                allBlockHCurvesDT.EnsurePath(ghPathForHCurve);
+                                allBlockVCurvesDT.EnsurePath(ghPathForVCurve);
+                                allBlockContourDT.EnsurePath(ghPathForContour);
+                                allBlockHoleDT.EnsurePath(ghPathForHole);
+                                #endregion
                             }
 
-                            Brep[] breps = BoundarySurfaces(contoursAndHolesCrv);
-                            brepLoL[i].AddRange(breps);
+                            #region 清除当前第二层级的序号
+                            ghPathForBrep = ghPathForBrep.CullElement();
+                            ghPathForHCurve = ghPathForHCurve.CullElement();
+                            ghPathForVCurve = ghPathForVCurve.CullElement();
+                            ghPathForContour = ghPathForContour.CullElement();
+                            ghPathForHole = ghPathForHole.CullElement();
                             #endregion
                         }
-                        else
-                        {
-                            contourLoL[i].Add(innerResultPolylines[i]);
-                            Brep[] breps = BoundarySurfaces(singleRegion);
-                            brepLoL[i].AddRange(breps);
 
-                            allHCurvesLoL[i].Add(singleRegion);
-                        }
                     }
                 }
 
-                DataTree<Polyline> contourDT = UtilityFunctions.LoLToDataTree<Polyline>(contourLoL);
-                DataTree<Polyline> holeDT = UtilityFunctions.LoLToDataTree<Polyline>(holeLoL);
-                DA.SetDataTree(3, contourDT);
-                DA.SetDataTree(4, holeDT);
+                //DataTree<Polyline> contourDT = UtilityFunctions.LoLToDataTree<Polyline>(contourLoL);
+                //DataTree<Polyline> holeDT = UtilityFunctions.LoLToDataTree<Polyline>(holeLoL);
+                DA.SetDataTree(3, allBlockContourDT);
+                DA.SetDataTree(4, allBlockHoleDT);
 
-                DataTree<Brep> brepDT = UtilityFunctions.LoLToDataTree<Brep>(brepLoL);
-                DA.SetDataTree(2, brepDT);
+                //DataTree<Brep> brepDT = UtilityFunctions.LoLToDataTree<Brep>(brepLoL);
+                DA.SetDataTree(2, allBlockBrepDT);
 
-                DataTree<Curve> allHCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(allHCurvesLoL);
-                DataTree<Curve> allVCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(allVCurvesLoL);
-                DA.SetDataTree(5, allHCurvesDT);
-                DA.SetDataTree(6, allVCurvesDT);
+                //DataTree<Curve> allHCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(allHCurvesLoL);
+                //DataTree<Curve> allVCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(allVCurvesLoL);
+                DA.SetDataTree(5, allBlockHCurvesDT);
+                DA.SetDataTree(6, allBlockVCurvesDT);
 
 
                 #region 可视化
@@ -673,6 +788,411 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
         }
 
+        private List<Polyline> SplitBlockIntoQuadBlock(Polyline polyline,
+                                                       out List<List<Line>> lineForEachEdgeLoL,
+                                                       out List<List<bool>> isGenerateablesLoL)
+        {
+            
+            List<List<Point3d>> sortedPtsLoL = new List<List<Point3d>>();
+            lineForEachEdgeLoL = new List<List<Line>>();
+            isGenerateablesLoL = new List<List<bool>>();
+
+            #region 生成分割后的两个sortedPts
+            BoundingBox box = new BoundingBox(polyline);
+            double xMax = box.Max.X - box.Min.X;
+            double yMax = box.Max.Y - box.Min.Y;
+            double max = xMax > yMax ? xMax : yMax;
+
+            List<Point3d> pts = new List<Point3d>();
+            pts.AddRange(polyline);
+            pts.RemoveAt(pts.Count - 1);
+
+            int turningIndex = 0;
+            Line prevLine = Line.Unset;
+            Line nextLine = Line.Unset;
+            for (int i = 0; i < pts.Count; i++)
+            {
+                Vector3d vec0 = new Vector3d(pts[i] - pts[((i - 1) + pts.Count) % pts.Count]);
+                Vector3d vec1 = new Vector3d(pts[(i + 1) % pts.Count] - pts[i]);
+
+                if (Vector3d.CrossProduct(vec0, vec1).Z < 0)
+                {
+                    turningIndex = i;
+                    prevLine = new Line(pts[((i - 1) + pts.Count) % pts.Count], pts[i]);
+                    nextLine = new Line(pts[i], pts[(i + 1) % pts.Count]);
+                    break;
+                }
+            }
+
+
+            Point3d addPt = Point3d.Unset;
+            Point3d prevTurningPt = Point3d.Unset;
+            Point3d turningPt = pts[turningIndex];
+            if (prevLine != Line.Unset && nextLine != Line.Unset)
+            {
+                double length0 = prevLine.Length;
+                double length1 = nextLine.Length;
+                bool flag = length0 < length1 ? true : false;
+                CurveIntersections intersections;
+                //Point3d addPt = Point3d.Unset;
+                //Point3d turningPt = pts[turningIndex];
+                bool flag1 = false;
+                bool flag2 = false;
+                if (flag)
+                {
+                    prevLine.Extend(0, max);
+                    prevTurningPt = prevLine.From;
+                    intersections = Intersection.CurveCurve(prevLine.ToNurbsCurve(), polyline.ToNurbsCurve(), 0.5 * GH_Component.DocumentTolerance(), 0.5 * GH_Component.DocumentTolerance());
+                    flag2 = true;
+                }
+                else
+                {
+                    nextLine.Extend(max, 0);
+                    prevTurningPt = nextLine.To;
+                    intersections = Intersection.CurveCurve(nextLine.ToNurbsCurve(), polyline.ToNurbsCurve(), 0.5 * GH_Component.DocumentTolerance(), 0.5 * GH_Component.DocumentTolerance());
+                    flag2 = false;
+                }
+
+                for (int i = 0; i < intersections.Count; i++)
+                {
+                    if (intersections[i].IsPoint)
+                    {
+                        addPt = intersections[i].PointB;
+                        flag1 = true;
+                        break;
+                    }
+                }
+
+                if (flag1)
+                {
+                    List<Point3d> pts1 = new List<Point3d>();
+                    List<Point3d> pts2 = new List<Point3d>();
+                    
+                    if (flag2)
+                    {
+                        pts.Insert(((turningIndex - 1 - 2) + pts.Count) % pts.Count, addPt);
+
+                        int newTurningIndex = pts.IndexOf(turningPt);
+
+                        int currIndex = ((newTurningIndex - 1 - 3) + pts.Count) % pts.Count;
+                        while (currIndex != newTurningIndex)
+                        {
+                            pts1.Add(pts[currIndex]);
+                            currIndex = (currIndex + 1) % pts.Count;
+                        }
+
+                        currIndex = newTurningIndex;
+                        while (currIndex != (newTurningIndex + 1 + 3) % pts.Count)
+                        {
+                            pts2.Add(pts[currIndex]);
+                            currIndex = (currIndex + 1) % pts.Count;
+                        }
+                    }
+                    else
+                    {
+                        pts.Insert((turningIndex - 2) + pts.Count, addPt);
+
+                        int newTurningIndex = pts.IndexOf(turningPt);
+
+                        int currIndex = (newTurningIndex + 1 + 3) % pts.Count;
+                        while (currIndex != newTurningIndex + 1)
+                        {
+                            pts1.Add(pts[currIndex]);
+                            currIndex = (currIndex + 1) % pts.Count;
+                        }
+
+                        currIndex = newTurningIndex + 1;
+                        while (currIndex != (newTurningIndex + 2 + 3) % pts.Count)
+                        {
+                            pts2.Add(pts[currIndex]);
+                            currIndex = (currIndex + 1) % pts.Count;
+                        }
+                    }
+
+                    
+
+                    List<List<Point3d>> ptsLoL = new List<List<Point3d>>();
+                    ptsLoL.Add(pts1);
+                    ptsLoL.Add(pts2);
+                    //polylines = new List<Polyline>();
+                    for (int i = 0; i < ptsLoL.Count; i++)
+                    {
+                        // sort
+                        BoundingBox box1 = new BoundingBox(ptsLoL[i]);
+                        double minY = box1.Min.Y;
+                        List<int> lowestPointIndexs = new List<int>();
+                        List<Point3d> lowestPoints = new List<Point3d>();
+                        for (int j = 0; j < ptsLoL[i].Count; j++)
+                        {
+                            if (Math.Abs(ptsLoL[i][j].Y - minY) < 0.01 * GH_Component.DocumentTolerance())
+                            {
+                                lowestPointIndexs.Add(j);
+                                lowestPoints.Add(ptsLoL[i][j]);
+                            }
+                        }
+
+                        int shift;
+                        if (lowestPointIndexs.Count == 1)
+                        {
+                            shift = lowestPointIndexs[0];
+                        }
+                        else
+                        {
+                            List<double> xlist = new List<double>();
+                            for (int j = 0; j < lowestPoints.Count; j++)
+                            {
+                                xlist.Add(lowestPoints[i].X);
+                            }
+                            int index = xlist.IndexOf(xlist.Min());
+
+                            shift = lowestPointIndexs[index];
+                        }
+
+                        List<Point3d> sortedPts = UtilityFunctions.Shift<Point3d>(ptsLoL[i], shift, true);
+                        //sortedPts.Add(sortedPts[0]);
+                        sortedPtsLoL.Add(new List<Point3d>());
+                        sortedPtsLoL[i].AddRange(sortedPts);
+                        //polylines.Add(new Polyline(sortedPts));
+                    }
+
+                    //return polylines;
+                }
+                else
+                {
+                    sortedPtsLoL = null;
+                }
+            }
+            else
+            {
+                sortedPtsLoL = null;
+            }
+            #endregion
+
+            List<Polyline> polylines = new List<Polyline>();
+            if (sortedPtsLoL != null)
+            {
+                #region 得到能够代表每条边的直线
+                List<List<Line>> unsortedLineForEachEdgeLoL = new List<List<Line>>();
+                for (int i = 0; i < sortedPtsLoL.Count; i++)
+                {
+                    List<Line> unsortedLineForEachEdge = new List<Line>();
+                    int currentIndex = 0;
+                    do
+                    {
+                        Point3d pt0 = sortedPtsLoL[i][currentIndex];
+                        Point3d pt1 = sortedPtsLoL[i][(currentIndex + 1) % sortedPtsLoL[i].Count];
+
+                        Line line = new Line(pt0, pt1);
+                        unsortedLineForEachEdge.Add(line);
+                        currentIndex = sortedPtsLoL[i].IndexOf(pt1);
+                    } while (currentIndex != 0);
+
+                    unsortedLineForEachEdgeLoL.Add(new List<Line>());
+                    unsortedLineForEachEdgeLoL[i].AddRange(unsortedLineForEachEdge);
+                }
+                #endregion
+
+                #region 判断sortedPts[0]这个点左侧的线(lineForEdge[-1])还是右侧的线(lineForEdge[0])是southBaseLine
+                for (int i = 0; i < sortedPtsLoL.Count; i++)
+                {
+                    Vector3d vector0 = sortedPtsLoL[i][sortedPtsLoL[i].Count - 1] - sortedPtsLoL[i][0];
+                    Vector3d vector1 = sortedPtsLoL[i][1] - sortedPtsLoL[i][0];
+
+                    double rad0 = Vector3d.VectorAngle(vector0, -Vector3d.XAxis);
+                    double rad1 = Vector3d.VectorAngle(vector1, Vector3d.XAxis);
+
+                    if (rad0 > Math.PI / 4 && rad1 > Math.PI / 4)
+                    {
+                        lineForEachEdgeLoL.Add(new List<Line>());
+                        lineForEachEdgeLoL[i].AddRange(UtilityFunctions.Shift<Line>(unsortedLineForEachEdgeLoL[i], 1, false));
+                    }
+                    else
+                    {
+                        if (rad0 < rad1)
+                        {
+                            lineForEachEdgeLoL.Add(new List<Line>());
+                            lineForEachEdgeLoL[i].AddRange(UtilityFunctions.Shift<Line>(unsortedLineForEachEdgeLoL[i], 1, false));
+                        }
+                        else if (rad0 == rad1)
+                        {
+                            double length0 = vector0.Length;
+                            double length1 = vector1.Length;
+                            if (length0 >= length1)
+                            {
+                                lineForEachEdgeLoL.Add(new List<Line>());
+                                lineForEachEdgeLoL[i].AddRange(UtilityFunctions.Shift<Line>(unsortedLineForEachEdgeLoL[i], 1, false));
+                            }
+                            else
+                            {
+                                lineForEachEdgeLoL.Add(new List<Line>());
+                                lineForEachEdgeLoL[i].AddRange(unsortedLineForEachEdgeLoL[i]);
+                            }
+                        }
+                        else
+                        {
+                            lineForEachEdgeLoL.Add(new List<Line>());
+                            lineForEachEdgeLoL[i].AddRange(unsortedLineForEachEdgeLoL[i]);
+                        }
+                    }
+                }
+                #endregion
+
+
+                #region isGenerateable 控制
+                for (int i = 0; i < lineForEachEdgeLoL.Count; i++)
+                {
+                    List<bool> isGenerateable = new List<bool>();
+                    for (int j = 0; j < lineForEachEdgeLoL[i].Count; j++)
+                    {
+                        if ((lineForEachEdgeLoL[i][j].From == addPt && lineForEachEdgeLoL[i][j].To == turningPt)
+                        || (lineForEachEdgeLoL[i][j].To == addPt && lineForEachEdgeLoL[i][j].From == turningPt))
+                        {
+                            isGenerateable.Add(false);
+                        }
+                        else
+                        {
+                            isGenerateable.Add(true);
+                        }
+                    }
+                    isGenerateablesLoL.Add(new List<bool>());
+                    isGenerateablesLoL[i].AddRange(isGenerateable);
+                }
+                #endregion
+
+                #region 基于lineForEachEdge，得到sortedBoundaryPolyline
+                for (int i = 0; i < sortedPtsLoL.Count; i++)
+                {
+                    List<Point3d> lineStartAndEnd = new List<Point3d>();
+                    lineStartAndEnd.Add(lineForEachEdgeLoL[i][0].From);
+                    for (int j = 0; j < lineForEachEdgeLoL[i].Count; j++)
+                    {
+                        lineStartAndEnd.Add(lineForEachEdgeLoL[i][j].To);
+                    }
+                    polylines.Add(new Polyline(lineStartAndEnd));
+                }
+                #endregion
+            }
+            else
+            {
+                lineForEachEdgeLoL = null;
+                polylines = null;
+            }
+
+            return polylines;
+        }
+
+        private List<Brep> GenerateVolumeBaseLine(double w, 
+                                                  double W, 
+                                                  double lMin, 
+                                                  double lMax, 
+                                                  double d, 
+                                                  bool isJitter, 
+                                                  out List<List<List<Curve>>> allHCurvesLoL, 
+                                                  out List<List<List<Curve>>> allVCurvesLoL, 
+                                                  out List<Polyline> contourList, 
+                                                  out List<Polyline> holeList, 
+
+                                                  out Curve southBaseLineForShow,
+                                                  out Curve northBaseLineForShow,
+                                                  out Curve eastBaseLineForShow,
+                                                  out Curve westBaseLineForShow,
+
+                                                  Polyline sortedBoundaryPolyline, 
+                                                  List<Line> lineForEachEdge, 
+                                                  List<bool> isGenerateables)
+        {
+            List<Brep> brepList = new List<Brep>();
+
+            DataTree<Curve> hCurvesDT;
+            DataTree<Curve> vCurvesDT;
+            Curve singleRegion = GenerateLayoutLinesOnQuadBlock(sortedBoundaryPolyline,
+                                                                lineForEachEdge,
+                                                                isGenerateables,
+                                                                w,
+                                                                W,
+                                                                lMin,
+                                                                lMax,
+                                                                d,
+                                                                false,
+
+                                                                out southBaseLineForShow,
+                                                                out northBaseLineForShow,
+                                                                out eastBaseLineForShow,
+                                                                out westBaseLineForShow,
+
+                                                                out hCurvesDT,
+                                                                out vCurvesDT);
+
+            // out
+            allHCurvesLoL = new List<List<List<Curve>>>();
+            allVCurvesLoL = new List<List<List<Curve>>>();
+            contourList = new List<Polyline>();
+            holeList = new List<Polyline>();
+
+            if (singleRegion == null)
+            {
+                #region 由得到的baseLine构造生成初步的Cell对象，并且对初步生成的Cell对象进行随机修改，形成工，口，C
+                List<List<Cell>> cellLoL = GenerateCells(hCurvesDT, vCurvesDT, isJitter,
+                                                         lMin, lMax, d, w);
+                #endregion
+
+                #region 生成building
+                
+
+                List<Curve> allCurveForJoin = new List<Curve>();
+                for (int i = 0; i < cellLoL.Count; i++)
+                {
+                    allHCurvesLoL.Add(new List<List<Curve>>());
+                    allVCurvesLoL.Add(new List<List<Curve>>());
+                    for (int j = 0; j < cellLoL[i].Count; j++)
+                    {
+                        allHCurvesLoL[i].Add(new List<Curve>());
+                        allHCurvesLoL[i][j].AddRange(cellLoL[i][j].GetAllHorizontal());
+
+                        allVCurvesLoL[i].Add(new List<Curve>());
+                        allVCurvesLoL[i][j].AddRange(cellLoL[i][j].GetAllVertical());
+
+                        allCurveForJoin.AddRange(cellLoL[i][j].GetAllHorizontal());
+                        allCurveForJoin.AddRange(cellLoL[i][j].GetAllVertical());
+                    }
+                }
+
+                Curve[] joinedCenterCurve = Curve.JoinCurves(allCurveForJoin);
+                List<Polyline> outContours;
+                List<Polyline> outHoles;
+                GenerateBuilding(joinedCenterCurve, w, out outContours, out outHoles);
+
+                contourList.AddRange(outContours);
+                holeList.AddRange(outHoles);
+
+                List<Curve> contoursAndHolesCrv = new List<Curve>();
+                for (int i = 0; i < outContours.Count; i++)
+                {
+                    contoursAndHolesCrv.Add(outContours[i].ToPolylineCurve());
+                }
+                for (int i = 0; i < outHoles.Count; i++)
+                {
+                    contoursAndHolesCrv.Add(outHoles[i].ToPolylineCurve());
+                }
+
+                Brep[] breps = BoundarySurfaces(contoursAndHolesCrv);
+                brepList.AddRange(breps);
+                #endregion
+            }
+            else
+            {
+                allHCurvesLoL.Add(new List<List<Curve>>());
+                allHCurvesLoL[0].Add(new List<Curve>());
+                allHCurvesLoL[0][0].Add(singleRegion);
+
+                contourList.Add(sortedBoundaryPolyline);
+                // holeList.Add(null);
+                Brep[] breps = BoundarySurfaces(singleRegion);
+                brepList.AddRange(breps);
+            }
+
+            return brepList;
+        }
 
         private List<int> RandomGetNum(int countForThree, int countForTwo)
         {
@@ -1585,7 +2105,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             List<Point3d> lowestPoints = new List<Point3d>();
             for (int i = 0; i < pts.Count; i++)
             {
-                if (pts[i].Y == minY)
+                if (Math.Abs(pts[i].Y - minY) < 0.01 * GH_Component.DocumentTolerance())
                 {
                     lowestPointIndexs.Add(i);
                     lowestPoints.Add(pts[i]);
@@ -1730,7 +2250,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                      out Curve northBaseLineForShow,
                                                      out Curve eastBaseLineForShow,
                                                      out Curve westBaseLineForShow,
-                                                     out List<Curve> gapCenterLineForShow,
+                                                     //out List<Curve> gapCenterLineForShow,
                                                      //out List<Curve> hCurves,
                                                      //out List<Curve> vCurves)
                                                      out DataTree<Curve> cuttedHorizontalCenterLines,
@@ -1738,17 +2258,101 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         {
             // 从确定南侧基线开始处理
             // 判断是选择起始点左侧的边还是右侧的边作为排布的基准线
+            
+            Curve boundary = Curve.CreateInterpolatedCurve(sortedBoundaryPolyline, 1);
+
+            #region 确定东南西北侧BoundaryLine
+            #region 先计算东西侧，以此结果来修改 Boundary
+            // 东侧
+            int eastSegmentIndex = 1;
+            Curve eastBoundaryLine;
+            if (!isGenerateables[eastSegmentIndex])
+            {
+                eastBoundaryLine = lineForEachEdge[eastSegmentIndex].ToNurbsCurve();
+                eastBoundaryLine = eastBoundaryLine.Offset(Plane.WorldXY, -w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+
+                BoundingBox box = boundary.GetBoundingBox(Plane.WorldXY);
+                double boxLength = box.Max.X - box.Min.X;
+                eastBoundaryLine = eastBoundaryLine.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                eastBoundaryLine = TrimByBoundaryWithCurve(eastBoundaryLine, boundary);
+                eastBoundaryLine.Domain = new Interval(0, 1);
+            }
+            else
+            {
+                eastBoundaryLine = lineForEachEdge[eastSegmentIndex].ToNurbsCurve();
+            }
+
+            // 西侧
+            int westSegmentIndex = 3;
+            Curve westBoundaryLine;
+            if (!isGenerateables[westSegmentIndex])
+            {
+                westBoundaryLine = lineForEachEdge[westSegmentIndex].ToNurbsCurve();
+                westBoundaryLine = westBoundaryLine.Offset(Plane.WorldXY, -w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+
+                BoundingBox box = boundary.GetBoundingBox(Plane.WorldXY);
+                double boxLength = box.Max.X - box.Min.X;
+                westBoundaryLine = westBoundaryLine.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                westBoundaryLine = TrimByBoundaryWithCurve(westBoundaryLine, boundary);
+                westBoundaryLine.Domain = new Interval(0, 1);
+            }
+            else
+            {
+                westBoundaryLine = lineForEachEdge[westSegmentIndex].ToNurbsCurve();
+            }
+            #endregion
+
+            Curve southBoundaryLine = new Line(westBoundaryLine.PointAtEnd, eastBoundaryLine.PointAtStart).ToNurbsCurve();
+            Curve northBoundaryLine = new Line(eastBoundaryLine.PointAtEnd, westBoundaryLine.PointAtStart).ToNurbsCurve();
+
+            #region 再计算南北侧，一次结果来修改Boundary
+            // 南侧
+            int southSegmentIndex = 0;
+            if (!isGenerateables[southSegmentIndex])
+            {
+                southBoundaryLine = southBoundaryLine.Offset(Plane.WorldXY, -W, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+
+                BoundingBox box = boundary.GetBoundingBox(Plane.WorldXY);
+                double boxLength = box.Max.X - box.Min.X;
+                southBoundaryLine = southBoundaryLine.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                southBoundaryLine = TrimByBoundaryWithCurve(southBoundaryLine, boundary);
+                southBoundaryLine.Domain = new Interval(0, 1);
+            }
+
+            // 北侧
+            int northSegmentIndex = 2;
+            if (!isGenerateables[northSegmentIndex])
+            {
+                northBoundaryLine = northBoundaryLine.ToNurbsCurve().Offset(Plane.WorldXY, -W, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+
+                BoundingBox box = boundary.GetBoundingBox(Plane.WorldXY);
+                double boxLength = box.Max.X - box.Min.X;
+                northBoundaryLine = northBoundaryLine.Extend(CurveEnd.Both, boxLength * 0.5, CurveExtensionStyle.Line);
+                northBoundaryLine = TrimByBoundaryWithCurve(northBoundaryLine, boundary);
+                northBoundaryLine.Domain = new Interval(0, 1);
+            }
+
+            #endregion
+            eastBoundaryLine = new Line(southBoundaryLine.PointAtEnd, northBoundaryLine.PointAtStart).ToNurbsCurve();
+            westBoundaryLine = new Line(northBoundaryLine.PointAtEnd, southBoundaryLine.PointAtStart).ToNurbsCurve();
+
+            List<Curve> segments = new List<Curve>();
+            segments.Add(southBoundaryLine);
+            segments.Add(eastBoundaryLine);
+            segments.Add(northBoundaryLine);
+            segments.Add(westBoundaryLine);
+
+            boundary = Curve.JoinCurves(segments)[0];
+            #endregion
+
             Vector3d directionVector;
             Vector3d verticalVector;
-            Curve boundary = Curve.CreateInterpolatedCurve(sortedBoundaryPolyline, 1);
+
             #region 确定南北侧基线
             // 确定南侧基线
-            int southSegmentIndex = 0;
-
-            Curve southBoundaryLine = lineForEachEdge.First().ToNurbsCurve();
-            directionVector = lineForEachEdge[southSegmentIndex].Direction;
+            directionVector = southBoundaryLine.TangentAtStart;
             verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-            Curve southCenterLine = TrimBothEnd(boundary, verticalVector, southBoundaryLine, Convert.ToInt32(isGenerateables[southSegmentIndex]), w, W);
+            Curve southCenterLine = TrimBothEnd(boundary, verticalVector, southBoundaryLine, 1, w, W);
             southCenterLine.Domain = new Interval(0, 1);
 
             Curve southBaseLine = southCenterLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
@@ -1756,12 +2360,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             southBaseLine.Domain = new Interval(0, 1);
 
             // 确定北侧基线
-            int northSegmentIndex = 2;
-
-            Curve northBoundaryLine = lineForEachEdge[northSegmentIndex].ToNurbsCurve();
-            directionVector = lineForEachEdge[northSegmentIndex].Direction;
+            directionVector = northBoundaryLine.TangentAtStart;
             verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-            Curve northCenterLine = TrimBothEnd(boundary, verticalVector, northBoundaryLine, Convert.ToInt32(isGenerateables[northSegmentIndex]), w, W);
+            Curve northCenterLine = TrimBothEnd(boundary, verticalVector, northBoundaryLine, 1, w, W);
             northCenterLine.Domain = new Interval(0, 1);
             Curve northCenterLineReverse = northCenterLine.DuplicateCurve();
             northCenterLineReverse.Reverse();
@@ -2116,27 +2717,40 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
             #region 确定东西侧基线
             // 确定东侧基线
-            int eastSegmentIndex = 1;
-            Curve eastBoundaryLine = lineForEachEdge[eastSegmentIndex].ToNurbsCurve();
-            directionVector = lineForEachEdge[eastSegmentIndex].Direction;
+            directionVector = eastBoundaryLine.TangentAtStart;
             verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-            Curve eastCenterLine = TrimBothEnd(boundary, verticalVector, eastBoundaryLine, Convert.ToInt32(isGenerateables[eastSegmentIndex]), w, W);
+            Curve eastCenterLine = TrimBothEnd(boundary, verticalVector, eastBoundaryLine, 1, w, W);
             eastCenterLine.Domain = new Interval(0, 1);
 
             Curve eastBaseLine = eastBoundaryLine.Offset(Plane.WorldXY, -(lMin + w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            //if (!isGenerateables[eastSegmentIndex])
+            //{
+            //    eastBaseLine = eastBoundaryLine.Offset(Plane.WorldXY, -(lMin + w + w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            //}
+            //else
+            //{
+            //    eastBaseLine = eastBoundaryLine.Offset(Plane.WorldXY, -(lMin + w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            //}
+            
             eastBaseLine = eastBaseLine.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
             eastBaseLine = TrimByBoundaryWithCurve(eastBaseLine, boundary);
             eastBaseLine.Domain = new Interval(0, 1);
 
             // 确定西侧基线
-            int westSegmentIndex = 3;
-            Curve westBoundaryLine = lineForEachEdge[westSegmentIndex].ToNurbsCurve();
-            directionVector = lineForEachEdge[westSegmentIndex].Direction;
+            directionVector = westBoundaryLine.TangentAtStart;
             verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-            Curve westCenterLine = TrimBothEnd(boundary, verticalVector, westBoundaryLine, Convert.ToInt32(isGenerateables[westSegmentIndex]), w, W);
+            Curve westCenterLine = TrimBothEnd(boundary, verticalVector, westBoundaryLine, 1, w, W);
             westCenterLine.Domain = new Interval(0, 1);
 
             Curve westBaseLine = westBoundaryLine.Offset(Plane.WorldXY, -(lMin + w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            //if (!isGenerateables[westSegmentIndex])
+            //{
+            //    westBaseLine = westBoundaryLine.Offset(Plane.WorldXY, -(lMin + w + w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            //}
+            //else
+            //{
+            //    westBaseLine = westBoundaryLine.Offset(Plane.WorldXY, -(lMin + w), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+            //}
             westBaseLine = westBaseLine.Extend(CurveEnd.Both, W, CurveExtensionStyle.Line);
             westBaseLine = TrimByBoundaryWithCurve(westBaseLine, boundary);
             westBaseLine.Domain = new Interval(0, 1);
@@ -2752,11 +3366,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
 
             // Temp
-            southBaseLineForShow = southBaseLine;
-            northBaseLineForShow = northBaseLine;
-            eastBaseLineForShow = eastBaseLine;
-            westBaseLineForShow = westBaseLine;
-            gapCenterLineForShow = verticalCenterLinesForGap;
+            southBaseLineForShow = southBoundaryLine;
+            northBaseLineForShow = northBoundaryLine;
+            eastBaseLineForShow = eastBoundaryLine;
+            westBaseLineForShow = westBoundaryLine;
+            //gapCenterLineForShow = verticalCenterLinesForGap;
 
 
             // 输出
