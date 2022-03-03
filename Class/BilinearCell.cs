@@ -47,7 +47,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public BilinearShapeType ShapeType { get; set; }
 
-        public BilinearCell(Curve southLine, Curve northLine, Curve westLine, Curve eastLine, int i, int j)
+        public BilinearCell(Curve southLine, Curve northLine, Curve westLine, Curve eastLine, double w, double tolerance, int i, int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -92,9 +92,25 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.BoundaryBaseLineCount = count;
             this.CenterBaseLineCount = 0;
+
+            #region CellBoundary
+            List<Curve> allBoundaryLines = new List<Curve>();
+            allBoundaryLines.Add(southLine);
+            allBoundaryLines.Add(eastLine);
+            allBoundaryLines.Add(northLine);
+            allBoundaryLines.Add(westLine);
+
+            Curve joinedCurve = Curve.JoinCurves(allBoundaryLines)[0];
+            Curve[] crv = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp);
+            if (crv != null)
+            {
+                this.CellBoundary = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp)[0];
+            }
+            //this.CellBoundary = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp)[0];
+            #endregion
         }
 
-        public BilinearCell(Curve centerH, Curve westLine, Curve eastLine, int i, int j)
+        public BilinearCell(Curve centerH, Curve westLine, Curve eastLine, double w, double tolerance, int i, int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -127,6 +143,31 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.ShapeType = BilinearShapeType.IShape;
             this.BoundaryBaseLineCount = count;
             this.CenterBaseLineCount = count;
+
+            #region CellBoundary
+            List<Curve> allBoundaryLines = new List<Curve>();
+            if (westLine != null || westLine != null)
+            {
+                allBoundaryLines.Add(new Line(westLine.PointAtEnd, eastLine.PointAtStart).ToNurbsCurve());
+                allBoundaryLines.Add(eastLine);
+                allBoundaryLines.Add(new Line(eastLine.PointAtEnd, westLine.PointAtStart).ToNurbsCurve());
+                allBoundaryLines.Add(westLine);
+
+                Curve joinedCurve = Curve.JoinCurves(allBoundaryLines)[0];
+                Curve[] crv = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp);
+                if (crv != null)
+                {
+                    this.CellBoundary = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp)[0];
+                }
+            }
+            else
+            {
+                this.CellBoundary = centerH.ToNurbsCurve();
+            }
+
+            
+            
+            #endregion
         }
 
         /// <summary>
@@ -237,6 +278,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.BoundaryBaseLineCount = GetBoundaryBaseLinesCount();
             this.CenterBaseLineCount = GetCenterBaseLineCount();
+
+            #region CellBoundary
+            if (initialCell.CellBoundary != null)
+            {
+                this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
+            }
+            
+            #endregion
         }
 
         /// <summary>
@@ -365,6 +414,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.BoundaryBaseLineCount = GetBoundaryBaseLinesCount();
             this.CenterBaseLineCount = GetCenterBaseLineCount();
+
+            #region CellBoundary
+            if (initialCell.CellBoundary != null)
+            {
+                this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
+            }
+            
+            #endregion
         }
 
         /// <summary>
@@ -425,6 +482,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.BoundaryBaseLineCount = 4;
             this.CenterBaseLineCount = 0;
+
+            #region CellBoundary
+            if (initialCell.CellBoundary != null)
+            {
+                this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
+            }
+            
+            #endregion
         }
 
         /// <summary>
@@ -491,6 +556,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             this.BoundaryBaseLineCount = GetBoundaryBaseLinesCount();
             this.CenterBaseLineCount = GetCenterBaseLineCount();
+
+            #region CellBoundary
+            if (initialCell.CellBoundary != null)
+            {
+                this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
+            }
+
+            #endregion
         }
 
         public BilinearCell GenerateIAndIVariantShape(int randomT,int directionCode, double w)

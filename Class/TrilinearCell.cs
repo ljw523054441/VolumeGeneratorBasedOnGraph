@@ -60,7 +60,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public TrilinearCell(Curve southLine, Curve middleLine, Curve northLine,
                              Curve westLine, Curve westLine1, Curve eastLine,
-                             Curve eastLine1, int i, int j)
+                             Curve eastLine1, double w, double tolerance, int i, int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -112,6 +112,19 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.ShapeType = TrilinearShapeType.EightShape;
             this.BoundaryBaseLineCount = count;
             this.CenterBaseLineCount = 0;
+
+            #region CellBoundary
+            List<Curve> allBoundaryLines = new List<Curve>();
+            allBoundaryLines.Add(southLine);
+            allBoundaryLines.Add(eastLine);
+            allBoundaryLines.Add(eastLine1);
+            allBoundaryLines.Add(northLine);
+            allBoundaryLines.Add(westLine1);
+            allBoundaryLines.Add(westLine);
+
+            Curve joinedCurve = Curve.JoinCurves(allBoundaryLines)[0];
+            this.CellBoundary = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp)[0];
+            #endregion
         }
 
         /// <summary>
@@ -214,6 +227,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.ShapeType = TrilinearShapeType.EShape;
             this.BoundaryBaseLineCount = 5;
             this.CenterBaseLineCount = 0;
+
+            #region CellBoundary
+            this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
+            #endregion
         }
 
         /// <summary>
@@ -311,6 +328,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.ShapeType = TrilinearShapeType.EVarientShape;
             this.BoundaryBaseLineCount = 3;
             this.CenterBaseLineCount = 2;
+
+            #region CellBoundary
+            this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
+            #endregion
         }
 
         /// <summary>
@@ -384,6 +405,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.ShapeType = TrilinearShapeType.EightShape;
             this.BoundaryBaseLineCount = 6;
             this.CenterBaseLineCount = 0;
+
+            #region CellBoundary
+            this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
+            #endregion
         }
 
         /// <summary>
@@ -468,6 +493,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.ShapeType = TrilinearShapeType.EightVariantShape;
             this.BoundaryBaseLineCount = 7;
             this.CenterBaseLineCount = 0;
+
+            #region CellBoundary
+            this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
+            #endregion
         }
 
         public TrilinearCell GenerateEShape(int directionCode)
