@@ -1,6 +1,7 @@
 ﻿using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
+using Rhino.Geometry.Intersect;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -42,12 +43,26 @@ namespace VolumeGeneratorBasedOnGraph.Class
             CShape = 1,
             IShape = 2,
             RecShape = 3,
-            RecVariantShape = 4
+            RecVariantShape = 4,
+            SingleRegion = 5,
+            SinglePolyline = 6
         }
 
         public BilinearShapeType ShapeType { get; set; }
 
-        public BilinearCell(Curve southLine, Curve northLine, Curve westLine, Curve eastLine, double w, double tolerance, int i, int j)
+        public BilinearCell(Curve southLine, 
+                            Curve northLine, 
+                            Curve westLine, 
+                            Curve eastLine, 
+
+                            Curve southBoundary,
+                            Curve northBoundary,
+                            Curve westBoundary,
+                            Curve eastBoundary,
+
+                            //double w, 
+                            int i, 
+                            int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -94,23 +109,142 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CenterBaseLineCount = 0;
 
             #region CellBoundary
-            List<Curve> allBoundaryLines = new List<Curve>();
-            allBoundaryLines.Add(southLine);
-            allBoundaryLines.Add(eastLine);
-            allBoundaryLines.Add(northLine);
-            allBoundaryLines.Add(westLine);
+            List<Curve> extendedBoundaryList = new List<Curve>();
+            extendedBoundaryList.Add(southBoundary);
+            extendedBoundaryList.Add(eastBoundary);
+            extendedBoundaryList.Add(northBoundary);
+            extendedBoundaryList.Add(westBoundary);
 
-            Curve joinedCurve = Curve.JoinCurves(allBoundaryLines)[0];
-            Curve[] crv = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp);
-            if (crv != null)
+            List<Curve> boundaryList = new List<Curve>();
+            for (int k = 0; k < extendedBoundaryList.Count; k++)
             {
-                this.CellBoundary = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp)[0];
+                CurveIntersections intersectionEvents0 = Intersection.CurveCurve(extendedBoundaryList[k], extendedBoundaryList[((k - 1) + extendedBoundaryList.Count) % extendedBoundaryList.Count], Cell.Tolerance, Cell.Tolerance);
+                CurveIntersections intersectionEvents1 = Intersection.CurveCurve(extendedBoundaryList[k], extendedBoundaryList[(k + 1) % extendedBoundaryList.Count], Cell.Tolerance, Cell.Tolerance);
+
+                Point3d p0;
+                Point3d p1;
+                if (intersectionEvents0[0].IsOverlap)
+                {
+                    Point3d a0 = intersectionEvents0[0].PointA;
+                    Point3d a1 = intersectionEvents0[0].PointA2;
+                    p0 = (a0 + a1) / 2;
+                }
+                else
+                {
+                    p0 = intersectionEvents0[0].PointA;
+                }
+
+                if (intersectionEvents1[0].IsOverlap)
+                {
+                    Point3d a0 = intersectionEvents1[0].PointA;
+                    Point3d a1 = intersectionEvents1[0].PointA2;
+                    p1 = (a0 + a1) / 2;
+                }
+                else
+                {
+                    p1 = intersectionEvents1[0].PointA;
+                }
+
+                boundaryList.Add(new Line(p0, p1).ToNurbsCurve());
             }
-            //this.CellBoundary = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp)[0];
+
+            Curve[] joinedCrv = Curve.JoinCurves(boundaryList);
+            this.CellBoundary = joinedCrv[0];
+
             #endregion
         }
 
-        public BilinearCell(Curve centerH, Curve westLine, Curve eastLine, double w, double tolerance, int i, int j)
+        /// <summary>
+        /// SingleRegion 以及 SinglePolyline
+        /// </summary>
+        /// <param name="southLine"></param>
+        /// <param name="northLine"></param>
+        /// <param name="westLine"></param>
+        /// <param name="eastLine"></param>
+        /// <param name="i"></param>
+        /// <param name="j"></param>
+        public BilinearCell(Curve boundary, Curve southLine,Curve northLine, Curve westLine, Curve eastLine,int i,int j)
+        {
+            #region index
+            this.CurrentIndex = new int[2] { i, j };
+            this.PrevSouthIndex = new int[2] { i - 1, j };
+            this.NexNorthIndex = new int[2] { i + 1, j };
+            this.PrevWestIndex = new int[2] { i, j - 1 };
+            this.NexEastIndex = new int[2] { i, j + 1 };
+            #endregion
+
+            #region baseLine 和 interval
+            int count = 0;
+            if (southLine != null)
+            {
+                this.SouthBaseLine = new Line(southLine.PointAtStart, southLine.PointAtEnd);
+                count++;
+
+                this.South_Interval = new List<Interval>();
+                this.South_Interval.Add(new Interval(0, 1));
+            }
+            if (northLine != null)
+            {
+                this.NorthBaseLine = new Line(northLine.PointAtStart, northLine.PointAtEnd);
+                count++;
+
+                this.North_Interval = new List<Interval>();
+                this.North_Interval.Add(new Interval(0, 1));
+            }
+            if (westLine != null)
+            {
+                this.WestBaseLine = new Line(westLine.PointAtStart, westLine.PointAtEnd);
+                count++;
+
+                this.West_Interval = new List<Interval>();
+                this.West_Interval.Add(new Interval(0, 1));
+            }
+            if (eastLine != null)
+            {
+                this.EastBaseLine = new Line(eastLine.PointAtStart, eastLine.PointAtEnd);
+                count++;
+
+                this.East_Interval = new List<Interval>();
+                this.East_Interval.Add(new Interval(0, 1));
+            }
+            #endregion
+
+            if (count != 4)
+            {
+                this.ShapeType = BilinearShapeType.SinglePolyline;
+
+                this.BoundaryBaseLineCount = 2;
+                this.CenterBaseLineCount = 0;
+
+                #region CellBoundary
+                this.CellBoundary = boundary.DuplicateCurve();
+                #endregion
+            }
+            else
+            {
+                this.ShapeType = BilinearShapeType.SingleRegion;
+
+                this.BoundaryBaseLineCount = 4;
+                this.CenterBaseLineCount = 0;
+
+                #region CellBoundary
+                this.CellBoundary = boundary.DuplicateCurve();
+                #endregion
+            }
+        }
+
+
+        public BilinearCell(Curve centerH, 
+                            Curve westLine, 
+                            Curve eastLine, 
+
+                            Curve southBoundary,
+                            Curve northBoundary,
+                            Curve westBoundary,
+                            Curve eastBoundary,
+
+                            int i, 
+                            int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -145,28 +279,48 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CenterBaseLineCount = count;
 
             #region CellBoundary
-            List<Curve> allBoundaryLines = new List<Curve>();
-            if (westLine != null || westLine != null)
-            {
-                allBoundaryLines.Add(new Line(westLine.PointAtEnd, eastLine.PointAtStart).ToNurbsCurve());
-                allBoundaryLines.Add(eastLine);
-                allBoundaryLines.Add(new Line(eastLine.PointAtEnd, westLine.PointAtStart).ToNurbsCurve());
-                allBoundaryLines.Add(westLine);
+            List<Curve> extendedBoundaryList = new List<Curve>();
+            extendedBoundaryList.Add(southBoundary);
+            extendedBoundaryList.Add(eastBoundary);
+            extendedBoundaryList.Add(northBoundary);
+            extendedBoundaryList.Add(westBoundary);
 
-                Curve joinedCurve = Curve.JoinCurves(allBoundaryLines)[0];
-                Curve[] crv = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp);
-                if (crv != null)
+            List<Curve> boundaryList = new List<Curve>();
+            for (int k = 0; k < extendedBoundaryList.Count; k++)
+            {
+                CurveIntersections intersectionEvents0 = Intersection.CurveCurve(extendedBoundaryList[k], extendedBoundaryList[((k - 1) + extendedBoundaryList.Count) % extendedBoundaryList.Count], Cell.Tolerance, Cell.Tolerance);
+                CurveIntersections intersectionEvents1 = Intersection.CurveCurve(extendedBoundaryList[k], extendedBoundaryList[(k + 1) % extendedBoundaryList.Count], Cell.Tolerance, Cell.Tolerance);
+
+                Point3d p0;
+                Point3d p1;
+                if (intersectionEvents0[0].IsOverlap)
                 {
-                    this.CellBoundary = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp)[0];
+                    Point3d a0 = intersectionEvents0[0].PointA;
+                    Point3d a1 = intersectionEvents0[0].PointA2;
+                    p0 = (a0 + a1) / 2;
                 }
-            }
-            else
-            {
-                this.CellBoundary = centerH.ToNurbsCurve();
+                else
+                {
+                    p0 = intersectionEvents0[0].PointA;
+                }
+
+                if (intersectionEvents1[0].IsOverlap)
+                {
+                    Point3d a0 = intersectionEvents1[0].PointA;
+                    Point3d a1 = intersectionEvents1[0].PointA2;
+                    p1 = (a0 + a1) / 2;
+                }
+                else
+                {
+                    p1 = intersectionEvents1[0].PointA;
+                }
+
+                boundaryList.Add(new Line(p0, p1).ToNurbsCurve());
             }
 
-            
-            
+            Curve[] joinedCrv = Curve.JoinCurves(boundaryList);
+            this.CellBoundary = joinedCrv[0];
+
             #endregion
         }
 

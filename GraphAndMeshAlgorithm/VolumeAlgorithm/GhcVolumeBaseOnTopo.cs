@@ -41,6 +41,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             NBCrvForShowList = new List<Curve>();
             EBCrvForShowList = new List<Curve>();
             WBCrvForShowList = new List<Curve>();
+
+            AllBlockCellBoundaryDT = new DataTree<Curve>();
+            //AllBlockCellBoundaryDT2 = new DataTree<Curve>();
         }
 
         private Random m_random;
@@ -61,6 +64,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         private List<Curve> NBCrvForShowList;
         private List<Curve> EBCrvForShowList;
         private List<Curve> WBCrvForShowList;
+
+        private DataTree<Curve> AllBlockCellBoundaryDT;
+        //private DataTree<Curve> AllBlockCellBoundaryDT2;
 
         private HorizontalVolumeBranchType HBranchType;
         private VerticalGapBranchType VBranchType;
@@ -138,6 +144,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
             pManager.AddCurveParameter("HCurves", "", "", GH_ParamAccess.tree);
             pManager.AddCurveParameter("VCurves", "", "", GH_ParamAccess.tree);
+
+            //pManager.AddCurveParameter("HCB", "", "", GH_ParamAccess.tree);
+            //pManager.AddCurveParameter("VCB", "", "", GH_ParamAccess.tree);
         }
 
         /// <summary>
@@ -196,8 +205,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 Thickness = 2;
 
-                Cell.MinT = w / lMin;
-                Cell.MaxT = 2 * w / lMin;
+                Cell.Tolerance = GH_Component.DocumentTolerance();
 
                 dualGraphWithHM.DualPlanktonMesh = new PlanktonMesh(dual);
 
@@ -523,11 +531,17 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 EBCrvForShowList.Clear();
                 WBCrvForShowList.Clear();
 
+                AllBlockCellBoundaryDT.Clear();
+                //AllBlockCellBoundaryDT2.Clear();
+
                 DataTree<Brep> allBlockBrepDT = new DataTree<Brep>();
                 DataTree<Curve> allBlockHCurvesDT = new DataTree<Curve>();
                 DataTree<Curve> allBlockVCurvesDT = new DataTree<Curve>();
                 DataTree<Polyline> allBlockContourDT = new DataTree<Polyline>();
                 DataTree<Polyline> allBlockHoleDT = new DataTree<Polyline>();
+
+                DataTree<Curve> allBlockCellBoundaryDT = new DataTree<Curve>();
+                //DataTree<Curve> allBlockCellBoundaryDT2 = new DataTree<Curve>();
 
                 for (int i = 0; i < newAllFaceBS.Count; i++)
                 {
@@ -537,6 +551,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     GH_Path ghPathForVCurve = new GH_Path(i);
                     GH_Path ghPathForContour = new GH_Path(i);
                     GH_Path ghPathForHole = new GH_Path(i);
+
+                    GH_Path ghPathForCellBoundary = new GH_Path(i);
+                    //GH_Path ghPathForCellBoundary2 = new GH_Path(i);
                     #endregion
 
                     bool isHorizontalLayout;
@@ -560,6 +577,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         ghPathForVCurve = ghPathForVCurve.AppendElement(0);
                         ghPathForContour = ghPathForContour.AppendElement(0);
                         ghPathForHole = ghPathForHole.AppendElement(0);
+
+                        ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(0);
+                        //ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(0);
                         #endregion
 
                         #region isGenerateables控制
@@ -584,6 +604,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve westBoundaryLineForShow;
 
                         List<Curve> gap;
+
+                        List<List<Curve>> cellBoundaryLoL;
+
+                        //DataTree<Curve> horizontalCellBoundary;
+                        //DataTree<Curve> verticalCellBoundary;
 
                         List<List<List<Brep>>> brepLoL = GenerateVolumeBaseLine(w, 
                                                                                 W, 
@@ -611,6 +636,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                                                 out westBoundaryLineForShow,
 
                                                                                 out gap,
+
+                                                                                out cellBoundaryLoL,
+
+                                                                                //out horizontalCellBoundary,
+                                                                                //out verticalCellBoundary,
 
                                                                                 sortedBoundaryPolyline, 
                                                                                 lineForEachEdge, 
@@ -713,6 +743,45 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             }
                             ghPathForHole = ghPathForHole.CullElement();
                         }
+
+                        for (int j = 0; j < cellBoundaryLoL.Count; j++)
+                        {
+                            ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(j);
+                            for (int k = 0; k < cellBoundaryLoL[j].Count; k++)
+                            {
+                                ghPathForHole = ghPathForHole.AppendElement(k);
+
+                                allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
+                                allBlockCellBoundaryDT.Branch(ghPathForCellBoundary).Add(cellBoundaryLoL[j][k]);
+
+                                ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
+                            }
+                        }
+                        //for (int k = 0; k < verticalCellBoundary.BranchCount; k++)
+                        //{
+                        //    ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(k);
+                        //    for (int l = 0; l < verticalCellBoundary.Branch(k).Count; l++)
+                        //    {
+                        //        ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(l);
+                        //        allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
+                        //        allBlockCellBoundaryDT.Branch(ghPathForCellBoundary).Add(verticalCellBoundary.Branch(k)[l]);
+                        //        ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
+                        //    }
+                        //    ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
+                        //}
+
+                        //for (int k = 0; k < horizontalCellBoundary.BranchCount; k++)
+                        //{
+                        //    ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(k);
+                        //    for (int l = 0; l < horizontalCellBoundary.Branch(k).Count; l++)
+                        //    {
+                        //        ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(l);
+                        //        allBlockCellBoundaryDT2.EnsurePath(ghPathForCellBoundary2);
+                        //        allBlockCellBoundaryDT2.Branch(ghPathForCellBoundary2).Add(horizontalCellBoundary.Branch(k)[l]);
+                        //        ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
+                        //    }
+                        //    ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
+                        //}
                         #endregion
 
                         #region 清除当前第二层级的序号
@@ -721,6 +790,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         ghPathForVCurve = ghPathForVCurve.CullElement();
                         ghPathForContour = ghPathForContour.CullElement();
                         ghPathForHole = ghPathForHole.CullElement();
+
+                        ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
+                        //ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
                         #endregion
                     }
                     else
@@ -739,6 +811,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             ghPathForVCurve = ghPathForVCurve.AppendElement(j);
                             ghPathForContour = ghPathForContour.AppendElement(j);
                             ghPathForHole = ghPathForHole.AppendElement(j);
+
+                            ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(0);
+                            //ghPathForCellBoundary2 = ghPathForCellBoundary.AppendElement(0);
                             #endregion
 
                             if (splitedPolylines[j].Count == 5)
@@ -760,6 +835,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 Curve westBoundaryLineForShow;
 
                                 List<Curve> gap;
+
+                                List<List<Curve>> cellBoundaryLoL;
+
+                                //DataTree<Curve> horizontalCellBoundary;
+                                //DataTree<Curve> verticalCellBoundary;
 
                                 List<List<List<Brep>>> brepLoL = GenerateVolumeBaseLine(w,
                                                                              W,
@@ -787,6 +867,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                                              out westBoundaryLineForShow,
 
                                                                              out gap,
+
+                                                                             out cellBoundaryLoL,
+
+                                                                             //out horizontalCellBoundary,
+                                                                             //out verticalCellBoundary,
 
                                                                              splitedPolylines[j],
                                                                              newLineforEachEdgeLoL[j],
@@ -889,6 +974,47 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     }
                                     ghPathForHole = ghPathForHole.CullElement();
                                 }
+
+                                for (int k = 0; k < cellBoundaryLoL.Count; k++)
+                                {
+                                    ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(k);
+                                    for (int l = 0; l < cellBoundaryLoL[k].Count; l++)
+                                    {
+                                        ghPathForHole = ghPathForHole.AppendElement(l);
+
+                                        allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
+                                        allBlockCellBoundaryDT.Branch(ghPathForCellBoundary).Add(cellBoundaryLoL[k][l]);
+
+                                        ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
+                                    }
+                                }
+
+                                //for (int k = 0; k < verticalCellBoundary.BranchCount; k++)
+                                //{
+                                //    ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(k);
+                                //    for (int l = 0; l < verticalCellBoundary.Branch(k).Count; l++)
+                                //    {
+                                //        ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(l);
+                                //        allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
+                                //        allBlockCellBoundaryDT.Branch(ghPathForCellBoundary).Add(verticalCellBoundary.Branch(k)[l]);
+                                //        ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
+                                //    }
+                                //    ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
+                                //}
+
+                                //for (int k = 0; k < horizontalCellBoundary.BranchCount; k++)
+                                //{
+                                //    ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(k);
+                                //    for (int l = 0; l < horizontalCellBoundary.Branch(k).Count; l++)
+                                //    {
+                                //        ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(l);
+                                //        allBlockCellBoundaryDT2.EnsurePath(ghPathForCellBoundary2);
+                                //        allBlockCellBoundaryDT2.Branch(ghPathForCellBoundary2).Add(horizontalCellBoundary.Branch(k)[l]);
+                                //        ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
+                                //    }
+                                //    ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
+                                //}
+
                                 #endregion
                             }
                             else
@@ -899,6 +1025,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 allBlockVCurvesDT.EnsurePath(ghPathForVCurve);
                                 allBlockContourDT.EnsurePath(ghPathForContour);
                                 allBlockHoleDT.EnsurePath(ghPathForHole);
+
+                                allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
+                                //allBlockCellBoundaryDT2.EnsurePath(ghPathForCellBoundary2);
                                 #endregion
                             }
 
@@ -908,11 +1037,17 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             ghPathForVCurve = ghPathForVCurve.CullElement();
                             ghPathForContour = ghPathForContour.CullElement();
                             ghPathForHole = ghPathForHole.CullElement();
+
+                            ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
+                            //ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
                             #endregion
                         }
 
                     }
                 }
+
+                AllBlockCellBoundaryDT = allBlockCellBoundaryDT;
+                //AllBlockCellBoundaryDT2 = allBlockCellBoundaryDT2;
 
                 //DataTree<Polyline> contourDT = UtilityFunctions.LoLToDataTree<Polyline>(contourLoL);
                 //DataTree<Polyline> holeDT = UtilityFunctions.LoLToDataTree<Polyline>(holeLoL);
@@ -926,6 +1061,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 //DataTree<Curve> allVCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(allVCurvesLoL);
                 DA.SetDataTree(5, allBlockHCurvesDT);
                 DA.SetDataTree(6, allBlockVCurvesDT);
+
+                //DA.SetDataTree(7, allBlockCellBoundaryDT2);
+                //DA.SetDataTree(8, allBlockCellBoundaryDT);
 
 
                 #region 可视化
@@ -1272,6 +1410,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                                                               out List<Curve> gap,
 
+                                                              out List<List<Curve>> cellBoundaryLoL,
+
+                                                              //out DataTree<Curve> horizontalCellBoundary,
+                                                              //out DataTree<Curve> verticalCellBoundary,
+
                                                               Polyline sortedBoundaryPolyline, 
                                                               List<Line> lineForEachEdge, 
                                                               List<bool> isGenerateables)
@@ -1280,6 +1423,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
             DataTree<Curve> hCurvesDT;
             DataTree<Curve> vCurvesDT;
+
+            DataTree<Curve> horizontalCellBoundary;
+            DataTree<Curve> verticalCellBoundary;
+
+
             Curve newBoundary;
             Curve singleRegion = GenerateLayoutLinesOnQuadBlock(sortedBoundaryPolyline,
                                                                 lineForEachEdge,
@@ -1309,25 +1457,31 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                                 out newBoundary,
 
                                                                 out hCurvesDT,
-                                                                out vCurvesDT);
-
-            
-
-
-
-
-
+                                                                out vCurvesDT,
+                                                                
+                                                                out horizontalCellBoundary,
+                                                                out verticalCellBoundary);
 
             // out
             allHCurvesLoL = new List<List<List<Curve>>>();
             allVCurvesLoL = new List<List<List<Curve>>>();
             contourLoL = new List<List<List<Polyline>>>();
             holeLoL = new List<List<List<Polyline>>>();
+
+            List<List<Cell>> cellLoL;
             if (singleRegion == null)
             {
                 #region 由得到的baseLine构造生成初步的Cell对象，并且对初步生成的Cell对象进行随机修改，形成工，口，C
-                List<List<Cell>> cellLoL = GenerateCells(hCurvesDT, vCurvesDT, isJitter,
-                                                         lMin, lMax, d, w);
+                cellLoL = GenerateCells(hCurvesDT, 
+                                        vCurvesDT, 
+
+                                        horizontalCellBoundary,
+                                        verticalCellBoundary,
+
+                                        lineForEachEdge,
+
+                                        isJitter,
+                                        lMin, lMax, d, w);
                 #endregion
 
                 #region 生成building
@@ -1375,30 +1529,20 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve[] joined = Curve.JoinCurves(curveForJoinLoL[i][j]);
 
                         // todo 怎么裁切
-                        //if (cellLoL[i][j].IsBilinearCell())
-                        //{
-                        //    BilinearCell bCell = cellLoL[i][j] as BilinearCell;
-                        //    if (bCell.ShapeType == BilinearCell.BilinearShapeType.IShape)
-                        //    {
-
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //    TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
-                        //}
-
-
-                        //List<Curve> trimedJoin = new List<Curve>();
+                        //Curve[] trimedJoined = new Curve[joined.Length];
                         //for (int k = 0; k < joined.Length; k++)
                         //{
-                        //    Vector3d vec = joined[k].ta
-                        //    Vector3d depthVec = 
-                        //    Curve crv = TrimBothEnd(cellLoL[i][j].CellBoundary,)
+                        //    Vector3d vec = joined[k].TangentAtStart;
+                        //    Vector3d depthVec =  new Vector3d(-vec.Y, vec.X, vec.Z);
+                        //    Curve crv = TrimBothEnd(cellLoL[i][j].CellBoundary, joined[k], 0, w);
+                        //    trimedJoined[k] = crv;
                         //}
+                        //trimedJoined = Curve.JoinCurves(trimedJoined);
+                        
 
                         List<Polyline> outContours;
                         List<Polyline> outHoles;
+                        //GenerateBuilding(trimedJoined, w, out outContours, out outHoles);
                         GenerateBuilding(joined, w, out outContours, out outHoles);
 
                         contourLoL[i][j].AddRange(outContours);
@@ -1413,9 +1557,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             contoursAndHolesCrvLoL[i][j].Add(outHoles[k].ToPolylineCurve());
                         }
                     }
-                    
-
-                    
                 }
 
                 
@@ -1437,9 +1578,20 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
             else
             {
+                //List<List<Cell>> cellLoL;
                 if (singleRegion.IsClosed)
                 {
+                    //Curve offsetSingleRegion = singleRegion.Offset(Plane.WorldXY, -w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.Sharp)[0];
+                    #region 构造Cell对象
                     Curve[] segment = singleRegion.DuplicateSegments();
+
+                    BilinearCell bCell = new BilinearCell(singleRegion, segment[0], segment[2], segment[3], segment[1], 0, 0);
+                    cellLoL = new List<List<Cell>>();
+                    cellLoL.Add(new List<Cell>());
+                    cellLoL[0].Add(bCell);
+                    #endregion
+
+                    // 此时不用裁切
 
                     allHCurvesLoL.Add(new List<List<Curve>>());
                     allHCurvesLoL[0].Add(new List<Curve>());
@@ -1474,6 +1626,83 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
                 else
                 {
+                    Curve[] segment = singleRegion.DuplicateSegments();
+                    Curve[] crvs = new Curve[2];
+
+                    BilinearCell bCell;
+                    int index = isGenerateables.IndexOf(false);
+                    Line publicLine = lineForEachEdge[index];
+                    if (publicLine.From.EpsilonEquals(turningPoint, GH_Component.DocumentTolerance()))
+                    {
+                        Curve crv = lineForEachEdge[(index + 1) % lineForEachEdge.Count].ToNurbsCurve();
+                        Curve nextCrv = lineForEachEdge[(index + 2) % lineForEachEdge.Count].ToNurbsCurve();
+
+                        int indexCrv = (index + 1) % lineForEachEdge.Count;
+                        if (indexCrv == 0)
+                        {
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), crv, null, null, nextCrv, 0, 0);
+                        }
+                        else if (indexCrv == 1)
+                        {
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, nextCrv, null, crv, 0, 0);
+                        }
+                        else if (indexCrv == 2)
+                        {
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, crv, nextCrv, null, 0, 0);
+                        }
+                        else
+                        {
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), nextCrv, null, crv, null, 0, 0);
+                        }
+
+                        // nextCrv需要在末端进行裁切
+                        Vector3d vec = nextCrv.TangentAtStart;
+                        Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+                        Curve newNextCrv = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(),nextCrv, 2, w);
+
+                        crvs[0] = crv;
+                        crvs[1] = newNextCrv;
+                    }
+                    else
+                    {
+                        Curve crv = lineForEachEdge[((index - 1) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
+                        Curve prevCrv = lineForEachEdge[((index - 2) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
+
+                        int indexCrv = ((index - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
+                        if (indexCrv == 0)
+                        {
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), crv, null, prevCrv, null, 0, 0);
+                        }
+                        else if (indexCrv == 1)
+                        {
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), prevCrv, null, null, crv, 0, 0);
+                        }
+                        else if (indexCrv == 2)
+                        {
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, crv, null, prevCrv, 0, 0);
+                        }
+                        else
+                        {
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, prevCrv, crv, null, 0, 0);
+                        }
+
+                        // prevCrv需要在末端进行裁切
+                        Vector3d vec = prevCrv.TangentAtStart;
+                        Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+                        Curve newPrevCrv = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(), prevCrv, 1, w);
+
+                        crvs[0] = newPrevCrv;
+                        crvs[1] = crv;
+                    }
+
+                    crvs = Curve.JoinCurves(crvs);
+
+
+                    cellLoL = new List<List<Cell>>();
+                    cellLoL.Add(new List<Cell>());
+                    cellLoL[0].Add(bCell);
+
+
                     allHCurvesLoL.Add(new List<List<Curve>>());
                     allHCurvesLoL[0].Add(new List<Curve>());
 
@@ -1481,7 +1710,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     allVCurvesLoL[0].Add(new List<Curve>());
                     allVCurvesLoL[0][0].Add(singleRegion);
 
-                    Curve[] crvs = new Curve[1] { singleRegion };
+                    //Curve[] crvs = new Curve[1] { singleRegion };
                     List<Polyline> outContours;
                     List<Polyline> outHoles;
                     GenerateBuilding(crvs, w, out outContours, out outHoles);
@@ -1502,8 +1731,16 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         breps[0][0].AddRange(brepArray);
                     }
                 }
-                
-                
+            }
+
+            cellBoundaryLoL = new List<List<Curve>>();
+            for (int i = 0; i < cellLoL.Count; i++)
+            {
+                cellBoundaryLoL.Add(new List<Curve>());
+                for (int j = 0; j < cellLoL[i].Count; j++)
+                {
+                    cellBoundaryLoL[i].Add(cellLoL[i][j].CellBoundary);
+                }
             }
 
             return breps;
@@ -1547,8 +1784,19 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return numList;
         }
 
-        private List<List<Cell>> GenerateCells(DataTree<Curve> hCurvesDT, DataTree<Curve> vCurvesDT, bool isJitter,
-                                               double lMin, double lMax, double d, double w)
+        private List<List<Cell>> GenerateCells(DataTree<Curve> hCurvesDT, 
+                                               DataTree<Curve> vCurvesDT, 
+
+                                               DataTree<Curve> horizontalCellBoundary,
+                                               DataTree<Curve> verticalCellBoundary,
+
+                                               List<Line> lineForEachEdge,
+
+                                               bool isJitter,
+                                               double lMin, 
+                                               double lMax, 
+                                               double d, 
+                                               double w)
         {
             
             List<List<Cell>> cellLoL = new List<List<Cell>>();
@@ -1557,32 +1805,40 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             if (hCurvesDT.BranchCount > 1)
             {
                 #region 得到3或2的排列组合
-                List<int[]> countPairs = UtilityFunctions.GetAllPositiveIntegerSolution(3, 2, hCurvesDT.Branch(0).Count);
-
-                int randomIndex = m_random.Next(countPairs.Count);
-                int countForThree = countPairs[randomIndex][0];
-                int countForTwo = countPairs[randomIndex][1];
-
-                //bool isSame = true;
-
                 List<List<int>> randomNumLoL = new List<List<int>>();
-                if (isJitter)
+                int countOnPrevBranch = hCurvesDT.Branch(0).Count;
+                for (int i = 0; i < hCurvesDT.BranchCount; i++)
                 {
-                    for (int i = 0; i < hCurvesDT.BranchCount; i++)
+                    randomNumLoL.Add(new List<int>());
+
+                    List<int[]> countPairs = UtilityFunctions.GetAllPositiveIntegerSolution(3, 2, hCurvesDT.Branch(i).Count);
+                    int randomIndex = m_random.Next(countPairs.Count);
+                    int countForThree = countPairs[randomIndex][0];
+                    int countForTwo = countPairs[randomIndex][1];
+
+                    //bool isSame = true;
+
+                    //List<List<int>> randomNumLoL = new List<List<int>>();
+                    if (hCurvesDT.Branch(i).Count == countOnPrevBranch)
                     {
-                        randomNumLoL.Add(new List<int>());
+                        List<int> randomNum = RandomGetNum(countForThree, countForTwo);
+                        if (isJitter)
+                        {
+                            randomNumLoL[i].AddRange(RandomGetNum(countForThree, countForTwo));
+                        }
+                        else
+                        {
+                            randomNumLoL[i].AddRange(randomNum);
+                        }
+                    }
+                    else
+                    {
                         randomNumLoL[i].AddRange(RandomGetNum(countForThree, countForTwo));
                     }
                 }
-                else
-                {
-                    List<int> randomNum = RandomGetNum(countForThree, countForTwo);
-                    for (int i = 0; i < hCurvesDT.BranchCount; i++)
-                    {
-                        randomNumLoL.Add(new List<int>());
-                        randomNumLoL[i].AddRange(randomNum);
-                    }
-                }
+                
+
+                
                 #endregion
 
                 for (int i = 0; i < hCurvesDT.BranchCount; i++)
@@ -1612,13 +1868,31 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     eastLine = vCurvesDT.Branch(j)[2 * i + 1];
                                 }
 
-                                BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, w, GH_Component.DocumentTolerance(), i, j);
+                                Curve southLine = new Line(westLine.PointAtStart, eastLine.PointAtStart).ToNurbsCurve();
+                                Curve northLine = new Line(westLine.PointAtEnd, eastLine.PointAtEnd).ToNurbsCurve();
+                                Curve horizontalCellBoundary_South = southLine.Offset(Plane.WorldXY, 0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                Curve horizontalCellBoundary_North = northLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                Curve verticalCellBoundary_West = verticalCellBoundary.Branch(0)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                Curve verticalCellBoundary_East = verticalCellBoundary.Branch(0)[1].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
                                 cellLoL[i].Add(bilinearCell);
                             }
                             else
                             {
                                 Curve southLine = hCurvesDT.Branch(i)[j];
-                                Curve northLine = hCurvesDT.Branch(i)[j + 1];
+                                Curve northLine = null;
+                                bool flag = false;
+                                if (hCurvesDT.Branch(i)[j + 1] != null)
+                                {
+                                    northLine = hCurvesDT.Branch(i)[j + 1];
+                                    flag = false;
+                                }
+                                else
+                                {
+                                    flag = true;
+                                }
 
                                 Curve westLine = null;
                                 if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i))
@@ -1631,7 +1905,25 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     eastLine = vCurvesDT.Branch(j)[2 * i + 1];
                                 }
 
-                                BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, w, GH_Component.DocumentTolerance(), i, j);
+
+                                Curve horizontalCellBoundary_South = horizontalCellBoundary.Branch(i)[2 * j].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                Curve horizontalCellBoundary_North;
+                                if (flag)
+                                {
+                                    northLine = new Line(westLine.PointAtEnd, eastLine.PointAtEnd).ToNurbsCurve();
+                                    horizontalCellBoundary_North = northLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                }
+                                else
+                                {
+                                    horizontalCellBoundary_North = horizontalCellBoundary.Branch(i)[2 * (j + 1) + 1].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                }
+                                
+
+                                Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+
+                                BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
                                 cellLoL[i].Add(bilinearCell);
                             }
                         }
@@ -1663,7 +1955,30 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 eastLine1 = vCurvesDT.Branch(j + 1)[2 * i + 1];
                             }
 
-                            TrilinearCell trilinearCell = new TrilinearCell(southLine, middleLine, northLine, westLine, westLine1, eastLine, eastLine1, w, GH_Component.DocumentTolerance(), i, j);
+                            Curve horizontalCellBoundary_South = horizontalCellBoundary.Branch(i)[2 * j].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                            Curve horizontalCellBoundary_North = horizontalCellBoundary.Branch(i)[2 * (j + 2) + 1].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+
+                            Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i];
+                            Curve verticalCellBoundary_West1 = verticalCellBoundary.Branch(j + 1)[4 * i];
+                            Curve joined_West = Curve.JoinCurves(new Curve[2] { verticalCellBoundary_West, verticalCellBoundary_West1 })[0];
+                            joined_West = joined_West.Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+
+                            Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3];
+                            Curve verticalCellBoundary_East1 = verticalCellBoundary.Branch(j + 1)[4 * i + 3];
+                            Curve joined_East = Curve.JoinCurves(new Curve[2] { verticalCellBoundary_East, verticalCellBoundary_East1 })[0];
+                            joined_East = joined_East.Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+
+                            TrilinearCell trilinearCell = new TrilinearCell(southLine, middleLine, northLine, westLine, westLine1, eastLine, eastLine1,
+                                                                            horizontalCellBoundary_South,
+                                                                            horizontalCellBoundary_North,
+                                                                            joined_West,
+                                                                            joined_East,
+                                                                            //verticalCellBoundary_West1,
+                                                                            //verticalCellBoundary_East1,
+                                                                            i, j);
                             cellLoL[i].Add(trilinearCell);
                         }
 
@@ -1691,7 +2006,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         eastLine = vCurvesDT.Branch(0)[1];
                     }
 
-                    BilinearCell cell = new BilinearCell(centerH, westLine, eastLine, w, GH_Component.DocumentTolerance(), 0, 0);
+                    Curve horizontalCellBoundary_South = lineForEachEdge[0].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                    Curve horizontalCellBoundary_North = lineForEachEdge[2].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                    Curve verticalCellBoundary_West = verticalCellBoundary.Branch(0)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                    Curve verticalCellBoundary_East = verticalCellBoundary.Branch(0)[3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                    BilinearCell cell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, 0, 0);
                     cellLoL[0].Add(cell);
                 }
                 else
@@ -1752,7 +2073,61 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                         eastLine = vCurvesDT.Branch(j)[2 * i + 1];
                                     }
 
-                                    BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, w, GH_Component.DocumentTolerance(), i, j);
+                                    Curve horizontalCellBoundary_South = lineForEachEdge[0].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve horizontalCellBoundary_North = lineForEachEdge[2].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                    Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                    BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
+                                    cellLoL[i].Add(bilinearCell);
+                                }
+                                else if (HBranchType == HorizontalVolumeBranchType.OnlyOneSouth)
+                                {
+                                    Curve southLine = hCurvesDT.Branch(i)[j];
+                                    Curve northLine = null;
+                                    Curve westLine = null;
+                                    if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i))
+                                    {
+                                        westLine = vCurvesDT.Branch(j)[2 * i];
+                                    }
+                                    Curve eastLine = null;
+                                    if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i + 1))
+                                    {
+                                        eastLine = vCurvesDT.Branch(j)[2 * i + 1];
+                                    }
+
+                                    Curve horizontalCellBoundary_North = lineForEachEdge[2].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                    Curve horizontalCellBoundary_South = horizontalCellBoundary.Branch(i)[2 * j].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
+                                    cellLoL[i].Add(bilinearCell);
+                                }
+                                else if (HBranchType == HorizontalVolumeBranchType.OnlyOneNorth)
+                                {
+                                    Curve southLine = null;
+                                    Curve northLine = hCurvesDT.Branch(i)[j];
+                                    Curve westLine = null;
+                                    if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i))
+                                    {
+                                        westLine = vCurvesDT.Branch(j)[2 * i];
+                                    }
+                                    Curve eastLine = null;
+                                    if (vCurvesDT.ItemExists(new GH_Path(j), 2 * i + 1))
+                                    {
+                                        eastLine = vCurvesDT.Branch(j)[2 * i + 1];
+                                    }
+
+                                    Curve horizontalCellBoundary_South = lineForEachEdge[0].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                    Curve horizontalCellBoundary_North = horizontalCellBoundary.Branch(i)[2 * j].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
                                     cellLoL[i].Add(bilinearCell);
                                 }
                                 else
@@ -1774,7 +2149,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                         eastLine = vCurvesDT.Branch(j)[2 * i + 1];
                                     }
 
-                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, w, GH_Component.DocumentTolerance(), i, j);
+                                    Curve horizontalCellBoundary_South = horizontalCellBoundary.Branch(i)[2 * j].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve horizontalCellBoundary_North = horizontalCellBoundary.Branch(i)[2 * (j + 1) + 1].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                    Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+
+                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
                                     cellLoL[i].Add(bilinearCell);
                                 }
                             }
@@ -1806,7 +2188,29 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     eastLine1 = vCurvesDT.Branch(j + 1)[2 * i + 1];
                                 }
 
-                                TrilinearCell trilinearCell = new TrilinearCell(southLine, middleLine, northLine, westLine, westLine1, eastLine, eastLine1, w, GH_Component.DocumentTolerance(), i, j);
+                                Curve horizontalCellBoundary_South = horizontalCellBoundary.Branch(i)[2 * j].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                Curve horizontalCellBoundary_North = horizontalCellBoundary.Branch(i)[2 * (j + 2) + 1].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+
+                                Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i];
+                                Curve verticalCellBoundary_West1 = verticalCellBoundary.Branch(j + 1)[4 * i];
+                                Curve joined_West = Curve.JoinCurves(new Curve[2] { verticalCellBoundary_West, verticalCellBoundary_West1 })[0];
+                                joined_West = joined_West.Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+
+                                Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3];
+                                Curve verticalCellBoundary_East1 = verticalCellBoundary.Branch(j + 1)[4 * i + 3];
+                                Curve joined_East = Curve.JoinCurves(new Curve[2] { verticalCellBoundary_East, verticalCellBoundary_East1 })[0];
+                                joined_East = joined_East.Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+
+                                TrilinearCell trilinearCell = new TrilinearCell(southLine, middleLine, northLine, westLine, westLine1, eastLine, eastLine1,
+                                                                            horizontalCellBoundary_South,
+                                                                            horizontalCellBoundary_North,
+                                                                            joined_West,
+                                                                            joined_East,
+                                                                            //verticalCellBoundary_West1,
+                                                                            //verticalCellBoundary_East1,
+                                                                            i, j);
                                 cellLoL[i].Add(trilinearCell);
                             }
 
@@ -2582,7 +2986,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                      //out List<Curve> hCurves,
                                                      //out List<Curve> vCurves)
                                                      out DataTree<Curve> cuttedHorizontalCenterLines,
-                                                     out DataTree<Curve> cuttedVerticalCenterLines)
+                                                     out DataTree<Curve> cuttedVerticalCenterLines,
+
+                                                     out DataTree<Curve> horizontalCellBoundary,
+                                                     out DataTree<Curve> verticalCellBoundary)
         {
             // 从确定南侧基线开始处理
             // 判断是选择起始点左侧的边还是右侧的边作为排布的基准线
@@ -2597,7 +3004,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             if (!isGenerateables[eastSegmentIndex])
             {
                 eastBoundaryLine = lineForEachEdge[eastSegmentIndex].ToNurbsCurve();
-                eastBoundaryLine = eastBoundaryLine.Offset(Plane.WorldXY, -w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                eastBoundaryLine = eastBoundaryLine.Offset(Plane.WorldXY, -(w+d), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
 
                 BoundingBox box = boundary.GetBoundingBox(Plane.WorldXY);
                 double boxLength = box.Max.X - box.Min.X;
@@ -2616,7 +3023,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             if (!isGenerateables[westSegmentIndex])
             {
                 westBoundaryLine = lineForEachEdge[westSegmentIndex].ToNurbsCurve();
-                westBoundaryLine = westBoundaryLine.Offset(Plane.WorldXY, -w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                westBoundaryLine = westBoundaryLine.Offset(Plane.WorldXY, -(w+d), GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
 
                 BoundingBox box = boundary.GetBoundingBox(Plane.WorldXY);
                 double boxLength = box.Max.X - box.Min.X;
@@ -2867,7 +3274,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         }
                         else
                         {
-                            horizontalCenterLines.Add(northCenterLine);
+                            horizontalCenterLines.Add(northCenterLineDP);
                             HBranchType = HorizontalVolumeBranchType.OnlyOneNorth;
                         }
                     }
@@ -3700,7 +4107,55 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             cuttedVerticalCenterLines = UtilityFunctions.FlipMatrix<Curve>(cuttedVerticalCenterLines);
 
             #endregion
+            #endregion
 
+            #region 得到水平方向上centerLines偏移后的，成对的horizontalCellBoundary
+            horizontalCellBoundary = new DataTree<Curve>();
+            for (int i = 0; i < cuttedHorizontalCenterLines.BranchCount; i++)
+            {
+                horizontalCellBoundary.EnsurePath(i);
+                for (int j = 0; j < cuttedHorizontalCenterLines.Branch(i).Count; j++)
+                {
+                    if (cuttedHorizontalCenterLines.Branch(i)[j] != null)
+                    {
+                        Curve crv0 = cuttedHorizontalCenterLines.Branch(i)[j].Offset(Plane.WorldXY, 0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                        horizontalCellBoundary.Branch(i).Add(crv0);
+                    }
+                    if (cuttedHorizontalCenterLines.Branch(i)[j] != null)
+                    {
+                        Curve crv1 = cuttedHorizontalCenterLines.Branch(i)[j].Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                        horizontalCellBoundary.Branch(i).Add(crv1);
+                    }
+
+                    //crv0 = crv0.Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                    //crv1 = crv1.Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                }
+            }
+            #endregion
+
+            #region 得到垂直方向上centerLines偏移后的，成对的VerticalCellBoundary
+            verticalCellBoundary = new DataTree<Curve>();
+            for (int i = 0; i < cuttedVerticalCenterLines.BranchCount; i++)
+            {
+                verticalCellBoundary.EnsurePath(i);
+                for (int j = 0; j < cuttedVerticalCenterLines.Branch(i).Count; j++)
+                {
+                    if (cuttedVerticalCenterLines.Branch(i)[j] != null)
+                    {
+                        Curve crv0 = cuttedVerticalCenterLines.Branch(i)[j].Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                        verticalCellBoundary.Branch(i).Add(crv0);
+                    }
+                    if (cuttedVerticalCenterLines.Branch(i)[j] !=null)
+                    {
+                        Curve crv1 = cuttedVerticalCenterLines.Branch(i)[j].Offset(Plane.WorldXY, 0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                        verticalCellBoundary.Branch(i).Add(crv1);
+                    }
+                    
+
+                    //crv0 = crv0.Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                    //crv1 = crv1.Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                }
+            }
             #endregion
 
 
@@ -3718,34 +4173,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
 
             // 输出
-            //DataTree<Curve> centerCurves = new DataTree<Curve>();
-            //int path = 0;
-            //int iter0 = 0;
-            //int iter1 = 0;
-            //while (iter0 != cuttedHorizontalCenterLines.BranchCount && iter1 != cuttedVerticalCenterLines.BranchCount)
-            //{
-            //    centerCurves.EnsurePath(path);
-            //    if (path % 2 == 0)
-            //    {
-            //        if (iter0 < cuttedHorizontalCenterLines.BranchCount)
-            //        {
-            //            centerCurves.Branch(path).AddRange(cuttedHorizontalCenterLines.Branch(iter0));
-            //            iter0++;
-            //        }
-                    
-            //    }
-            //    else
-            //    {
-            //        if(iter1 < cuttedVerticalCenterLines.BranchCount)
-            //        {
-            //            centerCurves.Branch(path).AddRange(cuttedVerticalCenterLines.Branch(iter1));
-            //            iter1++;
-            //        }
-            //    }
-
-            //    path++;
-            //}
-
             if (cuttedHorizontalCenterLines.DataCount == 0)
             {
                 if (isSmallerBlock)
@@ -3798,7 +4225,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             //List<Polyline> outContourLoL;
             //List<Polyline> outHolesLoL;
             //Polyline3D.Offset(polylines, openType, closedType, pln, tolerance, new List<double> { 0.5 * w }, 2, 0.25, out outContourLoL, out outHolesLoL);
-            Polyline3D.Offset(polylines, Polyline3D.OpenFilletType.Square, Polyline3D.ClosedFilletType.Miter, 0.5 * w, pln, tolerance, out outContour, out outHoles);
+            Polyline3D.Offset(polylines, Polyline3D.OpenFilletType.Butt, Polyline3D.ClosedFilletType.Miter, 0.5 * w, pln, tolerance, out outContour, out outHoles);
 
             //outContour = outContourLoL.First();
             //outHoles = outHolesLoL.First();
@@ -3851,9 +4278,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 newCurrent = current.Extend(CurveEnd.Both, boxLength, CurveExtensionStyle.Line);
                 new1 = offset1.Extend(CurveEnd.Both, boxLength, CurveExtensionStyle.Line);
                 newCurrent.Domain = new Interval(0, 1);
-
-
             }
+            
 
             CurveIntersections curveIntersections0 = Intersection.CurveCurve(new0, boundary, tolerance, tolerance);
             CurveIntersections curveIntersections1 = Intersection.CurveCurve(new1, boundary, tolerance, tolerance);
@@ -3958,6 +4384,459 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
             return trimedCurve;
         }
+
+        private Curve TrimBothEnd(Curve boundary, Curve needToTrim, int type,double w)
+        {
+            double tolerance = GH_Component.DocumentTolerance();
+
+            bool isOnlyOneSegment = false;
+            Point3d pointOnStart = Point3d.Unset;
+            Point3d pointOnEnd = Point3d.Unset;
+            Curve[] segments;
+            if (needToTrim.SpanCount > 1)
+            {
+                segments = needToTrim.DuplicateSegments();
+                isOnlyOneSegment = false;
+            }
+            else
+            {
+                segments = new Curve[1] { needToTrim };
+                isOnlyOneSegment = true;
+            }
+
+            Curve new0;
+            Curve new1;
+            Curve newCurrent;
+            Curve trimedSegment;
+
+            CurveIntersections curveIntersections0;
+            CurveIntersections curveIntersections1;
+
+            #region 对于start点
+            if (type == 0 || type == 2)
+            {
+                Vector3d vec = needToTrim.TangentAtStart;
+                Vector3d verticalVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+
+                Plane localCooridinate = new Plane(new Point3d(0, 0, 0), vec, verticalVec);
+                Plane transformedCoordinate = Plane.WorldXY;
+                Transform transform = Transform.PlaneToPlane(transformedCoordinate, localCooridinate);
+
+                Curve current = segments.First();
+                //Curve trimedCurve;
+
+                Curve offset0 = current.Offset(Plane.WorldXY, -w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
+                Curve offset1 = current.Offset(Plane.WorldXY, w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
+
+                new0 = offset0.Extend(CurveEnd.Start, w, CurveExtensionStyle.Line);
+                newCurrent = current.Extend(CurveEnd.Start, w, CurveExtensionStyle.Line);
+                new1 = offset1.Extend(CurveEnd.Start, w, CurveExtensionStyle.Line);
+                new0.Domain = new Interval(0, 1);
+                newCurrent.Domain = new Interval(0, 1);
+                new1.Domain = new Interval(0, 1);
+
+                curveIntersections0 = Intersection.CurveCurve(new0, boundary, tolerance, tolerance);
+                curveIntersections1 = Intersection.CurveCurve(new1, boundary, tolerance, tolerance);
+
+                IntersectionEvent event0;
+                IntersectionEvent event1;
+                if (curveIntersections0.Count > 1)
+                {
+                    int minIndex = 0;
+                    double min = 1;
+
+                    for (int i = 0; i < curveIntersections0.Count; i++)
+                    {
+                        double pA = curveIntersections0[i].ParameterA;
+                        double delta = pA - 0;
+                        if (delta < 0)
+                        {
+                            continue;
+                        }
+                        if (delta < min)
+                        {
+                            min = delta;
+                            minIndex = i;
+                        }
+                    }
+
+                    event0 = curveIntersections0[minIndex];
+                }
+                else if (curveIntersections0.Count == 1)
+                {
+                    event0 = curveIntersections0[0];
+                }
+                else
+                {
+                    event0 = null;
+                }
+
+                if (curveIntersections1.Count > 1)
+                {
+                    int minIndex = 0;
+                    double min = 0.0;
+
+                    for (int i = 0; i < curveIntersections1.Count; i++)
+                    {
+                        double pA = curveIntersections1[i].ParameterA;
+                        double delta = pA - 0;
+                        if (delta < 0)
+                        {
+                            continue;
+                        }
+                        if (delta < min)
+                        {
+                            min = delta;
+                            minIndex = i;
+                        }
+                    }
+
+                    event1 = curveIntersections1[minIndex];
+                }
+                else if (curveIntersections1.Count == 1)
+                {
+                    event1 = curveIntersections1[0];
+                }
+                else
+                {
+                    event1 = null;
+                }
+
+
+                Point3d point00;
+                //Point3d point01;
+                Point3d point10;
+                //Point3d point11;
+                if (curveIntersections0.Count == 0 && curveIntersections1.Count == 0)
+                {
+                    // 即没有与边界相交
+                    // segments[first]跟原来一样，没变
+                    point00 = new0.PointAtStart;
+                    point10 = new1.PointAtStart;
+                }
+                else if ((curveIntersections0.Count == 1 && curveIntersections1.Count == 0) || (curveIntersections0.Count == 0 && curveIntersections1.Count == 1))
+                {
+                    // 即两条线中有一条与边界相交
+                    if (curveIntersections0.Count == 1 && curveIntersections1.Count == 0)
+                    {
+                        if (!event0.IsOverlap)
+                        {
+                           // new0相交，并且不贴边
+                            point00 = event0.PointA;
+                            point10 = new1.PointAtStart;
+                        }
+                        else
+                        {
+                            // new0相交，并且贴边
+                            point00 = event0.PointA;
+                            point10 = new1.PointAtStart;
+                        }
+                    }
+                    else
+                    {
+                        if (!event1.IsOverlap)
+                        {
+                            // new1相交，并且不贴边
+                            point00 = new0.PointAtStart;
+                            point10 = event1.PointA;
+                        }
+                        else
+                        {
+                            // new1相交，并且贴边
+                            point00 = new0.PointAtStart;
+                            point10 = event1.PointA;
+                        }
+                    }
+                }
+                else
+                {
+                    // 即两条线都与边界相交
+                    if (!event0.IsOverlap && !event1.IsOverlap)
+                    {
+                        // 即不贴边的状态
+                        point00 = event0.PointA;
+                        point10 = event1.PointA;
+                    }
+                    else
+                    {
+                        // 注意不存在同时贴边的情况
+                        if (event0.IsOverlap)
+                        {
+                            // new0贴边
+                            point00 = event0.PointA;
+                            point10 = event1.PointA;
+                        }
+                        else
+                        {
+                            // new1贴边
+                            point00 = event0.PointA;
+                            point10 = event1.PointA;
+                        }
+                    }
+                }
+
+                Point3d point00Transformed = new Point3d(point00);
+                Point3d point10Transformed = new Point3d(point10);
+                point00Transformed.Transform(transform);
+                point10Transformed.Transform(transform);
+
+                Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                lineTransformed.Transform(transform);
+
+                // 投影后，求t值，并比较
+                double t00 = lineTransformed.ClosestParameter(point00Transformed);
+                double t10 = lineTransformed.ClosestParameter(point10Transformed);
+
+                double tStart;
+                
+                if (t00 >= t10)
+                {
+                    //newCurrent.ClosestPoint(point00, out tStart);
+                    tStart = t00;
+                }
+                else
+                {
+                    //newCurrent.ClosestPoint(point10, out tStart);
+                    tStart = t10;
+                }
+
+                Interval interval = new Interval(tStart, 1);
+                trimedSegment = newCurrent.Trim(interval);
+
+                segments[0] = trimedSegment;
+
+                if (isOnlyOneSegment)
+                {
+                    pointOnStart = trimedSegment.PointAtStart;
+                }
+            }
+
+            #endregion
+
+            #region 对于end点
+            if (type == 0 || type == 1)
+            {
+                Vector3d vec = needToTrim.TangentAtEnd;
+                Vector3d verticalVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+
+                Plane localCooridinate = new Plane(new Point3d(0, 0, 0), vec, verticalVec);
+                Plane transformedCoordinate = Plane.WorldXY;
+                Transform transform = Transform.PlaneToPlane(transformedCoordinate, localCooridinate);
+
+                Curve current;
+                if (!isOnlyOneSegment)
+                {
+                    current = segments.Last();
+                }
+                else
+                {
+                    current = needToTrim;
+                }
+
+
+                Curve offset0 = current.Offset(Plane.WorldXY, -w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
+                Curve offset1 = current.Offset(Plane.WorldXY, w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
+
+                new0 = offset0.Extend(CurveEnd.End, w, CurveExtensionStyle.Line);
+                newCurrent = current.Extend(CurveEnd.End, w, CurveExtensionStyle.Line);
+                new1 = offset1.Extend(CurveEnd.End, w, CurveExtensionStyle.Line);
+                new0.Domain = new Interval(0, 1);
+                newCurrent.Domain = new Interval(0, 1);
+                new1.Domain = new Interval(0, 1);
+
+                curveIntersections0 = Intersection.CurveCurve(new0, boundary, tolerance, tolerance);
+                curveIntersections1 = Intersection.CurveCurve(new1, boundary, tolerance, tolerance);
+
+                IntersectionEvent event0;
+                IntersectionEvent event1;
+                if (curveIntersections0.Count > 1)
+                {
+                    int minIndex = 0;
+                    double min = 0.0;
+                    
+                    for (int i = 0; i < curveIntersections0.Count; i++)
+                    {
+                        double pA = curveIntersections0[i].ParameterA;
+                        double delta = 1 - pA;
+                        if (delta < 0)
+                        {
+                            continue;
+                        }
+                        if (delta < min)
+                        {
+                            min = delta;
+                            minIndex = i;
+                        }
+                    }
+
+                    event0 = curveIntersections0[minIndex];
+                }
+                else if (curveIntersections0.Count == 1)
+                {
+                    event0 = curveIntersections0[0];
+                }
+                else
+                {
+                    event0 = null;
+                }
+
+                if (curveIntersections1.Count > 1)
+                {
+                    int minIndex = 0;
+                    double min = 1;
+
+                    for (int i = 0; i < curveIntersections1.Count; i++)
+                    {
+                        double pA = curveIntersections1[i].ParameterA;
+                        double delta = 1 - pA;
+                        if (delta < 0)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+
+                        }
+                        if (delta < min)
+                        {
+                            min = delta;
+                            minIndex = i;
+                        }
+                    }
+
+                    event1 = curveIntersections1[minIndex];
+                }
+                else if (curveIntersections1.Count == 1)
+                {
+                    event1 = curveIntersections1[0];
+                }
+                else
+                {
+                    event1 = null;
+                }
+
+
+                Point3d point01;
+                Point3d point11;
+
+                if (curveIntersections0.Count == 0 && curveIntersections1.Count == 0)
+                {
+                    // 即没有与边界相交
+                    // segments[last]跟原来一样，没变
+                    point01 = new0.PointAtEnd;
+                    point11 = new1.PointAtEnd;
+                }
+                else if ((curveIntersections0.Count == 1 && curveIntersections1.Count == 0) || (curveIntersections0.Count == 0 && curveIntersections1.Count == 1))
+                {
+                    // 即两条线中有一条与边界相交
+                    if (curveIntersections0.Count == 1 && curveIntersections1.Count == 0)
+                    {
+                        if (!event0.IsOverlap)
+                        {
+                            // new0相交，并且不贴边
+                            point01 = event0.PointA2;
+                            point11 = new1.PointAtEnd;
+                        }
+                        else
+                        {
+                            // new0相交，并且贴边
+                            point01 = event0.PointA;
+                            point11 = new1.PointAtEnd;
+                        }
+                    }
+                    else
+                    {
+                        if (!event1.IsOverlap)
+                        {
+                            // new1相交，并且不贴边
+                            point01 = new0.PointAtEnd;
+                            point11 = event1.PointA2;
+                        }
+                        else
+                        {
+                            // new1相交，并且贴边
+                            point01 = new0.PointAtEnd;
+                            point11 = curveIntersections1[0].PointA;
+                        }
+                    }
+                }
+                else
+                {
+                    // 即两条线都与边界相交
+                    if (!event0.IsOverlap && !event1.IsOverlap)
+                    {
+                        // 即不贴边的状态
+                        point01 = event0.PointA;
+                        point11 = event1.PointA;
+                    }
+                    else
+                    {
+                        // 注意不存在同时贴边的情况
+                        if (event0.IsOverlap)
+                        {
+                            // new0贴边
+                            point01 = event0.PointA2;
+                            point11 = event1.PointA;
+
+                        }
+                        else
+                        {
+                            // new1贴边
+                            point01 = event0.PointA;
+                            point11 = event1.PointA2;
+                        }
+                    }
+                }
+
+                Point3d point01Transformed = new Point3d(point01);
+                Point3d point11Transformed = new Point3d(point11);
+
+                point01Transformed.Transform(transform);
+                point11Transformed.Transform(transform);
+
+                Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                lineTransformed.Transform(transform);
+
+                double t01 = lineTransformed.ClosestParameter(point01Transformed);
+                double t11 = lineTransformed.ClosestParameter(point11Transformed);
+
+                double tEnd;
+                if (t01 <= t11)
+                {
+                    //newCurrent.ClosestPoint(point01, out tEnd);
+                    tEnd = t01;
+                }
+                else
+                {
+                    //newCurrent.ClosestPoint(point11, out tEnd);
+                    tEnd = t11;
+                }
+
+                Interval interval = new Interval(0, tEnd);
+                trimedSegment = newCurrent.Trim(interval);
+                segments[segments.Length - 1] = trimedSegment;
+
+                if (isOnlyOneSegment)
+                {
+                    pointOnEnd = trimedSegment.PointAtEnd;
+                }
+            }
+            #endregion
+
+            if (isOnlyOneSegment)
+            {
+                segments[0] = new Line(pointOnStart, pointOnEnd).ToNurbsCurve();
+
+                return segments[0];
+            }
+            else
+            {
+                Curve[] crvs = Curve.JoinCurves(segments);
+
+                return crvs[0];
+            }
+        }
+
 
         private Curve TrimByBoundaryWithCurve(Curve crv, Curve boundary)
         {
@@ -4540,45 +5419,58 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
 
             // Temp
-            for (int i = 0; i < SCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
-            }
-            for (int i = 0; i < NCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
-            }
-            for (int i = 0; i < ECrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
-            }
-            for (int i = 0; i < WCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(WCrvForShowList[i], Color.Yellow, 2);
-            }
+            //for (int i = 0; i < SCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
+            //}
+            //for (int i = 0; i < NCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
+            //}
+            //for (int i = 0; i < ECrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
+            //}
+            //for (int i = 0; i < WCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(WCrvForShowList[i], Color.Yellow, 2);
+            //}
             for (int i = 0; i < GapCenterLineList.Count; i++)
             {
                 args.Display.DrawCurve(GapCenterLineList[i], Color.Black, 3);
             }
 
-            for (int i = 0; i < SBCrvForShowList.Count; i++)
+            //for (int i = 0; i < SBCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(SBCrvForShowList[i], Color.Red, 2);
+            //}
+            //for (int i = 0; i < NBCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(NBCrvForShowList[i], Color.Green, 2);
+            //}
+            //for (int i = 0; i < EBCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(EBCrvForShowList[i], Color.Blue, 2);
+            //}
+            //for (int i = 0; i < WBCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(WBCrvForShowList[i], Color.Yellow, 2);
+            //}
+
+            for (int i = 0; i < AllBlockCellBoundaryDT.BranchCount; i++)
             {
-                args.Display.DrawCurve(SBCrvForShowList[i], Color.Red, 2);
+                for (int j = 0; j < AllBlockCellBoundaryDT.Branch(i).Count; j++)
+                {
+                    args.Display.DrawCurve(AllBlockCellBoundaryDT.Branch(i)[j], Color.DeepPink, 4);
+                }
             }
-            for (int i = 0; i < NBCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(NBCrvForShowList[i], Color.Green, 2);
-            }
-            for (int i = 0; i < EBCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(EBCrvForShowList[i], Color.Blue, 2);
-            }
-            for (int i = 0; i < WBCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(WBCrvForShowList[i], Color.Yellow, 2);
-            }
-            //args.Display.DrawCurve(New0, Color.DarkBlue, 4);
-            //args.Display.DrawCurve(New1, Color.DarkMagenta, 4);
+            //for (int i = 0; i < AllBlockCellBoundaryDT2.BranchCount; i++)
+            //{
+            //    for (int j = 0; j < AllBlockCellBoundaryDT2.Branch(i).Count; j++)
+            //    {
+            //        args.Display.DrawCurve(AllBlockCellBoundaryDT2.Branch(i)[j], Color.DeepSkyBlue, 4);
+            //    }
+            //}
         }
 
         public override void DrawViewportWires(IGH_PreviewArgs args)
@@ -4596,45 +5488,59 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
 
             // Temp
-            for (int i = 0; i < SCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
-            }
-            for (int i = 0; i < NCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
-            }
-            for (int i = 0; i < ECrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
-            }
-            for (int i = 0; i < WCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(WCrvForShowList[i], Color.Yellow, 2);
-            }
+            //for (int i = 0; i < SCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
+            //}
+            //for (int i = 0; i < NCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
+            //}
+            //for (int i = 0; i < ECrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
+            //}
+            //for (int i = 0; i < WCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(WCrvForShowList[i], Color.Yellow, 2);
+            //}
             for (int i = 0; i < GapCenterLineList.Count; i++)
             {
                 args.Display.DrawCurve(GapCenterLineList[i], Color.Black, 3);
             }
 
-            for (int i = 0; i < SBCrvForShowList.Count; i++)
+            //for (int i = 0; i < SBCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(SBCrvForShowList[i], Color.Red, 2);
+            //}
+            //for (int i = 0; i < NBCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(NBCrvForShowList[i], Color.Green, 2);
+            //}
+            //for (int i = 0; i < EBCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(EBCrvForShowList[i], Color.Blue, 2);
+            //}
+            //for (int i = 0; i < WBCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(WBCrvForShowList[i], Color.Yellow, 2);
+            //}
+
+            for (int i = 0; i < AllBlockCellBoundaryDT.BranchCount; i++)
             {
-                args.Display.DrawCurve(SBCrvForShowList[i], Color.Red, 2);
+                for (int j = 0; j < AllBlockCellBoundaryDT.Branch(i).Count; j++)
+                {
+                    args.Display.DrawCurve(AllBlockCellBoundaryDT.Branch(i)[j], Color.DeepPink, 4);
+                }
             }
-            for (int i = 0; i < NBCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(NBCrvForShowList[i], Color.Green, 2);
-            }
-            for (int i = 0; i < EBCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(EBCrvForShowList[i], Color.Blue, 2);
-            }
-            for (int i = 0; i < WBCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(WBCrvForShowList[i], Color.Yellow, 2);
-            }
-            //args.Display.DrawCurve(New0, Color.DarkBlue, 4);
-            //args.Display.DrawCurve(New1, Color.DarkMagenta, 4);
+
+            //for (int i = 0; i < AllBlockCellBoundaryDT2.BranchCount; i++)
+            //{
+            //    for (int j = 0; j < AllBlockCellBoundaryDT2.Branch(i).Count; j++)
+            //    {
+            //        args.Display.DrawCurve(AllBlockCellBoundaryDT2.Branch(i)[j], Color.DeepSkyBlue, 4);
+            //    }
+            //}
         }
 
         /// <summary>

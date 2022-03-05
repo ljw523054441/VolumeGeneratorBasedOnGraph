@@ -1,6 +1,7 @@
 ﻿using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
+using Rhino.Geometry.Intersect;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -58,9 +59,23 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         List<List<bool>> KeyPointTypeLoL { get; set; }
 
-        public TrilinearCell(Curve southLine, Curve middleLine, Curve northLine,
-                             Curve westLine, Curve westLine1, Curve eastLine,
-                             Curve eastLine1, double w, double tolerance, int i, int j)
+        public TrilinearCell(Curve southLine, 
+                             Curve middleLine, 
+                             Curve northLine,
+                             Curve westLine, 
+                             Curve westLine1, 
+                             Curve eastLine,
+                             Curve eastLine1,
+
+                             Curve southBoundary,
+                             Curve northBoundary,
+                             Curve westBoundary,
+                             Curve eastBoundary,
+                             //Curve west1Boundary,
+                             //Curve east1Boundary,
+
+                             int i, 
+                             int j)
         {
             #region index
             this.CurrentIndex = new int[2] { i, j };
@@ -114,16 +129,49 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CenterBaseLineCount = 0;
 
             #region CellBoundary
-            List<Curve> allBoundaryLines = new List<Curve>();
-            allBoundaryLines.Add(southLine);
-            allBoundaryLines.Add(eastLine);
-            allBoundaryLines.Add(eastLine1);
-            allBoundaryLines.Add(northLine);
-            allBoundaryLines.Add(westLine1);
-            allBoundaryLines.Add(westLine);
+            List<Curve> extendedBoundaryList = new List<Curve>();
+            extendedBoundaryList.Add(southBoundary);
+            extendedBoundaryList.Add(eastBoundary);
+            //extendedBoundaryList.Add(east1Boundary);
+            extendedBoundaryList.Add(northBoundary);
+            //extendedBoundaryList.Add(west1Boundary);
+            extendedBoundaryList.Add(westBoundary);
 
-            Curve joinedCurve = Curve.JoinCurves(allBoundaryLines)[0];
-            this.CellBoundary = joinedCurve.Offset(Plane.WorldXY, -w, tolerance, CurveOffsetCornerStyle.Sharp)[0];
+            List<Curve> boundaryList = new List<Curve>();
+            for (int k = 0; k < extendedBoundaryList.Count; k++)
+            {
+                CurveIntersections intersectionEvents0 = Intersection.CurveCurve(extendedBoundaryList[k], extendedBoundaryList[((k - 1) + extendedBoundaryList.Count) % extendedBoundaryList.Count], Cell.Tolerance, Cell.Tolerance);
+                CurveIntersections intersectionEvents1 = Intersection.CurveCurve(extendedBoundaryList[k], extendedBoundaryList[(k + 1) % extendedBoundaryList.Count], Cell.Tolerance, Cell.Tolerance);
+
+                Point3d p0;
+                Point3d p1;
+                if (intersectionEvents0[0].IsOverlap)
+                {
+                    Point3d a0 = intersectionEvents0[0].PointA;
+                    Point3d a1 = intersectionEvents0[0].PointA2;
+                    p0 = (a0 + a1) / 2;
+                }
+                else
+                {
+                    p0 = intersectionEvents0[0].PointA;
+                }
+
+                if (intersectionEvents1[0].IsOverlap)
+                {
+                    Point3d a0 = intersectionEvents1[0].PointA;
+                    Point3d a1 = intersectionEvents1[0].PointA2;
+                    p1 = (a0 + a1) / 2;
+                }
+                else
+                {
+                    p1 = intersectionEvents1[0].PointA;
+                }
+
+                boundaryList.Add(new Line(p0, p1).ToNurbsCurve());
+            }
+
+            Curve[] joinedCrv = Curve.JoinCurves(boundaryList);
+            this.CellBoundary = joinedCrv[0];
             #endregion
         }
 

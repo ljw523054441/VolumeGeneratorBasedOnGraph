@@ -9,8 +9,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 {
     public class Cell
     {
-        public static double MinT { get; set; }
-        public static double MaxT { get; set; }
+        public static double Tolerance { get; set; }
 
         public Line SouthBaseLine { get; set; } = Line.Unset;
         public Line NorthBaseLine { get; set; } = Line.Unset;
@@ -33,7 +32,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public int[] NexEastIndex { get; set; }
         public int[] NexNorthIndex { get; set; }
 
-        
+        public Curve CellBoundary { get; set; }
 
         /// <summary>
         /// 构造空的Cell对象
