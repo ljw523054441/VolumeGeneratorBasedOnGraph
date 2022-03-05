@@ -1626,8 +1626,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
                 else
                 {
-                    Curve[] segment = singleRegion.DuplicateSegments();
-                    Curve[] crvs = new Curve[2];
+                    Curve[] crvs = singleRegion.DuplicateSegments();
+                    //Curve[] crvs = new Curve[2];
+                    Curve[] result = new Curve[1];
 
                     BilinearCell bCell;
                     int index = isGenerateables.IndexOf(false);
@@ -1656,12 +1657,12 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         }
 
                         // nextCrv需要在末端进行裁切
-                        Vector3d vec = nextCrv.TangentAtStart;
-                        Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
-                        Curve newNextCrv = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(),nextCrv, 2, w);
+                        Vector3d vec = crvs[1].TangentAtStart;
+                        //Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+                        result[0] = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(),singleRegion, 1, w);
 
-                        crvs[0] = crv;
-                        crvs[1] = newNextCrv;
+                        //crvs[0] = crv;
+                        //crvs[1] = newNextCrv;
                     }
                     else
                     {
@@ -1686,16 +1687,16 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, prevCrv, crv, null, 0, 0);
                         }
 
-                        // prevCrv需要在末端进行裁切
-                        Vector3d vec = prevCrv.TangentAtStart;
-                        Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
-                        Curve newPrevCrv = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(), prevCrv, 1, w);
+                        // prevCrv需要在起始端进行裁切
+                        Vector3d vec = crvs[0].TangentAtStart;
+                        //Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+                        result[0] = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(), singleRegion, 2, w);
 
-                        crvs[0] = newPrevCrv;
-                        crvs[1] = crv;
+                        // crvs[0] = newPrevCrv;
+                        // crvs[1] = crv;
                     }
 
-                    crvs = Curve.JoinCurves(crvs);
+                    //crvs = Curve.JoinCurves(crvs);
 
 
                     cellLoL = new List<List<Cell>>();
@@ -1713,7 +1714,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     //Curve[] crvs = new Curve[1] { singleRegion };
                     List<Polyline> outContours;
                     List<Polyline> outHoles;
-                    GenerateBuilding(crvs, w, out outContours, out outHoles);
+                    GenerateBuilding(result, w, out outContours, out outHoles);
 
 
                     contourLoL.Add(new List<List<Polyline>>());
@@ -1868,13 +1869,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     eastLine = vCurvesDT.Branch(j)[2 * i + 1];
                                 }
 
-                                Curve southLine = new Line(westLine.PointAtStart, eastLine.PointAtStart).ToNurbsCurve();
-                                Curve northLine = new Line(westLine.PointAtEnd, eastLine.PointAtEnd).ToNurbsCurve();
-                                Curve horizontalCellBoundary_South = southLine.Offset(Plane.WorldXY, 0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
-                                Curve horizontalCellBoundary_North = northLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                //Curve southLine = new Line(westLine.PointAtStart, eastLine.PointAtStart).ToNurbsCurve();
+                                //Curve northLine = new Line(westLine.PointAtEnd, eastLine.PointAtEnd).ToNurbsCurve();
+                                Curve horizontalCellBoundary_South = lineForEachEdge[0].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                Curve horizontalCellBoundary_North = lineForEachEdge[2].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
-                                Curve verticalCellBoundary_West = verticalCellBoundary.Branch(0)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
-                                Curve verticalCellBoundary_East = verticalCellBoundary.Branch(0)[1].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                Curve verticalCellBoundary_West = verticalCellBoundary.Branch(0)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                Curve verticalCellBoundary_East = verticalCellBoundary.Branch(0)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
                                 BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
                                 cellLoL[i].Add(bilinearCell);
@@ -1910,8 +1911,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 Curve horizontalCellBoundary_North;
                                 if (flag)
                                 {
-                                    northLine = new Line(westLine.PointAtEnd, eastLine.PointAtEnd).ToNurbsCurve();
-                                    horizontalCellBoundary_North = northLine.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    //northLine = new Line(westLine.PointAtEnd, eastLine.PointAtEnd).ToNurbsCurve();
+                                    horizontalCellBoundary_North = lineForEachEdge[2].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
                                 }
                                 else
                                 {
@@ -2123,7 +2124,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                                     Curve horizontalCellBoundary_South = lineForEachEdge[0].ToNurbsCurve().Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
-                                    Curve horizontalCellBoundary_North = horizontalCellBoundary.Branch(i)[2 * j].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
+                                    Curve horizontalCellBoundary_North = horizontalCellBoundary.Branch(i)[2 * j + 1].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
                                     Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
                                     Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
