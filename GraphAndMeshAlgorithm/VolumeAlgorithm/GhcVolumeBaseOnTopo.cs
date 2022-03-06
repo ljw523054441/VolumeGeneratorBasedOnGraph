@@ -543,6 +543,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 DataTree<Curve> allBlockCellBoundaryDT = new DataTree<Curve>();
                 //DataTree<Curve> allBlockCellBoundaryDT2 = new DataTree<Curve>();
 
+
+                DataTree<Cell> allBlockCellDT = new DataTree<Cell>();
+
+
+                List<bool> isBlockSplitedList = new List<bool>();
                 for (int i = 0; i < newAllFaceBS.Count; i++)
                 {
                     #region 向path中添加第一层大Block层级的序号
@@ -554,6 +559,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                     GH_Path ghPathForCellBoundary = new GH_Path(i);
                     //GH_Path ghPathForCellBoundary2 = new GH_Path(i);
+                    GH_Path ghPathForCell = new GH_Path(i);
                     #endregion
 
                     bool isHorizontalLayout;
@@ -571,6 +577,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     //List<Curve> gap = new List<Curve>();
                     if (sortedBoundaryPolyline.Count == 5)
                     {
+                        isBlockSplitedList.Add(false);
+                        
                         #region 向path中添加第二层小Block层级的序号
                         ghPathForBrep = ghPathForBrep.AppendElement(0);
                         ghPathForHCurve = ghPathForHCurve.AppendElement(0);
@@ -580,6 +588,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                         ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(0);
                         //ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(0);
+                        ghPathForCell = ghPathForCell.AppendElement(0);
+
                         #endregion
 
                         #region isGenerateables控制
@@ -610,7 +620,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         //DataTree<Curve> horizontalCellBoundary;
                         //DataTree<Curve> verticalCellBoundary;
 
-                        List<List<List<Brep>>> brepLoL = GenerateVolumeBaseLine(w, 
+                        List<List<Cell>> cellLoL = GenerateVolumeBaseLine(w, 
                                                                                 W, 
                                                                                 lMin, 
                                                                                 lMax, 
@@ -663,20 +673,29 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         //allBlockBrepDT.EnsurePath(ghPathForBrep);
                         //allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL);
 
-                        for (int j = 0; j < brepLoL.Count; j++)
+                        for (int j = 0; j < cellLoL.Count; j++)
                         {
-                            ghPathForBrep = ghPathForBrep.AppendElement(j);
-                            for (int k = 0; k < brepLoL[j].Count; k++)
-                            {
-                                ghPathForBrep = ghPathForBrep.AppendElement(k);
-
-                                allBlockBrepDT.EnsurePath(ghPathForBrep);
-                                allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL[j][k]);
-
-                                ghPathForBrep = ghPathForBrep.CullElement();
-                            }
-                            ghPathForBrep = ghPathForBrep.CullElement();
+                            ghPathForCell = ghPathForCell.AppendElement(j);
+                            allBlockCellDT.EnsurePath(ghPathForCell);
+                            allBlockCellDT.Branch(ghPathForCell).AddRange(cellLoL[j]);
+                            ghPathForCell = ghPathForCell.CullElement();
                         }
+
+
+                        //for (int j = 0; j < brepLoL.Count; j++)
+                        //{
+                        //    ghPathForBrep = ghPathForBrep.AppendElement(j);
+                        //    for (int k = 0; k < brepLoL[j].Count; k++)
+                        //    {
+                        //        
+
+                        //        allBlockBrepDT.EnsurePath(ghPathForBrep);
+                        //        allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL[j][k]);
+
+                        //        ghPathForBrep = ghPathForBrep.CullElement();
+                        //    }
+                        //    ghPathForBrep = ghPathForBrep.CullElement();
+                        //}
 
                         for (int j = 0; j < hCurveLoL.Count; j++)
                         {
@@ -793,10 +812,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                         ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
                         //ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
+                        ghPathForCell = ghPathForCell.CullElement();
                         #endregion
                     }
                     else
                     {
+                        isBlockSplitedList.Add(true);
+
                         List<List<Line>> newLineforEachEdgeLoL;
                         List<List<bool>> isGenerateablesLoL;
                         List<bool> isSmallerList;
@@ -814,6 +836,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                             ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(0);
                             //ghPathForCellBoundary2 = ghPathForCellBoundary.AppendElement(0);
+                            ghPathForCell = ghPathForCell.AppendElement(0);
                             #endregion
 
                             if (splitedPolylines[j].Count == 5)
@@ -841,7 +864,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 //DataTree<Curve> horizontalCellBoundary;
                                 //DataTree<Curve> verticalCellBoundary;
 
-                                List<List<List<Brep>>> brepLoL = GenerateVolumeBaseLine(w,
+                                List<List<Cell>> cellLoL = GenerateVolumeBaseLine(w,
                                                                              W,
                                                                              lMin,
                                                                              lMax,
@@ -894,19 +917,27 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 //allBlockBrepDT.EnsurePath(ghPathForBrep);
                                 //allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL);
 
-                                for (int k = 0; k < brepLoL.Count; k++)
+                                //for (int k = 0; k < brepLoL.Count; k++)
+                                //{
+                                //    ghPathForBrep = ghPathForBrep.AppendElement(k);
+                                //    for (int l = 0; l < brepLoL[k].Count; l++)
+                                //    {
+                                //        ghPathForBrep = ghPathForBrep.AppendElement(l);
+
+                                //        allBlockBrepDT.EnsurePath(ghPathForBrep);
+                                //        allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL[k][l]);
+
+                                //        ghPathForBrep = ghPathForBrep.CullElement();
+                                //    }
+                                //    ghPathForBrep = ghPathForBrep.CullElement();
+                                //}
+
+                                for (int k = 0; k < cellLoL.Count; k++)
                                 {
-                                    ghPathForBrep = ghPathForBrep.AppendElement(k);
-                                    for (int l = 0; l < brepLoL[k].Count; l++)
-                                    {
-                                        ghPathForBrep = ghPathForBrep.AppendElement(l);
-
-                                        allBlockBrepDT.EnsurePath(ghPathForBrep);
-                                        allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL[k][l]);
-
-                                        ghPathForBrep = ghPathForBrep.CullElement();
-                                    }
-                                    ghPathForBrep = ghPathForBrep.CullElement();
+                                    ghPathForCell = ghPathForCell.AppendElement(k);
+                                    allBlockCellDT.EnsurePath(ghPathForCell);
+                                    allBlockCellDT.Branch(ghPathForCell).AddRange(cellLoL[k]);
+                                    ghPathForCell = ghPathForCell.CullElement();
                                 }
 
                                 for (int k = 0; k < hCurveLoL.Count; k++)
@@ -1028,6 +1059,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                                 allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
                                 //allBlockCellBoundaryDT2.EnsurePath(ghPathForCellBoundary2);
+                                allBlockCellDT.EnsurePath(ghPathForCell);
                                 #endregion
                             }
 
@@ -1040,6 +1072,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                             ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
                             //ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
+                            ghPathForCell = ghPathForCell.CullElement();
                             #endregion
                         }
 
@@ -1049,9 +1082,201 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 AllBlockCellBoundaryDT = allBlockCellBoundaryDT;
                 //AllBlockCellBoundaryDT2 = allBlockCellBoundaryDT2;
 
+
+                #region 对 DataTree<Cell> allBlockCellDT做 Shift Path
+                DataTree<Cell> newAllBlockCellDT = new DataTree<Cell>();
+                int additionalGenerations = 1;
+                for (int i = 0; i < newAllFaceBS.Count; i++)
+                {
+                    GH_Path ancestorPath = new GH_Path(i);
+                    newAllBlockCellDT.EnsurePath(ancestorPath);
+                    for (int j = 0; j < allBlockCellDT.BranchCount; j++)
+                    {
+                        GH_Path currentPath = allBlockCellDT.Path(j);
+                        if (currentPath.IsAncestor(ancestorPath,ref additionalGenerations))
+                        {
+                            newAllBlockCellDT.Branch(ancestorPath).AddRange(allBlockCellDT.Branch(currentPath));
+                        }
+                    }
+                }
+                #endregion
+
+                #region 对于每个branch上的Cell，按照CellBoundary是否相交，来决定是否将这两个Cell的所有H,V线进行join计算
+                for (int i = 0; i < newAllBlockCellDT.BranchCount; i++)
+                {
+                    allBlockBrepDT.EnsurePath(i);
+
+                    List<List<Curve>> hCurveLoL = new List<List<Curve>>();
+                    List<List<Curve>> vCurveLoL = new List<List<Curve>>();
+
+
+                    int index0 = -1;
+                    int index1 = -1;
+                    if (isBlockSplitedList[i])
+                    {
+                        for (int j = 0; j < newAllBlockCellDT.Branch(i).Count; j++)
+                        {
+                            for (int k = 0; k < newAllBlockCellDT.Branch(i).Count; k++)
+                            {
+                                if (j != k)
+                                {
+                                    Curve[] crvs = Curve.CreateBooleanDifference(newAllBlockCellDT.Branch(i)[j].CellBoundary, newAllBlockCellDT.Branch(i)[k].CellBoundary, GH_Component.DocumentTolerance());
+                                    if (crvs != null)
+                                    {
+                                        index0 = j;
+                                        index1 = k;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+
+                    // 正常进行裁切和生成brep
+                    #region 生成building
+                    //List<List<List<Curve>>> curveForJoinLoL = new List<List<List<Curve>>>();
+                    //List<Curve> allCurveForJoin = new List<Curve>();
+                    for (int j = 0; j < newAllBlockCellDT.Branch(i).Count; j++)
+                    {
+                        List<Curve> allCurves = new List<Curve>();
+                        if (newAllBlockCellDT.Branch(i)[j] is BilinearCell)
+                        {
+                            BilinearCell bCell = newAllBlockCellDT.Branch(i)[j] as BilinearCell;
+                            if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                            {
+                                Brep[] brepArray = BoundarySurfaces(bCell.CellBoundary);
+                                if (brepArray != null)
+                                {
+                                    allBlockBrepDT.Branch(i).AddRange(brepArray);
+                                }
+                            }
+                            else
+                            {
+                                List<Curve> hCurves = newAllBlockCellDT.Branch(i)[j].GetAllHorizontal();
+                                List<Curve> vCurves = newAllBlockCellDT.Branch(i)[j].GetAllVertical();
+                                allCurves.AddRange(hCurves);
+                                allCurves.AddRange(vCurves);
+
+                                Curve[] joined = Curve.JoinCurves(allCurves);
+                                //Curve[] trimedJoined = new Curve[joined.Length];
+                                List<Curve> trimedJoined = new List<Curve>();
+                                if (joined != null)
+                                {
+                                    for (int k = 0; k < joined.Length; k++)
+                                    {
+                                        //Vector3d vec = joined[k].TangentAtStart;
+                                        //Vector3d depthVec =  new Vector3d(-vec.Y, vec.X, vec.Z);
+
+                                        if (joined[k] != null)
+                                        {
+                                            if (!joined[k].IsClosed)
+                                            {
+                                                Curve crv = TrimBothEnd(newAllBlockCellDT.Branch(i)[j].CellBoundary, joined[k], 0, w);
+                                                trimedJoined.Add(crv);
+                                            }
+                                            else
+                                            {
+                                                trimedJoined.Add(joined[k]);
+                                            }
+                                        }
+                                    }
+
+                                    List<Polyline> outContours;
+                                    List<Polyline> outHoles;
+                                    GenerateBuilding(trimedJoined.ToArray(), w, out outContours, out outHoles);
+                                    //GenerateBuilding(joined, w, out outContours, out outHoles);
+
+                                    List<Curve> all = new List<Curve>();
+                                    for (int k = 0; k < outContours.Count; k++)
+                                    {
+                                        all.Add(outContours[k].ToPolylineCurve());
+                                    }
+                                    for (int k = 0; k < outHoles.Count; k++)
+                                    {
+                                        all.Add(outHoles[k].ToPolylineCurve());
+                                    }
+
+                                    Brep[] brepArray = BoundarySurfaces(all);
+                                    if (brepArray != null)
+                                    {
+                                        allBlockBrepDT.Branch(i).AddRange(brepArray);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            List<Curve> hCurves = newAllBlockCellDT.Branch(i)[j].GetAllHorizontal();
+                            List<Curve> vCurves = newAllBlockCellDT.Branch(i)[j].GetAllVertical();
+                            allCurves.AddRange(hCurves);
+                            allCurves.AddRange(vCurves);
+
+                            Curve[] joined = Curve.JoinCurves(allCurves);
+                            //Curve[] trimedJoined = new Curve[joined.Length];
+                            List<Curve> trimedJoined = new List<Curve>();
+                            if (joined != null)
+                            {
+                                for (int k = 0; k < joined.Length; k++)
+                                {
+                                    //Vector3d vec = joined[k].TangentAtStart;
+                                    //Vector3d depthVec =  new Vector3d(-vec.Y, vec.X, vec.Z);
+
+                                    if (joined[k] != null)
+                                    {
+                                        if (!joined[k].IsClosed)
+                                        {
+                                            Curve crv = TrimBothEnd(newAllBlockCellDT.Branch(i)[j].CellBoundary, joined[k], 0, w);
+                                            trimedJoined.Add(crv);
+                                        }
+                                        else
+                                        {
+                                            trimedJoined.Add(joined[k]);
+                                        }
+                                    }
+                                }
+
+                                List<Polyline> outContours;
+                                List<Polyline> outHoles;
+                                GenerateBuilding(trimedJoined.ToArray(), w, out outContours, out outHoles);
+                                //GenerateBuilding(joined, w, out outContours, out outHoles);
+
+                                List<Curve> all = new List<Curve>();
+                                for (int k = 0; k < outContours.Count; k++)
+                                {
+                                    all.Add(outContours[k].ToPolylineCurve());
+                                }
+                                for (int k = 0; k < outHoles.Count; k++)
+                                {
+                                    all.Add(outHoles[k].ToPolylineCurve());
+                                }
+
+                                Brep[] brepArray = BoundarySurfaces(all);
+                                if (brepArray != null)
+                                {
+                                    allBlockBrepDT.Branch(i).AddRange(brepArray);
+                                }
+                            }
+                        }
+
+
+
+
+                    }
+
+                    #endregion
+                }
+                #endregion
+
+
+
+
+
+
+
                 //DataTree<Polyline> contourDT = UtilityFunctions.LoLToDataTree<Polyline>(contourLoL);
                 //DataTree<Polyline> holeDT = UtilityFunctions.LoLToDataTree<Polyline>(holeLoL);
-                DA.SetDataTree(3, allBlockContourDT);
+                DA.SetDataTree(3, allBlockCellBoundaryDT);
                 DA.SetDataTree(4, allBlockHoleDT);
 
                 //DataTree<Brep> brepDT = UtilityFunctions.LoLToDataTree<Brep>(brepLoL);
@@ -1383,7 +1608,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return polylines;
         }
 
-        private List<List<List<Brep>>> GenerateVolumeBaseLine(double w, 
+        private List<List<Cell>> GenerateVolumeBaseLine(double w, 
                                                               double W, 
                                                               double lMin, 
                                                               double lMax, 
@@ -1419,7 +1644,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                               List<Line> lineForEachEdge, 
                                                               List<bool> isGenerateables)
         {
-            List<List<List<Brep>>> breps = new List<List<List<Brep>>>();
+            //List<List<List<Brep>>> breps = new List<List<List<Brep>>>();
 
             DataTree<Curve> hCurvesDT;
             DataTree<Curve> vCurvesDT;
@@ -1484,97 +1709,97 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                         lMin, lMax, d, w);
                 #endregion
 
-                #region 生成building
-                List<List<List<Curve>>> curveForJoinLoL = new List<List<List<Curve>>>();
-                //List<Curve> allCurveForJoin = new List<Curve>();
-                for (int i = 0; i < cellLoL.Count; i++)
-                {
-                    allHCurvesLoL.Add(new List<List<Curve>>());
-                    allVCurvesLoL.Add(new List<List<Curve>>());
+                //#region 生成building
+                //List<List<List<Curve>>> curveForJoinLoL = new List<List<List<Curve>>>();
+                ////List<Curve> allCurveForJoin = new List<Curve>();
+                //for (int i = 0; i < cellLoL.Count; i++)
+                //{
+                //    allHCurvesLoL.Add(new List<List<Curve>>());
+                //    allVCurvesLoL.Add(new List<List<Curve>>());
 
-                    curveForJoinLoL.Add(new List<List<Curve>>());
+                //    curveForJoinLoL.Add(new List<List<Curve>>());
 
-                    for (int j = 0; j < cellLoL[i].Count; j++)
-                    {
-                        allHCurvesLoL[i].Add(new List<Curve>());
-                        allHCurvesLoL[i][j].AddRange(cellLoL[i][j].GetAllHorizontal());
+                //    for (int j = 0; j < cellLoL[i].Count; j++)
+                //    {
+                //        allHCurvesLoL[i].Add(new List<Curve>());
+                //        allHCurvesLoL[i][j].AddRange(cellLoL[i][j].GetAllHorizontal());
 
-                        allVCurvesLoL[i].Add(new List<Curve>());
-                        allVCurvesLoL[i][j].AddRange(cellLoL[i][j].GetAllVertical());
+                //        allVCurvesLoL[i].Add(new List<Curve>());
+                //        allVCurvesLoL[i][j].AddRange(cellLoL[i][j].GetAllVertical());
 
-                        //allCurveForJoin.AddRange(cellLoL[i][j].GetAllHorizontal());
-                        //allCurveForJoin.AddRange(cellLoL[i][j].GetAllVertical());
+                //        //allCurveForJoin.AddRange(cellLoL[i][j].GetAllHorizontal());
+                //        //allCurveForJoin.AddRange(cellLoL[i][j].GetAllVertical());
 
-                        curveForJoinLoL[i].Add(new List<Curve>());
-                        curveForJoinLoL[i][j].AddRange(cellLoL[i][j].GetAllHorizontal());
-                        curveForJoinLoL[i][j].AddRange(cellLoL[i][j].GetAllVertical());
-                    }
-                }
+                //        curveForJoinLoL[i].Add(new List<Curve>());
+                //        curveForJoinLoL[i][j].AddRange(cellLoL[i][j].GetAllHorizontal());
+                //        curveForJoinLoL[i][j].AddRange(cellLoL[i][j].GetAllVertical());
+                //    }
+                //}
 
-                List<List<List<Curve>>> contoursAndHolesCrvLoL = new List<List<List<Curve>>>();
+                //List<List<List<Curve>>> contoursAndHolesCrvLoL = new List<List<List<Curve>>>();
 
-                // 对 allCurveForJoin 做边缘裁切
-                for (int i = 0; i < curveForJoinLoL.Count; i++)
-                {
-                    contourLoL.Add(new List<List<Polyline>>());
-                    holeLoL.Add(new List<List<Polyline>>());
-                    contoursAndHolesCrvLoL.Add(new List<List<Curve>>());
+                //// 对 allCurveForJoin 做边缘裁切
+                //for (int i = 0; i < curveForJoinLoL.Count; i++)
+                //{
+                //    contourLoL.Add(new List<List<Polyline>>());
+                //    holeLoL.Add(new List<List<Polyline>>());
+                //    contoursAndHolesCrvLoL.Add(new List<List<Curve>>());
 
-                    for (int j = 0; j < curveForJoinLoL[i].Count; j++)
-                    {
-                        contourLoL[i].Add(new List<Polyline>());
-                        holeLoL[i].Add(new List<Polyline>());
-                        contoursAndHolesCrvLoL[i].Add(new List<Curve>());
+                //    for (int j = 0; j < curveForJoinLoL[i].Count; j++)
+                //    {
+                //        contourLoL[i].Add(new List<Polyline>());
+                //        holeLoL[i].Add(new List<Polyline>());
+                //        contoursAndHolesCrvLoL[i].Add(new List<Curve>());
 
-                        Curve[] joined = Curve.JoinCurves(curveForJoinLoL[i][j]);
+                //        Curve[] joined = Curve.JoinCurves(curveForJoinLoL[i][j]);
 
-                        // todo 怎么裁切
-                        //Curve[] trimedJoined = new Curve[joined.Length];
-                        //for (int k = 0; k < joined.Length; k++)
-                        //{
-                        //    Vector3d vec = joined[k].TangentAtStart;
-                        //    Vector3d depthVec =  new Vector3d(-vec.Y, vec.X, vec.Z);
-                        //    Curve crv = TrimBothEnd(cellLoL[i][j].CellBoundary, joined[k], 0, w);
-                        //    trimedJoined[k] = crv;
-                        //}
-                        //trimedJoined = Curve.JoinCurves(trimedJoined);
+                //        // todo 怎么裁切
+                //        //Curve[] trimedJoined = new Curve[joined.Length];
+                //        //for (int k = 0; k < joined.Length; k++)
+                //        //{
+                //        //    Vector3d vec = joined[k].TangentAtStart;
+                //        //    Vector3d depthVec =  new Vector3d(-vec.Y, vec.X, vec.Z);
+                //        //    Curve crv = TrimBothEnd(cellLoL[i][j].CellBoundary, joined[k], 0, w);
+                //        //    trimedJoined[k] = crv;
+                //        //}
+                //        //trimedJoined = Curve.JoinCurves(trimedJoined);
                         
 
-                        List<Polyline> outContours;
-                        List<Polyline> outHoles;
-                        //GenerateBuilding(trimedJoined, w, out outContours, out outHoles);
-                        GenerateBuilding(joined, w, out outContours, out outHoles);
+                //        List<Polyline> outContours;
+                //        List<Polyline> outHoles;
+                //        //GenerateBuilding(trimedJoined, w, out outContours, out outHoles);
+                //        GenerateBuilding(joined, w, out outContours, out outHoles);
 
-                        contourLoL[i][j].AddRange(outContours);
-                        holeLoL[i][j].AddRange(outHoles);
+                //        contourLoL[i][j].AddRange(outContours);
+                //        holeLoL[i][j].AddRange(outHoles);
 
-                        for (int k = 0; k < outContours.Count; k++)
-                        {
-                            contoursAndHolesCrvLoL[i][j].Add(outContours[k].ToPolylineCurve());
-                        }
-                        for (int k = 0; k < outHoles.Count; k++)
-                        {
-                            contoursAndHolesCrvLoL[i][j].Add(outHoles[k].ToPolylineCurve());
-                        }
-                    }
-                }
+                //        for (int k = 0; k < outContours.Count; k++)
+                //        {
+                //            contoursAndHolesCrvLoL[i][j].Add(outContours[k].ToPolylineCurve());
+                //        }
+                //        for (int k = 0; k < outHoles.Count; k++)
+                //        {
+                //            contoursAndHolesCrvLoL[i][j].Add(outHoles[k].ToPolylineCurve());
+                //        }
+                //    }
+                //}
 
                 
-                for (int i = 0; i < contoursAndHolesCrvLoL.Count; i++)
-                {
-                    breps.Add(new List<List<Brep>>());
-                    for (int j = 0; j < contoursAndHolesCrvLoL[i].Count; j++)
-                    {
-                        breps[i].Add(new List<Brep>());
-                        Brep[] brepArray = BoundarySurfaces(contoursAndHolesCrvLoL[i][j]);
-                        if (brepArray != null)
-                        {
-                            breps[i][j].AddRange(brepArray);
-                        }
+                //for (int i = 0; i < contoursAndHolesCrvLoL.Count; i++)
+                //{
+                //    breps.Add(new List<List<Brep>>());
+                //    for (int j = 0; j < contoursAndHolesCrvLoL[i].Count; j++)
+                //    {
+                //        breps[i].Add(new List<Brep>());
+                //        Brep[] brepArray = BoundarySurfaces(contoursAndHolesCrvLoL[i][j]);
+                //        if (brepArray != null)
+                //        {
+                //            breps[i][j].AddRange(brepArray);
+                //        }
                         
-                    }
-                }
-                #endregion
+                //    }
+                //}
+                //#endregion
             }
             else
             {
@@ -1591,38 +1816,38 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     cellLoL[0].Add(bCell);
                     #endregion
 
-                    // 此时不用裁切
+                    //// 此时不用裁切
 
-                    allHCurvesLoL.Add(new List<List<Curve>>());
-                    allHCurvesLoL[0].Add(new List<Curve>());
-                    allHCurvesLoL[0][0].Add(segment[0]);
-                    allHCurvesLoL[0][0].Add(segment[2]);
+                    //allHCurvesLoL.Add(new List<List<Curve>>());
+                    //allHCurvesLoL[0].Add(new List<Curve>());
+                    //allHCurvesLoL[0][0].Add(segment[0]);
+                    //allHCurvesLoL[0][0].Add(segment[2]);
 
-                    allVCurvesLoL.Add(new List<List<Curve>>());
-                    allVCurvesLoL[0].Add(new List<Curve>());
-                    allVCurvesLoL[0][0].Add(segment[1]);
-                    allVCurvesLoL[0][0].Add(segment[3]);
+                    //allVCurvesLoL.Add(new List<List<Curve>>());
+                    //allVCurvesLoL[0].Add(new List<Curve>());
+                    //allVCurvesLoL[0][0].Add(segment[1]);
+                    //allVCurvesLoL[0][0].Add(segment[3]);
 
-                    List<Point3d> pts = new List<Point3d>();
-                    pts.Add(segment[0].PointAtStart);
-                    for (int i = 0; i < segment.Length; i++)
-                    {
-                        pts.Add(segment[i].PointAtEnd);
-                    }
-                    contourLoL.Add(new List<List<Polyline>>());
-                    contourLoL[0].Add(new List<Polyline>());
-                    contourLoL[0][0].Add(new Polyline(pts));
+                    //List<Point3d> pts = new List<Point3d>();
+                    //pts.Add(segment[0].PointAtStart);
+                    //for (int i = 0; i < segment.Length; i++)
+                    //{
+                    //    pts.Add(segment[i].PointAtEnd);
+                    //}
+                    //contourLoL.Add(new List<List<Polyline>>());
+                    //contourLoL[0].Add(new List<Polyline>());
+                    //contourLoL[0][0].Add(new Polyline(pts));
 
-                    holeLoL.Add(new List<List<Polyline>>());
-                    holeLoL[0].Add(new List<Polyline>());
+                    //holeLoL.Add(new List<List<Polyline>>());
+                    //holeLoL[0].Add(new List<Polyline>());
 
-                    breps.Add(new List<List<Brep>>());
-                    breps[0].Add(new List<Brep>());
-                    Brep[] brepArray = BoundarySurfaces(singleRegion);
-                    if (brepArray != null)
-                    {
-                        breps[0][0].AddRange(brepArray);
-                    }
+                    //breps.Add(new List<List<Brep>>());
+                    //breps[0].Add(new List<Brep>());
+                    //Brep[] brepArray = BoundarySurfaces(singleRegion);
+                    //if (brepArray != null)
+                    //{
+                    //    breps[0][0].AddRange(brepArray);
+                    //}
                 }
                 else
                 {
@@ -1638,28 +1863,35 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve crv = lineForEachEdge[(index + 1) % lineForEachEdge.Count].ToNurbsCurve();
                         Curve nextCrv = lineForEachEdge[(index + 2) % lineForEachEdge.Count].ToNurbsCurve();
 
+                        Curve offsetCrv = crv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                        Curve offsetNextCrv = nextCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+
+                        CurveIntersections event0 = Intersection.CurveCurve(offsetCrv, offsetNextCrv, GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
+                        Curve newCrv = new Line(offsetCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
+                        Curve newNextCrv = new Line(event0[0].PointA, offsetNextCrv.PointAtEnd).ToNurbsCurve();
+
                         int indexCrv = (index + 1) % lineForEachEdge.Count;
                         if (indexCrv == 0)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), crv, null, null, nextCrv, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, null, newNextCrv, 0, 0);
                         }
                         else if (indexCrv == 1)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, nextCrv, null, crv, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newNextCrv, null, newCrv, 0, 0);
                         }
                         else if (indexCrv == 2)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, crv, nextCrv, null, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, newNextCrv, null, 0, 0);
                         }
                         else
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), nextCrv, null, crv, null, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newNextCrv, null, newCrv, null, 0, 0);
                         }
 
-                        // nextCrv需要在末端进行裁切
-                        Vector3d vec = crvs[1].TangentAtStart;
-                        //Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
-                        result[0] = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(),singleRegion, 1, w);
+                        //// nextCrv需要在末端进行裁切
+                        //Vector3d vec = crvs[1].TangentAtStart;
+                        ////Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+                        //result[0] = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(),singleRegion, 1, w);
 
                         //crvs[0] = crv;
                         //crvs[1] = newNextCrv;
@@ -1669,28 +1901,35 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve crv = lineForEachEdge[((index - 1) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
                         Curve prevCrv = lineForEachEdge[((index - 2) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
 
+                        Curve offsetCrv = crv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                        Curve offsetPrevCrv = prevCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+
+                        CurveIntersections event0 = Intersection.CurveCurve(offsetCrv, offsetPrevCrv, GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
+                        Curve newCrv = new Line(event0[0].PointA, offsetCrv.PointAtEnd).ToNurbsCurve();
+                        Curve newPrevCrv = new Line(offsetPrevCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
+
                         int indexCrv = ((index - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
                         if (indexCrv == 0)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), crv, null, prevCrv, null, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, newPrevCrv, null, 0, 0);
                         }
                         else if (indexCrv == 1)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), prevCrv, null, null, crv, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newPrevCrv, null, null, newCrv, 0, 0);
                         }
                         else if (indexCrv == 2)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, crv, null, prevCrv, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, null, newPrevCrv, 0, 0);
                         }
                         else
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, prevCrv, crv, null, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newPrevCrv, newCrv, null, 0, 0);
                         }
 
-                        // prevCrv需要在起始端进行裁切
-                        Vector3d vec = crvs[0].TangentAtStart;
-                        //Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
-                        result[0] = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(), singleRegion, 2, w);
+                        //// prevCrv需要在起始端进行裁切
+                        //Vector3d vec = crvs[0].TangentAtStart;
+                        ////Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+                        //result[0] = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(), singleRegion, 2, w);
 
                         // crvs[0] = newPrevCrv;
                         // crvs[1] = crv;
@@ -1704,33 +1943,33 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     cellLoL[0].Add(bCell);
 
 
-                    allHCurvesLoL.Add(new List<List<Curve>>());
-                    allHCurvesLoL[0].Add(new List<Curve>());
+                    //allHCurvesLoL.Add(new List<List<Curve>>());
+                    //allHCurvesLoL[0].Add(new List<Curve>());
 
-                    allVCurvesLoL.Add(new List<List<Curve>>());
-                    allVCurvesLoL[0].Add(new List<Curve>());
-                    allVCurvesLoL[0][0].Add(singleRegion);
+                    //allVCurvesLoL.Add(new List<List<Curve>>());
+                    //allVCurvesLoL[0].Add(new List<Curve>());
+                    //allVCurvesLoL[0][0].Add(singleRegion);
 
-                    //Curve[] crvs = new Curve[1] { singleRegion };
-                    List<Polyline> outContours;
-                    List<Polyline> outHoles;
-                    GenerateBuilding(result, w, out outContours, out outHoles);
+                    ////Curve[] crvs = new Curve[1] { singleRegion };
+                    //List<Polyline> outContours;
+                    //List<Polyline> outHoles;
+                    //GenerateBuilding(result, w, out outContours, out outHoles);
 
 
-                    contourLoL.Add(new List<List<Polyline>>());
-                    contourLoL[0].Add(new List<Polyline>());
-                    contourLoL[0][0].AddRange(outContours);
-                    holeLoL.Add(new List<List<Polyline>>());
-                    holeLoL[0].Add(new List<Polyline>());
-                    holeLoL[0][0].AddRange(outHoles);
+                    //contourLoL.Add(new List<List<Polyline>>());
+                    //contourLoL[0].Add(new List<Polyline>());
+                    //contourLoL[0][0].AddRange(outContours);
+                    //holeLoL.Add(new List<List<Polyline>>());
+                    //holeLoL[0].Add(new List<Polyline>());
+                    //holeLoL[0][0].AddRange(outHoles);
 
-                    breps.Add(new List<List<Brep>>());
-                    breps[0].Add(new List<Brep>());
-                    Brep[] brepArray = BoundarySurfaces(outContours[0].ToNurbsCurve());
-                    if (brepArray != null)
-                    {
-                        breps[0][0].AddRange(brepArray);
-                    }
+                    //breps.Add(new List<List<Brep>>());
+                    //breps[0].Add(new List<Brep>());
+                    //Brep[] brepArray = BoundarySurfaces(outContours[0].ToNurbsCurve());
+                    //if (brepArray != null)
+                    //{
+                    //    breps[0][0].AddRange(brepArray);
+                    //}
                 }
             }
 
@@ -1744,7 +1983,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
             }
 
-            return breps;
+            return cellLoL;
         }
 
         private List<int> RandomGetNum(int countForThree, int countForTwo)
@@ -2549,7 +2788,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 List<Curve> intersections = new List<Curve>();
                 for (int j = 0; j < cutCurves.Count; j++)
                 {
-                    SolveResults solveResults = null;
+                    BrepCurveIntersectionSolveResults solveResults = null;
                     if (cutCurves[j] == null)
                     {
                         // 如果退线距离是0而导致没有cutCurves的时候，把原来的polyline作为intersection
@@ -2627,13 +2866,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
         }
 
-        public class SolveResults
+        public class BrepCurveIntersectionSolveResults
         {
             public Curve[] Curves { get; set; }
             public Point3d[] Points { get; set; }
         }
 
-        public SolveResults ComputeBrepCurveIntersection(Brep brp, Curve crv)
+        public BrepCurveIntersectionSolveResults ComputeBrepCurveIntersection(Brep brp, Curve crv)
         {
             Curve[] curves = null;
             Point3d[] points = null;
@@ -2641,7 +2880,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Intersection failed");
             }
-            return new SolveResults
+            return new BrepCurveIntersectionSolveResults
             {
                 Curves = curves,
                 Points = points
@@ -3822,29 +4061,32 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     if (i == 0)
                     {
                         centerLinePairs = GenerateCenterLineNearGapCurve(false, verticalCenterLinesForGap[i], d, w, W, boundary);
-
-                        directionVector = centerLinePairs[1].TangentAtStart;
-                        verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-                        centerLinePairs[1] = TrimBothEnd(boundary, verticalVector, centerLinePairs[1], 2, w, W);
+                        centerLinePairs[0] = new Line(centerLinePairs[0].PointAtStart, centerLinePairs[0].PointAtEnd).ToNurbsCurve();
+                        centerLinePairs[1] = new Line(centerLinePairs[1].PointAtStart, centerLinePairs[1].PointAtEnd).ToNurbsCurve();
+                        //directionVector = centerLinePairs[1].TangentAtStart;
+                        //verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+                        centerLinePairs[1] = TrimBothEnd(boundary, centerLinePairs[1], 0, w);
                     }
                     else if (i == verticalCenterLinesForGap.Count - 1)
                     {
                         centerLinePairs = GenerateCenterLineNearGapCurve(false, verticalCenterLinesForGap[i], d, w, W, boundary);
-
-                        directionVector = centerLinePairs[0].TangentAtStart;
-                        verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-                        centerLinePairs[0] = TrimBothEnd(boundary, verticalVector, centerLinePairs[0], 2, w, W);
+                        centerLinePairs[0] = new Line(centerLinePairs[0].PointAtStart, centerLinePairs[0].PointAtEnd).ToNurbsCurve();
+                        centerLinePairs[1] = new Line(centerLinePairs[1].PointAtStart, centerLinePairs[1].PointAtEnd).ToNurbsCurve();
+                        //directionVector = centerLinePairs[0].TangentAtStart;
+                        //verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+                        centerLinePairs[0] = TrimBothEnd(boundary, centerLinePairs[0], 0, w);
                         //centerLinePairs[0] = TrimBothEnd(boundary, verticalVector, centerLinePairs[0], 2, w, W);
                     }
                     else
                     {
                         centerLinePairs = GenerateCenterLineNearGapCurve(true, verticalCenterLinesForGap[i], d, w, W, boundary);
-
+                        centerLinePairs[0] = new Line(centerLinePairs[0].PointAtStart, centerLinePairs[0].PointAtEnd).ToNurbsCurve();
+                        centerLinePairs[1] = new Line(centerLinePairs[1].PointAtStart, centerLinePairs[1].PointAtEnd).ToNurbsCurve();
                         for (int j = 0; j < centerLinePairs.Length; j++)
                         {
-                            directionVector = centerLinePairs[j].TangentAtStart;
-                            verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-                            centerLinePairs[j] = TrimBothEnd(boundary, verticalVector, centerLinePairs[j], 2, w, W);
+                            //directionVector = centerLinePairs[j].TangentAtStart;
+                            //verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+                            centerLinePairs[j] = TrimBothEnd(boundary, centerLinePairs[j], 0, w);
                         }
                     }
 
@@ -3859,28 +4101,31 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     if (i == 0)
                     {
                         centerLinePairs = GenerateCenterLineNearGapCurve(false, verticalCenterLinesForGap[i], d, w, W, boundary);
-
-                        directionVector = centerLinePairs[1].TangentAtStart;
-                        verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-                        centerLinePairs[1] = TrimBothEnd(boundary, verticalVector, centerLinePairs[1], 2, w, W);
+                        centerLinePairs[0] = new Line(centerLinePairs[0].PointAtStart, centerLinePairs[0].PointAtEnd).ToNurbsCurve();
+                        centerLinePairs[1] = new Line(centerLinePairs[1].PointAtStart, centerLinePairs[1].PointAtEnd).ToNurbsCurve();
+                        //directionVector = centerLinePairs[1].TangentAtStart;
+                        //verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+                        centerLinePairs[1] = TrimBothEnd(boundary, centerLinePairs[1], 0, w);
                     }
                     else if (i == verticalCenterLinesForGap.Count - 1)
                     {
                         centerLinePairs = GenerateCenterLineNearGapCurve(false, verticalCenterLinesForGap[i], d, w, W, boundary);
-
-                        verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-                        centerLinePairs[0] = TrimBothEnd(boundary, verticalVector, centerLinePairs[0], 2, w, W);
-                        centerLinePairs[0] = TrimBothEnd(boundary, verticalVector, centerLinePairs[0], 2, w, W);
+                        centerLinePairs[0] = new Line(centerLinePairs[0].PointAtStart, centerLinePairs[0].PointAtEnd).ToNurbsCurve();
+                        centerLinePairs[1] = new Line(centerLinePairs[1].PointAtStart, centerLinePairs[1].PointAtEnd).ToNurbsCurve();
+                        //verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
+                        //centerLinePairs[0] = TrimBothEnd(boundary, verticalVector, centerLinePairs[0], 2, w, W);
+                        centerLinePairs[0] = TrimBothEnd(boundary, centerLinePairs[0], 0, w);
                     }
                     else
                     {
                         centerLinePairs = GenerateCenterLineNearGapCurve(true, verticalCenterLinesForGap[i], d, w, W, boundary);
-
+                        centerLinePairs[0] = new Line(centerLinePairs[0].PointAtStart, centerLinePairs[0].PointAtEnd).ToNurbsCurve();
+                        centerLinePairs[1] = new Line(centerLinePairs[1].PointAtStart, centerLinePairs[1].PointAtEnd).ToNurbsCurve();
                         for (int j = 0; j < centerLinePairs.Length; j++)
                         {
                             directionVector = centerLinePairs[j].TangentAtStart;
                             verticalVector = new Vector3d(-directionVector.Y, directionVector.X, directionVector.Z);
-                            centerLinePairs[j] = TrimBothEnd(boundary, verticalVector, centerLinePairs[j], 2, w, W);
+                            centerLinePairs[j] = TrimBothEnd(boundary, centerLinePairs[j], 0, w);
                         }
                     }
 
@@ -3919,7 +4164,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     double[] verticalTPair = new double[2] { -1, -1 };
                     for (int k = 0; k < centerLinePairs.Length; k++)
                     {
-                        CurveIntersections curveIntersections = Intersection.CurveCurve(horizontalCenterLines[i], centerLinePairs[k], GH_Component.DocumentTolerance(), 0.5 * GH_Component.DocumentTolerance());
+                        CurveIntersections curveIntersections = Intersection.CurveCurve(horizontalCenterLines[i], centerLinePairs[k], GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
 
                         if (curveIntersections.Count == 1)
                         {
@@ -4405,6 +4650,16 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 isOnlyOneSegment = true;
             }
 
+            Curve[] resultSegments;
+            if (needToTrim.SpanCount > 1)
+            {
+                resultSegments = needToTrim.DuplicateSegments();
+            }
+            else
+            {
+                resultSegments = new Curve[1] { needToTrim };
+            }
+
             Curve new0;
             Curve new1;
             Curve newCurrent;
@@ -4413,10 +4668,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             CurveIntersections curveIntersections0;
             CurveIntersections curveIntersections1;
 
-            #region 对于start点
             if (type == 0 || type == 2)
             {
-                Vector3d vec = needToTrim.TangentAtStart;
+                Vector3d vec = segments.First().TangentAtStart;
                 Vector3d verticalVec = new Vector3d(-vec.Y, vec.X, vec.Z);
 
                 Plane localCooridinate = new Plane(new Point3d(0, 0, 0), vec, verticalVec);
@@ -4425,10 +4679,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 Curve current = segments.First();
                 //Curve trimedCurve;
-
                 Curve offset0 = current.Offset(Plane.WorldXY, -w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
                 Curve offset1 = current.Offset(Plane.WorldXY, w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
-
                 new0 = offset0.Extend(CurveEnd.Start, w, CurveExtensionStyle.Line);
                 newCurrent = current.Extend(CurveEnd.Start, w, CurveExtensionStyle.Line);
                 new1 = offset1.Extend(CurveEnd.Start, w, CurveExtensionStyle.Line);
@@ -4439,205 +4691,521 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 curveIntersections0 = Intersection.CurveCurve(new0, boundary, tolerance, tolerance);
                 curveIntersections1 = Intersection.CurveCurve(new1, boundary, tolerance, tolerance);
 
-                IntersectionEvent event0;
-                IntersectionEvent event1;
-                if (curveIntersections0.Count > 1)
-                {
-                    int minIndex = 0;
-                    double min = 1;
-
-                    for (int i = 0; i < curveIntersections0.Count; i++)
-                    {
-                        double pA = curveIntersections0[i].ParameterA;
-                        double delta = pA - 0;
-                        if (delta < 0)
-                        {
-                            continue;
-                        }
-                        if (delta < min)
-                        {
-                            min = delta;
-                            minIndex = i;
-                        }
-                    }
-
-                    event0 = curveIntersections0[minIndex];
-                }
-                else if (curveIntersections0.Count == 1)
-                {
-                    event0 = curveIntersections0[0];
-                }
-                else
-                {
-                    event0 = null;
-                }
-
-                if (curveIntersections1.Count > 1)
-                {
-                    int minIndex = 0;
-                    double min = 0.0;
-
-                    for (int i = 0; i < curveIntersections1.Count; i++)
-                    {
-                        double pA = curveIntersections1[i].ParameterA;
-                        double delta = pA - 0;
-                        if (delta < 0)
-                        {
-                            continue;
-                        }
-                        if (delta < min)
-                        {
-                            min = delta;
-                            minIndex = i;
-                        }
-                    }
-
-                    event1 = curveIntersections1[minIndex];
-                }
-                else if (curveIntersections1.Count == 1)
-                {
-                    event1 = curveIntersections1[0];
-                }
-                else
-                {
-                    event1 = null;
-                }
-
-
-                Point3d point00;
-                //Point3d point01;
-                Point3d point10;
-                //Point3d point11;
                 if (curveIntersections0.Count == 0 && curveIntersections1.Count == 0)
                 {
-                    // 即没有与边界相交
-                    // segments[first]跟原来一样，没变
-                    point00 = new0.PointAtStart;
-                    point10 = new1.PointAtStart;
-                }
-                else if ((curveIntersections0.Count == 1 && curveIntersections1.Count == 0) || (curveIntersections0.Count == 0 && curveIntersections1.Count == 1))
-                {
-                    // 即两条线中有一条与边界相交
-                    if (curveIntersections0.Count == 1 && curveIntersections1.Count == 0)
+                    if (isOnlyOneSegment)
                     {
-                        if (!event0.IsOverlap)
+                        pointOnStart = current.PointAtStart;
+                    }
+                    else
+                    {
+                        // 不对resultSegment做任何处理
+                    }
+                }
+                else if(curveIntersections0.Count == 0 && curveIntersections1.Count != 0)
+                {
+                    IntersectionEvent event1;
+                    if (curveIntersections1.Count > 1)
+                    {
+                        int minIndex = 0;
+                        double min = curveIntersections1[0].ParameterA - 0;
+                        for (int i = 0; i < curveIntersections1.Count; i++)
                         {
-                           // new0相交，并且不贴边
-                            point00 = event0.PointA;
-                            point10 = new1.PointAtStart;
+                            double pA = curveIntersections1[i].ParameterA;
+                            double delta = pA - 0;
+
+                            if (delta < 0)
+                            {
+                                continue;
+                            }
+                            if (delta < min)
+                            {
+                                min = delta;
+                                minIndex = i;
+                            }
+                        }
+                        event1 = curveIntersections1[minIndex];
+                    }
+                    else
+                    {
+                        // curveIntersections1.Count == 1
+                        event1 = curveIntersections1[0];
+                    }
+
+                    if (!event1.IsOverlap)
+                    {
+                        if (event1.ParameterA > 0.5)
+                        {
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = current.PointAtStart;
+                            }
+                            else
+                            {
+                                // 不对resultSegment做任何处理
+                            }
                         }
                         else
                         {
-                            // new0相交，并且贴边
-                            point00 = event0.PointA;
-                            point10 = new1.PointAtStart;
+                            Point3d point;
+                            if (!event1.IsOverlap)
+                            {
+                                point = event1.PointA;
+                            }
+                            else
+                            {
+                                point = event1.PointA;
+                            }
+                            Point3d pointTransformed = new Point3d(point);
+                            pointTransformed.Transform(transform);
+
+                            Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                            lineTransformed.Transform(transform);
+
+                            double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                            Interval interval = new Interval(t, 1);
+                            trimedSegment = newCurrent.Trim(interval);
+                            if (trimedSegment != null)
+                            {
+                                resultSegments[0] = trimedSegment;
+
+                                if (isOnlyOneSegment)
+                                {
+                                    pointOnStart = trimedSegment.PointAtStart;
+                                }
+                            }
+                            else
+                            {
+                                resultSegments[0] = newCurrent;
+
+                                if (isOnlyOneSegment)
+                                {
+                                    pointOnStart = newCurrent.PointAtStart;
+                                }
+                            }
                         }
                     }
                     else
                     {
+                        Point3d point;
                         if (!event1.IsOverlap)
                         {
-                            // new1相交，并且不贴边
-                            point00 = new0.PointAtStart;
-                            point10 = event1.PointA;
+                            point = event1.PointA;
                         }
                         else
                         {
-                            // new1相交，并且贴边
-                            point00 = new0.PointAtStart;
-                            point10 = event1.PointA;
+                            point = event1.PointA;
+                        }
+                        Point3d pointTransformed = new Point3d(point);
+                        pointTransformed.Transform(transform);
+
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
+
+                        double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                        Interval interval = new Interval(t, 1);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[0] = trimedSegment;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = trimedSegment.PointAtStart;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[0] = newCurrent;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = newCurrent.PointAtStart;
+                            }
                         }
                     }
+                    
+                }
+                else if (curveIntersections0.Count != 0 && curveIntersections1.Count == 0)
+                {
+                    IntersectionEvent event0;
+                    if (curveIntersections0.Count > 1)
+                    {
+                        int minIndex = 0;
+                        double min = curveIntersections0[0].ParameterA - 0;
+                        for (int i = 0; i < curveIntersections0.Count; i++)
+                        {
+                            double pA = curveIntersections0[i].ParameterA;
+                            double delta = pA - 0;
+                            if (delta < 0)
+                            {
+                                continue;
+                            }
+                            if (delta < min)
+                            {
+                                min = delta;
+                                minIndex = i;
+                            }
+                        }
+                        event0 = curveIntersections0[minIndex];
+                    }
+                    else
+                    {
+                        event0 = curveIntersections0[0];
+                    }
+
+                    if (!event0.IsOverlap)
+                    {
+                        if (event0.ParameterA > 0.5)
+                        {
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = current.PointAtStart;
+                            }
+                            else
+                            {
+                                // 不对resultSegment做任何处理
+                            }
+                        }
+                        else
+                        {
+                            Point3d point;
+                            if (!event0.IsOverlap)
+                            {
+                                point = event0.PointA;
+                            }
+                            else
+                            {
+                                point = event0.PointA;
+                            }
+                            Point3d pointTransformed = new Point3d(point);
+                            pointTransformed.Transform(transform);
+
+                            Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                            lineTransformed.Transform(transform);
+
+                            double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                            Interval interval = new Interval(t, 1);
+                            trimedSegment = newCurrent.Trim(interval);
+                            if (trimedSegment != null)
+                            {
+                                resultSegments[0] = trimedSegment;
+
+                                if (isOnlyOneSegment)
+                                {
+                                    pointOnStart = trimedSegment.PointAtStart;
+                                }
+                            }
+                            else
+                            {
+                                resultSegments[0] = newCurrent;
+
+                                if (isOnlyOneSegment)
+                                {
+                                    pointOnStart = newCurrent.PointAtStart;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Point3d point;
+                        if (!event0.IsOverlap)
+                        {
+                            point = event0.PointA;
+                        }
+                        else
+                        {
+                            point = event0.PointA;
+                        }
+                        Point3d pointTransformed = new Point3d(point);
+                        pointTransformed.Transform(transform);
+
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
+
+                        double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                        Interval interval = new Interval(t, 1);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[0] = trimedSegment;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = trimedSegment.PointAtStart;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[0] = newCurrent;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = newCurrent.PointAtStart;
+                            }
+                        }
+                    }
+                    
                 }
                 else
                 {
-                    // 即两条线都与边界相交
+                    IntersectionEvent event0;
+                    IntersectionEvent event1;
+                    if (curveIntersections0.Count > 1)
+                    {
+                        int minIndex = 0;
+                        double min = curveIntersections0[0].ParameterA - 0;
+
+                        for (int i = 0; i < curveIntersections0.Count; i++)
+                        {
+                            double pA = curveIntersections0[i].ParameterA;
+                            double delta = pA - 0;
+                            if (delta < 0)
+                            {
+                                continue;
+                            }
+                            if (delta < min)
+                            {
+                                min = delta;
+                                minIndex = i;
+                            }
+                        }
+                        event0 = curveIntersections0[minIndex];
+                    }
+                    else
+                    {
+                        //curveIntersections0 == 1
+                        event0 = curveIntersections0[0];
+                    }
+                    if (curveIntersections1.Count > 1)
+                    {
+                        int minIndex = 0;
+                        double min = curveIntersections1[0].ParameterA - 0;
+
+                        for (int i = 0; i < curveIntersections1.Count; i++)
+                        {
+                            double pA = curveIntersections1[i].ParameterA;
+                            double delta = pA - 0;
+                            if (delta < 0)
+                            {
+                                continue;
+                            }
+                            if (delta < min)
+                            {
+                                min = delta;
+                                minIndex = i;
+                            }
+                        }
+                        event1 = curveIntersections1[minIndex];
+                    }
+                    else
+                    {
+                        event1 = curveIntersections1[0];
+                    }
+
+                    Point3d point00 = Point3d.Unset;
+                    Point3d point10 = Point3d.Unset;
                     if (!event0.IsOverlap && !event1.IsOverlap)
                     {
                         // 即不贴边的状态
-                        point00 = event0.PointA;
-                        point10 = event1.PointA;
-                    }
-                    else
-                    {
-                        // 注意不存在同时贴边的情况
-                        if (event0.IsOverlap)
+                        if (event0.ParameterA > 0.5 && event1.ParameterA > 0.5)
                         {
-                            // new0贴边
-                            point00 = event0.PointA;
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = current.PointAtStart;
+                            }
+                            else
+                            {
+                                // 不对resultSegment做任何处理
+                            }
+                        }
+                        else if (event0.ParameterA > 0.5 && event1.ParameterA <= 0.5)
+                        {
                             point10 = event1.PointA;
+                        }
+                        else if (event0.ParameterA <= 0.5 && event1.ParameterA > 0.5)
+                        {
+                            point00 = event0.PointA;
                         }
                         else
                         {
-                            // new1贴边
                             point00 = event0.PointA;
                             point10 = event1.PointA;
                         }
                     }
-                }
+                    else if (event0.IsOverlap && !event1.IsOverlap)
+                    {
+                        // new0贴边
+                        point00 = event0.PointA;
+                        if (event1.ParameterA > 0.5)
+                        {
+                            point10 = Point3d.Unset;
+                        }
+                        else
+                        {
+                            point10 = event1.PointA;
+                        }
+                    }
+                    else if (!event0.IsOverlap && event1.IsOverlap)
+                    {
+                        // new1贴边
+                        //point00 = event0.PointA;
+                        point10 = event1.PointA;
+                        if (event0.ParameterA > 0.5)
+                        {
+                            point00 = Point3d.Unset;
+                        }
+                        else
+                        {
+                            point00 = event0.PointA;
+                        }
+                    }
+                    else
+                    {
+                        point00 = event0.PointA;
+                        point10 = event1.PointA;
+                    }
 
-                Point3d point00Transformed = new Point3d(point00);
-                Point3d point10Transformed = new Point3d(point10);
-                point00Transformed.Transform(transform);
-                point10Transformed.Transform(transform);
+                    if (point00 != Point3d.Unset && point10 != Point3d.Unset)
+                    {
+                        Point3d point00Transformed = new Point3d(point00);
+                        Point3d point10Transformed = new Point3d(point10);
+                        point00Transformed.Transform(transform);
+                        point10Transformed.Transform(transform);
 
-                Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
-                lineTransformed.Transform(transform);
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
 
-                // 投影后，求t值，并比较
-                double t00 = lineTransformed.ClosestParameter(point00Transformed);
-                double t10 = lineTransformed.ClosestParameter(point10Transformed);
+                        // 投影后，求t值，并比较
+                        double t00 = lineTransformed.ClosestParameter(point00Transformed);
+                        double t10 = lineTransformed.ClosestParameter(point10Transformed);
 
-                double tStart;
-                
-                if (t00 >= t10)
-                {
-                    //newCurrent.ClosestPoint(point00, out tStart);
-                    tStart = t00;
-                }
-                else
-                {
-                    //newCurrent.ClosestPoint(point10, out tStart);
-                    tStart = t10;
-                }
+                        double tStart;
 
-                Interval interval = new Interval(tStart, 1);
-                trimedSegment = newCurrent.Trim(interval);
+                        if (t00 >= t10)
+                        {
+                            //newCurrent.ClosestPoint(point00, out tStart);
+                            tStart = t00;
+                        }
+                        else
+                        {
+                            //newCurrent.ClosestPoint(point10, out tStart);
+                            tStart = t10;
+                        }
 
-                segments[0] = trimedSegment;
+                        Interval interval = new Interval(tStart, 1);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[0] = trimedSegment;
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = trimedSegment.PointAtStart;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[0] = newCurrent;
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = trimedSegment.PointAtStart;
+                            }
+                        }
+                    }
+                    else if (point00 == Point3d.Unset && point10 != Point3d.Unset)
+                    {
+                        Point3d pointTransformed = new Point3d(point10);
+                        pointTransformed.Transform(transform);
 
-                if (isOnlyOneSegment)
-                {
-                    pointOnStart = trimedSegment.PointAtStart;
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
+
+                        double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                        Interval interval = new Interval(t, 1);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[0] = trimedSegment;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = trimedSegment.PointAtStart;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[0] = newCurrent;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = newCurrent.PointAtStart;
+                            }
+                        }
+                    }
+                    else if (point00 != Point3d.Unset && point10 == Point3d.Unset)
+                    {
+                        Point3d pointTransformed = new Point3d(point00);
+                        pointTransformed.Transform(transform);
+
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
+
+                        double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                        Interval interval = new Interval(t, 1);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[0] = trimedSegment;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = trimedSegment.PointAtStart;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[0] = newCurrent;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnStart = newCurrent.PointAtStart;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (isOnlyOneSegment)
+                        {
+                            pointOnStart = current.PointAtStart;
+                        }
+                        else
+                        {
+                            // 不对resultSegment做任何处理
+                        }
+                    }
+                    
                 }
             }
 
-            #endregion
-
-            #region 对于end点
             if (type == 0 || type == 1)
             {
-                Vector3d vec = needToTrim.TangentAtEnd;
+                Vector3d vec = segments.Last().TangentAtStart;
                 Vector3d verticalVec = new Vector3d(-vec.Y, vec.X, vec.Z);
 
                 Plane localCooridinate = new Plane(new Point3d(0, 0, 0), vec, verticalVec);
                 Plane transformedCoordinate = Plane.WorldXY;
                 Transform transform = Transform.PlaneToPlane(transformedCoordinate, localCooridinate);
 
-                Curve current;
-                if (!isOnlyOneSegment)
-                {
-                    current = segments.Last();
-                }
-                else
-                {
-                    current = needToTrim;
-                }
-
-
+                Curve current = segments.Last();
                 Curve offset0 = current.Offset(Plane.WorldXY, -w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
                 Curve offset1 = current.Offset(Plane.WorldXY, w * 0.5, tolerance, CurveOffsetCornerStyle.None)[0];
-
                 new0 = offset0.Extend(CurveEnd.End, w, CurveExtensionStyle.Line);
                 newCurrent = current.Extend(CurveEnd.End, w, CurveExtensionStyle.Line);
                 new1 = offset1.Extend(CurveEnd.End, w, CurveExtensionStyle.Line);
@@ -4648,192 +5216,520 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 curveIntersections0 = Intersection.CurveCurve(new0, boundary, tolerance, tolerance);
                 curveIntersections1 = Intersection.CurveCurve(new1, boundary, tolerance, tolerance);
 
-                IntersectionEvent event0;
-                IntersectionEvent event1;
-                if (curveIntersections0.Count > 1)
-                {
-                    int minIndex = 0;
-                    double min = 0.0;
-                    
-                    for (int i = 0; i < curveIntersections0.Count; i++)
-                    {
-                        double pA = curveIntersections0[i].ParameterA;
-                        double delta = 1 - pA;
-                        if (delta < 0)
-                        {
-                            continue;
-                        }
-                        if (delta < min)
-                        {
-                            min = delta;
-                            minIndex = i;
-                        }
-                    }
-
-                    event0 = curveIntersections0[minIndex];
-                }
-                else if (curveIntersections0.Count == 1)
-                {
-                    event0 = curveIntersections0[0];
-                }
-                else
-                {
-                    event0 = null;
-                }
-
-                if (curveIntersections1.Count > 1)
-                {
-                    int minIndex = 0;
-                    double min = 1;
-
-                    for (int i = 0; i < curveIntersections1.Count; i++)
-                    {
-                        double pA = curveIntersections1[i].ParameterA;
-                        double delta = 1 - pA;
-                        if (delta < 0)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-
-                        }
-                        if (delta < min)
-                        {
-                            min = delta;
-                            minIndex = i;
-                        }
-                    }
-
-                    event1 = curveIntersections1[minIndex];
-                }
-                else if (curveIntersections1.Count == 1)
-                {
-                    event1 = curveIntersections1[0];
-                }
-                else
-                {
-                    event1 = null;
-                }
-
-
-                Point3d point01;
-                Point3d point11;
-
                 if (curveIntersections0.Count == 0 && curveIntersections1.Count == 0)
                 {
-                    // 即没有与边界相交
-                    // segments[last]跟原来一样，没变
-                    point01 = new0.PointAtEnd;
-                    point11 = new1.PointAtEnd;
-                }
-                else if ((curveIntersections0.Count == 1 && curveIntersections1.Count == 0) || (curveIntersections0.Count == 0 && curveIntersections1.Count == 1))
-                {
-                    // 即两条线中有一条与边界相交
-                    if (curveIntersections0.Count == 1 && curveIntersections1.Count == 0)
+                    if (isOnlyOneSegment)
                     {
-                        if (!event0.IsOverlap)
+                        pointOnEnd = current.PointAtEnd;
+                    }
+                    else
+                    {
+                        // 不对resultSegment做任何处理
+                    }
+                }
+                else if (curveIntersections0.Count == 0 && curveIntersections1.Count != 0)
+                {
+                    IntersectionEvent event1;
+                    if (curveIntersections1.Count > 1)
+                    {
+                        int minIndex = 0;
+                        double min = 1 - curveIntersections1[0].ParameterA;
+                        for (int i = 0; i < curveIntersections1.Count; i++)
                         {
-                            // new0相交，并且不贴边
-                            point01 = event0.PointA2;
-                            point11 = new1.PointAtEnd;
+                            double pA = curveIntersections1[i].ParameterA;
+                            double delta = 1 - pA;
+                            if (delta < 0)
+                            {
+                                continue;
+                            }
+                            if (delta < min)
+                            {
+                                min = delta;
+                                minIndex = i;
+                            }
+                        }
+                        event1 = curveIntersections1[minIndex];
+                    }
+                    else
+                    {
+                        // curveIntersections1.Count == 1
+                        event1 = curveIntersections1[0];
+                    }
+
+                    if (!event1.IsOverlap)
+                    {
+                        if (event1.ParameterA < 0.5)
+                        {
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = current.PointAtEnd;
+                            }
+                            else
+                            {
+                                // 不对resultSegment做任何处理
+                            }
                         }
                         else
                         {
-                            // new0相交，并且贴边
-                            point01 = event0.PointA;
-                            point11 = new1.PointAtEnd;
+                            Point3d point;
+                            if (!event1.IsOverlap)
+                            {
+                                point = event1.PointA2;
+                            }
+                            else
+                            {
+                                point = event1.PointA;
+                            }
+
+                            Point3d pointTransformed = new Point3d(point);
+                            pointTransformed.Transform(transform);
+
+                            Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                            lineTransformed.Transform(transform);
+
+                            double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                            Interval interval = new Interval(0, t);
+                            trimedSegment = newCurrent.Trim(interval);
+                            if (trimedSegment != null)
+                            {
+                                resultSegments[resultSegments.Length - 1] = trimedSegment;
+
+                                if (isOnlyOneSegment)
+                                {
+                                    pointOnEnd = trimedSegment.PointAtEnd;
+                                }
+                            }
+                            else
+                            {
+                                resultSegments[resultSegments.Length - 1] = newCurrent;
+
+                                if (isOnlyOneSegment)
+                                {
+                                    pointOnEnd = newCurrent.PointAtEnd;
+                                }
+                            }
                         }
                     }
                     else
                     {
+                        Point3d point;
                         if (!event1.IsOverlap)
                         {
-                            // new1相交，并且不贴边
-                            point01 = new0.PointAtEnd;
-                            point11 = event1.PointA2;
+                            point = event1.PointA2;
                         }
                         else
                         {
-                            // new1相交，并且贴边
-                            point01 = new0.PointAtEnd;
-                            point11 = curveIntersections1[0].PointA;
+                            point = event1.PointA;
+                        }
+
+                        Point3d pointTransformed = new Point3d(point);
+                        pointTransformed.Transform(transform);
+
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
+
+                        double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                        Interval interval = new Interval(0, t);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[resultSegments.Length - 1] = trimedSegment;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = trimedSegment.PointAtEnd;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[resultSegments.Length - 1] = newCurrent;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = newCurrent.PointAtEnd;
+                            }
+                        }
+                    }
+                }
+                else if (curveIntersections0.Count != 0 && curveIntersections1.Count == 0)
+                {
+                    IntersectionEvent event0;
+                    if (curveIntersections0.Count > 1)
+                    {
+                        int minIndex = 0;
+                        double min = 1 - curveIntersections0[0].ParameterA;
+                        for (int i = 0; i < curveIntersections0.Count; i++)
+                        {
+                            double pA = curveIntersections0[i].ParameterA;
+                            double delta = 1 - pA;
+                            if (delta < 0)
+                            {
+                                continue;
+                            }
+                            if (delta < min)
+                            {
+                                min = delta;
+                                minIndex = i;
+                            }
+                        }
+                        event0 = curveIntersections0[minIndex];
+                    }
+                    else
+                    {
+                        // curveIntersections0.Count == 1
+                        event0 = curveIntersections0[0];
+                    }
+
+                    if (!event0.IsOverlap)
+                    {
+                        if (event0.ParameterA < 0.5)
+                        {
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = current.PointAtEnd;
+                            }
+                            else
+                            {
+                                // 不对resultSegment做任何处理
+                            }
+                        }
+                        else
+                        {
+                            Point3d point;
+                            if (!event0.IsOverlap)
+                            {
+                                point = event0.PointA2;
+                            }
+                            else
+                            {
+                                point = event0.PointA;
+                            }
+
+                            Point3d pointTransformed = new Point3d(point);
+                            pointTransformed.Transform(transform);
+
+                            Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                            lineTransformed.Transform(transform);
+
+                            double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                            Interval interval = new Interval(0, t);
+                            trimedSegment = newCurrent.Trim(interval);
+                            if (trimedSegment != null)
+                            {
+                                resultSegments[resultSegments.Length - 1] = trimedSegment;
+
+                                if (isOnlyOneSegment)
+                                {
+                                    pointOnEnd = trimedSegment.PointAtEnd;
+                                }
+                            }
+                            else
+                            {
+                                resultSegments[resultSegments.Length - 1] = newCurrent;
+
+                                if (isOnlyOneSegment)
+                                {
+                                    pointOnEnd = newCurrent.PointAtEnd;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Point3d point;
+                        if (!event0.IsOverlap)
+                        {
+                            point = event0.PointA2;
+                        }
+                        else
+                        {
+                            point = event0.PointA;
+                        }
+
+                        Point3d pointTransformed = new Point3d(point);
+                        pointTransformed.Transform(transform);
+
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
+
+                        double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                        Interval interval = new Interval(0, t);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[resultSegments.Length - 1] = trimedSegment;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = trimedSegment.PointAtEnd;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[resultSegments.Length - 1] = newCurrent;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = newCurrent.PointAtEnd;
+                            }
                         }
                     }
                 }
                 else
                 {
-                    // 即两条线都与边界相交
+                    //todo
+                    IntersectionEvent event0;
+                    IntersectionEvent event1;
+                    if (curveIntersections0.Count > 1)
+                    {
+                        int minIndex = 0;
+                        double min = 1 - curveIntersections0[0].ParameterA;
+
+                        for (int i = 0; i < curveIntersections0.Count; i++)
+                        {
+                            double pA = curveIntersections0[i].ParameterA;
+                            double delta = 1 - pA;
+                            if (delta < 0)
+                            {
+                                continue;
+                            }
+                            if (delta < min)
+                            {
+                                min = delta;
+                                minIndex = i;
+                            }
+                        }
+
+                        event0 = curveIntersections0[minIndex];
+                    }
+                    else
+                    {
+                        event0 = curveIntersections0[0];
+                    }
+                    if (curveIntersections1.Count > 1)
+                    {
+                        int minIndex = 0;
+                        double min = 1 - curveIntersections1[0].ParameterA;
+
+                        for (int i = 0; i < curveIntersections1.Count; i++)
+                        {
+                            double pA = curveIntersections1[i].ParameterA;
+                            double delta = 1 - pA;
+                            if (delta < 0)
+                            {
+                                continue;
+                            }
+                            if (delta < min)
+                            {
+                                min = delta;
+                                minIndex = i;
+                            }
+                        }
+
+                        event1 = curveIntersections1[minIndex];
+                    }
+                    else
+                    {
+                        event1 = curveIntersections1[0];
+                    }
+
+                    Point3d point01 = Point3d.Unset;
+                    Point3d point11 = Point3d.Unset;
+
                     if (!event0.IsOverlap && !event1.IsOverlap)
                     {
                         // 即不贴边的状态
-                        point01 = event0.PointA;
-                        point11 = event1.PointA;
-                    }
-                    else
-                    {
-                        // 注意不存在同时贴边的情况
-                        if (event0.IsOverlap)
+                        if (event0.ParameterA < 0.5 && event1.ParameterA < 0.5)
                         {
-                            // new0贴边
-                            point01 = event0.PointA2;
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = current.PointAtEnd;
+                            }
+                            else
+                            {
+                                // 不对resultSegment做任何处理
+                            }
+                        }
+                        else if (event0.ParameterA < 0.5 && event1.ParameterA >= 0.5)
+                        {
                             point11 = event1.PointA;
-
+                        }
+                        else if (event0.ParameterA >= 0.5 && event1.ParameterA < 0.5)
+                        {
+                            point01 = event0.PointA;
                         }
                         else
                         {
-                            // new1贴边
                             point01 = event0.PointA;
-                            point11 = event1.PointA2;
+                            point11 = event1.PointA;
                         }
                     }
-                }
+                    else if (event0.IsOverlap && !event1.IsOverlap)
+                    {
+                        // new0贴边
+                        point01 = event0.PointA2;
+                        if (event1.ParameterA < 0.5)
+                        {
+                            point11 = Point3d.Unset;
+                        }
+                        else
+                        {
+                            point11 = event1.PointA;
+                        }
+                    }
+                    else if (!event0.IsOverlap && event1.IsOverlap)
+                    {
+                        point11 = event1.PointA2;
+                        if (event0.ParameterA < 0.5)
+                        {
+                            point01 = Point3d.Unset;
+                        }
+                        else
+                        {
+                            point01 = event0.PointA;
+                        }
+                    }
+                    else
+                    {
+                        point01 = event0.PointA;
+                        point11 = event1.PointA;
+                    }
 
-                Point3d point01Transformed = new Point3d(point01);
-                Point3d point11Transformed = new Point3d(point11);
 
-                point01Transformed.Transform(transform);
-                point11Transformed.Transform(transform);
+                    if (point01 != Point3d.Unset && point11 != Point3d.Unset)
+                    {
+                        Point3d point01Transformed = new Point3d(point01);
+                        Point3d point11Transformed = new Point3d(point11);
 
-                Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
-                lineTransformed.Transform(transform);
+                        point01Transformed.Transform(transform);
+                        point11Transformed.Transform(transform);
 
-                double t01 = lineTransformed.ClosestParameter(point01Transformed);
-                double t11 = lineTransformed.ClosestParameter(point11Transformed);
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
 
-                double tEnd;
-                if (t01 <= t11)
-                {
-                    //newCurrent.ClosestPoint(point01, out tEnd);
-                    tEnd = t01;
-                }
-                else
-                {
-                    //newCurrent.ClosestPoint(point11, out tEnd);
-                    tEnd = t11;
-                }
+                        double t01 = lineTransformed.ClosestParameter(point01Transformed);
+                        double t11 = lineTransformed.ClosestParameter(point11Transformed);
 
-                Interval interval = new Interval(0, tEnd);
-                trimedSegment = newCurrent.Trim(interval);
-                segments[segments.Length - 1] = trimedSegment;
+                        double tEnd;
+                        if (t01 <= t11)
+                        {
+                            //newCurrent.ClosestPoint(point01, out tEnd);
+                            tEnd = t01;
+                        }
+                        else
+                        {
+                            //newCurrent.ClosestPoint(point11, out tEnd);
+                            tEnd = t11;
+                        }
 
-                if (isOnlyOneSegment)
-                {
-                    pointOnEnd = trimedSegment.PointAtEnd;
+                        Interval interval = new Interval(0, tEnd);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[resultSegments.Length - 1] = trimedSegment;
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = trimedSegment.PointAtEnd;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[resultSegments.Length - 1] = newCurrent;
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = newCurrent.PointAtEnd;
+                            }
+                        }
+                    }
+                    else if (point01 == Point3d.Unset && point11 != Point3d.Unset)
+                    {
+                        Point3d pointTransformed = new Point3d(point11);
+                        pointTransformed.Transform(transform);
+
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
+
+                        double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                        Interval interval = new Interval(0, t);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[resultSegments.Length - 1] = trimedSegment;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = trimedSegment.PointAtEnd;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[resultSegments.Length - 1] = newCurrent;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = newCurrent.PointAtEnd;
+                            }
+                        }
+                    }
+                    else if (point01 != Point3d.Unset && point11 == Point3d.Unset)
+                    {
+                        Point3d pointTransformed = new Point3d(point01);
+                        pointTransformed.Transform(transform);
+
+                        Line lineTransformed = new Line(newCurrent.PointAtStart, newCurrent.PointAtEnd);
+                        lineTransformed.Transform(transform);
+
+                        double t = lineTransformed.ClosestParameter(pointTransformed);
+
+                        Interval interval = new Interval(0, t);
+                        trimedSegment = newCurrent.Trim(interval);
+                        if (trimedSegment != null)
+                        {
+                            resultSegments[resultSegments.Length - 1] = trimedSegment;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = trimedSegment.PointAtEnd;
+                            }
+                        }
+                        else
+                        {
+                            resultSegments[resultSegments.Length - 1] = newCurrent;
+
+                            if (isOnlyOneSegment)
+                            {
+                                pointOnEnd = newCurrent.PointAtEnd;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (isOnlyOneSegment)
+                        {
+                            pointOnEnd = current.PointAtEnd;
+                        }
+                        else
+                        {
+                            // 不对resultSegment做任何处理
+                        }
+                    }
+
                 }
             }
-            #endregion
 
             if (isOnlyOneSegment)
             {
-                segments[0] = new Line(pointOnStart, pointOnEnd).ToNurbsCurve();
-
-                return segments[0];
+                resultSegments[0] = new Line(pointOnStart, pointOnEnd).ToNurbsCurve();
+                return resultSegments[0];
             }
             else
             {
-                Curve[] crvs = Curve.JoinCurves(segments);
-
+                Curve[] crvs = Curve.JoinCurves(resultSegments);
                 return crvs[0];
             }
         }
@@ -5420,14 +6316,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
 
             // Temp
-            //for (int i = 0; i < SCrvForShowList.Count; i++)
-            //{
-            //    args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
-            //}
-            //for (int i = 0; i < NCrvForShowList.Count; i++)
-            //{
-            //    args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
-            //}
+            for (int i = 0; i < SCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
+            }
+            for (int i = 0; i < NCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
+            }
             //for (int i = 0; i < ECrvForShowList.Count; i++)
             //{
             //    args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
@@ -5436,10 +6332,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             //{
             //    args.Display.DrawCurve(WCrvForShowList[i], Color.Yellow, 2);
             //}
-            for (int i = 0; i < GapCenterLineList.Count; i++)
-            {
-                args.Display.DrawCurve(GapCenterLineList[i], Color.Black, 3);
-            }
+            //for (int i = 0; i < GapCenterLineList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(GapCenterLineList[i], Color.Black, 3);
+            //}
 
             //for (int i = 0; i < SBCrvForShowList.Count; i++)
             //{
@@ -5489,14 +6385,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
 
             // Temp
-            //for (int i = 0; i < SCrvForShowList.Count; i++)
-            //{
-            //    args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
-            //}
-            //for (int i = 0; i < NCrvForShowList.Count; i++)
-            //{
-            //    args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
-            //}
+            for (int i = 0; i < SCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
+            }
+            for (int i = 0; i < NCrvForShowList.Count; i++)
+            {
+                args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
+            }
             //for (int i = 0; i < ECrvForShowList.Count; i++)
             //{
             //    args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
@@ -5505,10 +6401,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             //{
             //    args.Display.DrawCurve(WCrvForShowList[i], Color.Yellow, 2);
             //}
-            for (int i = 0; i < GapCenterLineList.Count; i++)
-            {
-                args.Display.DrawCurve(GapCenterLineList[i], Color.Black, 3);
-            }
+            //for (int i = 0; i < GapCenterLineList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(GapCenterLineList[i], Color.Black, 3);
+            //}
 
             //for (int i = 0; i < SBCrvForShowList.Count; i++)
             //{
