@@ -280,6 +280,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         #endregion
 
+
         #region 求解不定方程
 
         private static int Exgcd(int m, int n, ref int x , ref int y)

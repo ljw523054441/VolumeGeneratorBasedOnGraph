@@ -68,6 +68,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class\BilinearCell.cs" />
+    <Compile Include="Class\Building.cs" />
     <Compile Include="Class\Cell.cs" />
     <Compile Include="Class\clipper_library.cs" />
     <Compile Include="Class\ConvexPolygon.cs" />

@@ -13,9 +13,6 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public Line HCenterBaseLine { get; set; } = Line.Unset;
         public Line VCenterBaseLine { get; set; } = Line.Unset;
 
-        //public List<Line> HLines { get; set; }
-        //public List<Line> VLines { get; set; }
-
         public List<Interval> HCenter_Interval { get; set; }
         public List<Interval> VCenter_Interval { get; set; }
 
@@ -33,9 +30,10 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public int BoundaryBaseLineCount { get; set; }
         public int CenterBaseLineCount { get; set; }
 
-        List<List<double>> KeyPointTLoL { get; set; }
+        //Polyline polylineForSingleRegion { get; set; }
 
-        List<List<bool>> KeyPointTypeLoL { get; set; }
+        // south:0;east:1;north:2;west:3
+        //List<int> WhichBoundaryToOffset { get; set; }
 
         public enum BilinearShapeType
         {
@@ -50,6 +48,110 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public BilinearShapeType ShapeType { get; set; }
 
+        public BilinearCell(BilinearCell source)
+        {
+            #region baseLine
+            this.SouthBaseLine = source.SouthBaseLine;
+            this.NorthBaseLine = source.NorthBaseLine;
+            this.WestBaseLine = source.WestBaseLine;
+            this.EastBaseLine = source.EastBaseLine;
+
+            this.HCenterBaseLine = source.HCenterBaseLine;
+            this.VCenterBaseLine = source.VCenterBaseLine;
+            #endregion
+
+            #region interval
+            if (source.South_Interval == null)
+            {
+                this.South_Interval = null;
+            }
+            else
+            {
+                this.South_Interval = new List<Interval>();
+                this.South_Interval.AddRange(source.South_Interval);
+            }
+            if (source.North_Interval == null)
+            {
+                this.North_Interval = null;
+            }
+            else
+            {
+                this.North_Interval = new List<Interval>();
+                this.North_Interval.AddRange(source.North_Interval);
+            }
+            if (source.West_Interval == null)
+            {
+                this.West_Interval = null;
+            }
+            else
+            {
+                this.West_Interval = new List<Interval>();
+                this.West_Interval.AddRange(source.West_Interval);
+            }
+            if (source.East_Interval == null)
+            {
+                this.East_Interval = null;
+            }
+            else
+            {
+                this.East_Interval = new List<Interval>();
+                this.East_Interval.AddRange(source.East_Interval);
+            }
+
+            if (source.HCenter_Interval == null)
+            {
+                this.HCenter_Interval = null;
+            }
+            else
+            {
+                this.HCenter_Interval = new List<Interval>();
+                this.HCenter_Interval.AddRange(source.HCenter_Interval);
+            }
+            if (source.VCenter_Interval == null)
+            {
+                this.VCenter_Interval = null;
+            }
+            else
+            {
+                this.VCenter_Interval = new List<Interval>();
+                this.VCenter_Interval.AddRange(source.VCenter_Interval);
+            }
+            #endregion
+
+            this.CenterTValue = source.CenterTValue;
+            this.MainVolumeDirection = source.MainVolumeDirection;
+
+            this.ShapeType = source.ShapeType;
+            this.BoundaryBaseLineCount = source.BoundaryBaseLineCount;
+            this.CenterBaseLineCount = source.CenterBaseLineCount;
+
+            if (source.CellBoundary == null)
+            {
+                this.CellBoundary = null;
+            }
+            else
+            {
+                this.CellBoundary = source.CellBoundary.DuplicateCurve();
+            }
+
+            if (source.CellBreps == null)
+            {
+                this.CellBreps = null;
+            }
+            else
+            {
+                this.CellBreps = new Brep[source.CellBreps.Length];
+                for (int i = 0; i < source.CellBreps.Length; i++)
+                {
+                    this.CellBreps[i] = source.CellBreps[i].DuplicateBrep();
+                }
+            }
+
+            this.PublicBaseLineIndex = source.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = source.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(source.TurningPoint);
+        }
+
         public BilinearCell(Curve southLine, 
                             Curve northLine, 
                             Curve westLine, 
@@ -59,19 +161,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
                             Curve northBoundary,
                             Curve westBoundary,
                             Curve eastBoundary,
-
-                            //double w, 
-                            int i, 
-                            int j)
+                            
+                            int turningPointIndex)
         {
-            #region index
-            this.CurrentIndex = new int[2] { i, j };
-            this.PrevSouthIndex = new int[2] { i - 1, j };
-            this.NexNorthIndex = new int[2] { i + 1, j };
-            this.PrevWestIndex = new int[2] { i, j - 1 };
-            this.NexEastIndex = new int[2] { i, j + 1 };
-            #endregion
-
             #region baseLine
             int count = 0;
             if (southLine != null)
@@ -152,6 +244,26 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CellBoundary = joinedCrv[0];
 
             #endregion
+
+            Polyline poly;
+            this.CellBoundary.TryGetPolyline(out poly);
+            if (turningPointIndex == 0)
+            {
+                this.TurningPoint = poly[0];
+            }
+            else if (turningPointIndex == 1)
+            {
+                this.TurningPoint = poly[1];
+            }
+            else if (turningPointIndex == 2)
+            {
+                this.TurningPoint = poly[2];
+            }
+            else
+            {
+                this.TurningPoint = poly[3];
+            }
+
         }
 
         /// <summary>
@@ -163,16 +275,15 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="eastLine"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
-        public BilinearCell(Curve boundary, Curve southLine,Curve northLine, Curve westLine, Curve eastLine,int i,int j)
+        public BilinearCell(Curve boundary, 
+                            Curve southLine,
+                            Curve northLine, 
+                            Curve westLine, 
+                            Curve eastLine,
+                            int publicBaseLineIndex,
+                            int anotherBaseLineIndexRelatedToCutPoint,
+                            Point3d turningPoint)
         {
-            #region index
-            this.CurrentIndex = new int[2] { i, j };
-            this.PrevSouthIndex = new int[2] { i - 1, j };
-            this.NexNorthIndex = new int[2] { i + 1, j };
-            this.PrevWestIndex = new int[2] { i, j - 1 };
-            this.NexEastIndex = new int[2] { i, j + 1 };
-            #endregion
-
             #region baseLine 和 interval
             int count = 0;
             if (southLine != null)
@@ -219,6 +330,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 #region CellBoundary
                 this.CellBoundary = boundary.DuplicateCurve();
                 #endregion
+
+                this.TurningPoint = new Point3d(turningPoint);
             }
             else
             {
@@ -230,6 +343,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 #region CellBoundary
                 this.CellBoundary = boundary.DuplicateCurve();
                 #endregion
+
+                this.PublicBaseLineIndex = publicBaseLineIndex;
+                this.AnotherBaseLineIndexRelatedToCutPoint = anotherBaseLineIndexRelatedToCutPoint;
+
+                this.TurningPoint = new Point3d(turningPoint);
             }
         }
 
@@ -243,17 +361,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
                             Curve westBoundary,
                             Curve eastBoundary,
 
-                            int i, 
-                            int j)
+                            int turningPointIndex)
         {
-            #region index
-            this.CurrentIndex = new int[2] { i, j };
-            this.PrevSouthIndex = new int[2] { i - 1, j };
-            this.NexNorthIndex = new int[2] { i + 1, j };
-            this.PrevWestIndex = new int[2] { i, j - 1 };
-            this.NexEastIndex = new int[2] { i, j + 1 };
-            #endregion
-
             #region baseLine
             int centerCount = 0;
             int count = 0;
@@ -322,6 +431,25 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CellBoundary = joinedCrv[0];
 
             #endregion
+
+            Polyline poly;
+            this.CellBoundary.TryGetPolyline(out poly);
+            if (turningPointIndex == 0)
+            {
+                this.TurningPoint = poly[0];
+            }
+            else if (turningPointIndex == 1)
+            {
+                this.TurningPoint = poly[1];
+            }
+            else if (turningPointIndex == 2)
+            {
+                this.TurningPoint = poly[2];
+            }
+            else
+            {
+                this.TurningPoint = poly[3];
+            }
         }
 
         /// <summary>
@@ -332,16 +460,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="t"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
-        private BilinearCell(BilinearCell initialCell, bool isSouthNorth, double t, int i, int j)
+        private BilinearCell(BilinearCell initialCell, bool isSouthNorth, double t)
         {
-            #region index
-            this.CurrentIndex = new int[2] { i, j };
-            this.PrevSouthIndex = new int[2] { i - 1, j };
-            this.NexNorthIndex = new int[2] { i + 1, j };
-            this.PrevWestIndex = new int[2] { i, j - 1 };
-            this.NexEastIndex = new int[2] { i, j + 1 };
-            #endregion
-
             #region Interval
             if (isSouthNorth)
             {
@@ -449,16 +569,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="directionCode"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
-        private BilinearCell(BilinearCell initialCell, int directionCode, int i, int j)
+        private BilinearCell(BilinearCell initialCell, int directionCode)
         {
-            #region index
-            this.CurrentIndex = new int[2] { i, j };
-            this.PrevSouthIndex = new int[2] { i - 1, j };
-            this.NexNorthIndex = new int[2] { i + 1, j };
-            this.PrevWestIndex = new int[2] { i, j - 1 };
-            this.NexEastIndex = new int[2] { i, j + 1 };
-            #endregion
-
             #region Interval
             switch (directionCode)
             {
@@ -584,16 +696,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="initialCell"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
-        private BilinearCell(BilinearCell initialCell, int i, int j)
+        private BilinearCell(BilinearCell initialCell, BilinearShapeType typeForRec)
         {
-            #region index
-            this.CurrentIndex = new int[2] { i, j };
-            this.PrevSouthIndex = new int[2] { i - 1, j };
-            this.NexNorthIndex = new int[2] { i + 1, j };
-            this.PrevWestIndex = new int[2] { i, j - 1 };
-            this.NexEastIndex = new int[2] { i, j + 1 };
-            #endregion
-
             #region Interval
             this.South_Interval = new List<Interval>();
             if (initialCell.South_Interval == null)
@@ -653,16 +757,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         /// <param name="t"></param>
         /// <param name="i"></param>
         /// <param name="j"></param>
-        private BilinearCell(BilinearCell initialCell ,double t, int i, int j)
+        private BilinearCell(BilinearCell initialCell ,double t)
         {
-            #region index
-            this.CurrentIndex = new int[2] { i, j };
-            this.PrevSouthIndex = new int[2] { i - 1, j };
-            this.NexNorthIndex = new int[2] { i + 1, j };
-            this.PrevWestIndex = new int[2] { i, j - 1 };
-            this.NexEastIndex = new int[2] { i, j + 1 };
-            #endregion
-
             #region interval
             this.South_Interval = new List<Interval>();
             if (initialCell.South_Interval == null)
@@ -720,7 +816,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             #endregion
         }
 
-        public BilinearCell GenerateIAndIVariantShape(int randomT,int directionCode, double w)
+        public BilinearCell GenerateIAndIVariantShape(double randomT,int directionCode, double w)
         {
             BilinearCell newGeneratedCell;
             if (this.ShapeType == BilinearShapeType.IShape)
@@ -732,7 +828,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 double tMax = (length - w) / length;
                 double t = Math.Abs(tMin + (tMax - tMin) * randomT);
 
-                newGeneratedCell = new BilinearCell(this, false, t, this.CurrentIndex[0], this.CurrentIndex[1]);
+                newGeneratedCell = new BilinearCell(this, false, t);
             }
             else if (this.ShapeType == BilinearShapeType.CShape)
             {
@@ -751,7 +847,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     double tMax = (length - w) / length;
                     double t = Math.Abs(tMin + (tMax - tMin) * randomT);
 
-                    newGeneratedCell = new BilinearCell(this, true, t, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, true, t);
                 }
                 else
                 {
@@ -763,13 +859,13 @@ namespace VolumeGeneratorBasedOnGraph.Class
                     double tMax = (length - w) / length;
                     double t = Math.Abs(tMin + (tMax - tMin) * randomT);
 
-                    newGeneratedCell = new BilinearCell(this, false, t, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, false, t);
                 }
             }
             return newGeneratedCell;
         }
 
-        public BilinearCell GenerateCAndCVariantShape(int randomT,int directionCode, double w)
+        public BilinearCell GenerateCAndCVariantShape(double randomT,int directionCode, double w)
         {
             BilinearCell newGeneratedCell;
             if (this.ShapeType == BilinearShapeType.IShape)
@@ -781,19 +877,19 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 if (this.SouthBaseLine != Line.Unset)
                 {
-                    newGeneratedCell = new BilinearCell(this, 0, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, 0);
                 }
                 else if (this.NorthBaseLine != Line.Unset)
                 {
-                    newGeneratedCell = new BilinearCell(this, 1, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, 1);
                 }
                 else if (this.WestBaseLine != Line.Unset)
                 {
-                    newGeneratedCell = new BilinearCell(this, 2, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, 2);
                 }
                 else
                 {
-                    newGeneratedCell = new BilinearCell(this, 3, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, 3);
                 }
             }
             else
@@ -801,26 +897,26 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 switch (directionCode)
                 {
                     case 0:
-                        newGeneratedCell = new BilinearCell(this, 0, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 0);
                         break;
                     case 1:
-                        newGeneratedCell = new BilinearCell(this, 1, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 1);
                         break;
                     case 2:
-                        newGeneratedCell = new BilinearCell(this, 2, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 2);
                         break;
                     case 3:
-                        newGeneratedCell = new BilinearCell(this, 3, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 3);
                         break;
                     default:
-                        newGeneratedCell = new BilinearCell(this, 0, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, 0);
                         break;
                 }
             }
             return newGeneratedCell;
         }
 
-        public BilinearCell GenerateRecAndRecVariantShape(int randomT, int directionCode, double lMin, double w, bool flag)
+        public BilinearCell GenerateRecAndRecVariantShape(double randomT, int directionCode, double lMin, double w, bool flag)
         {
             BilinearCell newGeneratedCell;
             if (this.ShapeType == BilinearShapeType.IShape)
@@ -838,14 +934,14 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 if (directionCode < 2)
                 {
                     // 执行GenerateRecShape函数
-                    newGeneratedCell = new BilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                    newGeneratedCell = new BilinearCell(this, BilinearShapeType.RecShape);
                 }
                 else
                 {
                     if (flag)
                     {
                         // 执行GenerateRecShape函数
-                        newGeneratedCell = new BilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                        newGeneratedCell = new BilinearCell(this, BilinearShapeType.RecShape);
                     }
                     else
                     {
@@ -860,17 +956,210 @@ namespace VolumeGeneratorBasedOnGraph.Class
                             double t1 = (w + 0.5 * deltaW) / length;
                             double t = t0 + (t1 - t0) * randomT;
 
-                            newGeneratedCell = new BilinearCell(this, t, this.CurrentIndex[0], this.CurrentIndex[1]);
+                            newGeneratedCell = new BilinearCell(this, t);
                         }
                         else
                         {
                             // 执行GenerateRecShape函数
-                            newGeneratedCell = new BilinearCell(this, this.CurrentIndex[0], this.CurrentIndex[1]);
+                            newGeneratedCell = new BilinearCell(this, BilinearShapeType.RecShape);
                         }
                     }
                 }
             }
             return newGeneratedCell;
+        }
+
+        public BilinearCell GenerateRemovedCShapeOrIShapeOrSinglePolyline()
+        {
+            if (this.ShapeType != BilinearShapeType.SinglePolyline 
+                || this.ShapeType != BilinearShapeType.IShape
+                || this.ShapeType != BilinearShapeType.CShape)
+            {
+                return this;
+            }
+            else
+            {
+                if (this.ShapeType == BilinearShapeType.SinglePolyline)
+                {
+                    // 去掉非连接的那一条
+                    if (AnotherBaseLineIndexRelatedToCutPoint == 0)
+                    {
+                        this.South_Interval = new List<Interval>();
+                    }
+                    else if (AnotherBaseLineIndexRelatedToCutPoint == 1)
+                    {
+                        this.East_Interval = new List<Interval>();
+                    }
+                    else if (AnotherBaseLineIndexRelatedToCutPoint == 2)
+                    {
+                        this.North_Interval = new List<Interval>();
+                    }
+                    else
+                    {
+                        this.West_Interval = new List<Interval>();
+                    }
+                }
+                else if (this.ShapeType == BilinearShapeType.CShape)
+                {
+                    // 去掉中间的那一条
+                    if (this.South_Interval.Count == 0)
+                    {
+                        this.North_Interval = new List<Interval>();
+                    }
+                    else if (this.East_Interval.Count == 0)
+                    {
+                        this.West_Interval = new List<Interval>();
+                    }
+                    else if (this.North_Interval.Count == 0)
+                    {
+                        this.South_Interval = new List<Interval>();
+                    }
+                    else
+                    {
+                        this.East_Interval = new List<Interval>();
+                    }
+                }
+                else
+                {
+                    // 去掉中间的那一条
+                    if (this.HCenter_Interval.Count == 1)
+                    {
+                        this.HCenter_Interval = new List<Interval>();
+                    }
+                    if (this.VCenter_Interval.Count == 1)
+                    {
+                        this.VCenter_Interval = new List<Interval>();
+                    }
+                }
+                return this;
+            }
+        }
+
+        public BilinearCell GenerateOffsetedSingleRegion(double scaleFactor)
+        {
+            if (this.ShapeType != BilinearShapeType.SingleRegion)
+            {
+                return this;
+            }
+            else
+            {
+
+                //if (this.PublicBaseLineIndex == -1 && this.AnotherBaseLineIndexRelatedToCutPoint == -1)
+                //{
+                //    this.PublicBaseLineIndex = randomIndex;
+                //    this.AnotherBaseLineIndexRelatedToCutPoint = (randomIndex + 1) % 4;
+                //}
+
+                //int index0ForBLPublic = this.PublicBaseLineIndex;
+                //int index1ForBLPublic = this.AnotherBaseLineIndexRelatedToCutPoint;
+                //int index0ForBLNeedToOffset = (this.PublicBaseLineIndex + 2) % 4;
+                //int index1ForBLNeedToOffset = (this.AnotherBaseLineIndexRelatedToCutPoint + 2) % 4;
+
+                //#region 对于index0ForBLPublic
+                //Line line0Public = Line.Unset;
+                //if (index0ForBLPublic == 0)
+                //{
+                //    line0Public = this.SouthBaseLine;
+                //}
+                //else if (index0ForBLPublic == 1)
+                //{
+                //    line0Public = this.EastBaseLine;
+                //}
+                //else if (index0ForBLPublic == 2)
+                //{
+                //    line0Public = this.NorthBaseLine;
+                //}
+                //else
+                //{
+                //    line0Public = this.WestBaseLine;
+                //}
+                //#endregion
+
+                //#region 对于index1ForBLPublic
+                //Line line1Public = Line.Unset;
+                //if (index1ForBLPublic == 0)
+                //{
+                //    line1Public = this.SouthBaseLine;
+                //}
+                //else if (index1ForBLPublic == 1)
+                //{
+                //    line1Public = this.EastBaseLine;
+                //}
+                //else if (index1ForBLPublic == 2)
+                //{
+                //    line1Public = this.NorthBaseLine;
+                //}
+                //else
+                //{
+                //    line1Public = this.WestBaseLine;
+                //}
+                //#endregion
+
+                //#region 对于index0ForBLNeedToOffset
+                //Line line0 = Line.Unset;
+                //if (index0ForBLNeedToOffset == 0)
+                //{
+                //    line0 = this.SouthBaseLine;
+                //}
+                //else if (index0ForBLNeedToOffset == 1)
+                //{
+                //    line0 = this.EastBaseLine;
+                //}
+                //else if (index0ForBLNeedToOffset == 2)
+                //{
+                //    line0 = this.NorthBaseLine;
+                //}
+                //else
+                //{
+                //    line0 = this.WestBaseLine;
+                //}
+                //#endregion
+
+                //#region 对于index1ForBLNeedToOffset
+                //Line line1 = Line.Unset;
+                //if (index1ForBLNeedToOffset == 0)
+                //{
+                //    line1 = this.SouthBaseLine;
+                //}
+                //else if (index1ForBLNeedToOffset == 1)
+                //{
+                //    line1 = this.EastBaseLine;
+                //}
+                //else if (index1ForBLNeedToOffset == 2)
+                //{
+                //    line1 = this.NorthBaseLine;
+                //}
+                //else
+                //{
+                //    line1 = this.WestBaseLine;
+                //}
+                //#endregion
+
+                //#region offsetedIndex0
+                //Vector3d vec = line0.Direction;
+                //Vector3d verticalVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+                //verticalVec.Unitize();
+                //verticalVec *= offset0;
+                //Line offsetdLine0 = new Line(line0.From + verticalVec, line0.To + verticalVec);
+                //#endregion
+                //#region offsetedIndex1
+                //vec = line1.Direction;
+                //verticalVec = new Vector3d(-vec.Y, vec.X, vec.Z);
+                //verticalVec.Unitize();
+                //verticalVec *= offset1;
+                //#endregion
+
+                Transform transform = Transform.Scale(this.TurningPoint, scaleFactor);
+                Curve crv = this.CellBoundary.DuplicateCurve();
+                crv.Transform(transform);
+                Curve[] segments = crv.DuplicateSegments();
+                this.SouthBaseLine = new Line(segments[0].PointAtStart, segments[0].PointAtEnd);
+                this.EastBaseLine = new Line(segments[1].PointAtStart, segments[1].PointAtEnd);
+                this.NorthBaseLine = new Line(segments[2].PointAtEnd, segments[2].PointAtStart);
+                this.WestBaseLine = new Line(segments[3].PointAtEnd, segments[3].PointAtStart);
+
+                return this;
+            }
         }
 
         private int GetBoundaryBaseLinesCount()
@@ -1181,6 +1470,30 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 factors.Add(factor);
             }
             return factors;
+        }
+
+        public override double GetAllHCurveLength(out int hCount)
+        {
+            double hLength = 0;
+            List<Curve> hCurves = this.GetAllHorizontal();
+            hCount = hCurves.Count;
+            for (int i = 0; i < hCurves.Count; i++)
+            {
+                hLength += hCurves[i].GetLength();
+            }
+            return hLength;
+        }
+
+        public override double GetAllVCurveLength(out int vCount)
+        {
+            double vLength = 0;
+            List<Curve> vCurves = this.GetAllVertical();
+            vCount = vCurves.Count;
+            for (int i = 0; i < vCurves.Count; i++)
+            {
+                vLength += vCurves[i].GetLength();
+            }
+            return vLength;
         }
     }
 }

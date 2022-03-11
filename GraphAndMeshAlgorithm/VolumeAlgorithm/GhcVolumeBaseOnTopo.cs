@@ -413,17 +413,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 #endregion
 
                 #region 根据DFace的所在方位，确定每个BS要退线的距离，并为BS设置在哪个方位的标签
-                //List<List<double>> allFaceBSSetBack = new List<List<double>>();
-                //for (int i = 0; i < allFaceBS.Count; i++)
-                //{
-                //    allFaceBSSetBack.Add(new List<double>());
-                //}
-
                 for (int i = 0; i < innerNodeCount; i++)
                 {
                     int dFIndex = dFIndex_PVIndex.IndexOf(i);
-
-                    //allFaceBSSetBack.Add(new List<double>());
 
                     List<BoundarySegment> outerBS = new List<BoundarySegment>();
                     int count = 0;
@@ -505,7 +497,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 List<Polyline> innerResultPolylines;
                 List<List<BoundarySegment>> newAllFaceBS = OffsetBS(allFaceBS,
                                                                     facePolylines,
-                                                                    out innerResultPolylines); 
+                                                                    out innerResultPolylines);
                 #endregion
                 DA.SetDataList("SetBack Polyline", innerResultPolylines);
 
@@ -531,35 +523,36 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 EBCrvForShowList.Clear();
                 WBCrvForShowList.Clear();
 
-                AllBlockCellBoundaryDT.Clear();
+                AllBlockCellBoundaryDT.ClearData();
                 //AllBlockCellBoundaryDT2.Clear();
 
-                DataTree<Brep> allBlockBrepDT = new DataTree<Brep>();
+                
                 DataTree<Curve> allBlockHCurvesDT = new DataTree<Curve>();
                 DataTree<Curve> allBlockVCurvesDT = new DataTree<Curve>();
                 DataTree<Polyline> allBlockContourDT = new DataTree<Polyline>();
                 DataTree<Polyline> allBlockHoleDT = new DataTree<Polyline>();
 
                 DataTree<Curve> allBlockCellBoundaryDT = new DataTree<Curve>();
-                //DataTree<Curve> allBlockCellBoundaryDT2 = new DataTree<Curve>();
 
+                DataTree<Cell> allBlockBasicCellDT = new DataTree<Cell>();
 
-                DataTree<Cell> allBlockCellDT = new DataTree<Cell>();
-
+                DataTree<Polyline> allBlockPolylineDT = new DataTree<Polyline>();
 
                 List<bool> isBlockSplitedList = new List<bool>();
                 for (int i = 0; i < newAllFaceBS.Count; i++)
                 {
                     #region 向path中添加第一层大Block层级的序号
-                    GH_Path ghPathForBrep = new GH_Path(i);
+                    //GH_Path ghPathForBrep = new GH_Path(i);
                     GH_Path ghPathForHCurve = new GH_Path(i);
                     GH_Path ghPathForVCurve = new GH_Path(i);
                     GH_Path ghPathForContour = new GH_Path(i);
                     GH_Path ghPathForHole = new GH_Path(i);
 
                     GH_Path ghPathForCellBoundary = new GH_Path(i);
-                    //GH_Path ghPathForCellBoundary2 = new GH_Path(i);
+
                     GH_Path ghPathForCell = new GH_Path(i);
+
+                    GH_Path ghPathForBlockPolyline = new GH_Path(i);
                     #endregion
 
                     bool isHorizontalLayout;
@@ -570,26 +563,22 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     List<bool> isGenerateables;
                     // todo:根据BS的属性（两个Face相连的BS的setback值），来生成 List<bool> isGenerateables
 
-                    //Curve sCrvForShow = null;
-                    //Curve nCrvForShow = null;
-                    //Curve eCrvForShow = null;
-                    //Curve wCrvForShow = null;
-                    //List<Curve> gap = new List<Curve>();
                     if (sortedBoundaryPolyline.Count == 5)
                     {
                         isBlockSplitedList.Add(false);
-                        
+
                         #region 向path中添加第二层小Block层级的序号
-                        ghPathForBrep = ghPathForBrep.AppendElement(0);
+                        //ghPathForBrep = ghPathForBrep.AppendElement(0);
                         ghPathForHCurve = ghPathForHCurve.AppendElement(0);
                         ghPathForVCurve = ghPathForVCurve.AppendElement(0);
                         ghPathForContour = ghPathForContour.AppendElement(0);
                         ghPathForHole = ghPathForHole.AppendElement(0);
 
                         ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(0);
-                        //ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(0);
+
                         ghPathForCell = ghPathForCell.AppendElement(0);
 
+                        ghPathForBlockPolyline = ghPathForBlockPolyline.AppendElement(0);
                         #endregion
 
                         #region isGenerateables控制
@@ -617,22 +606,19 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                         List<List<Curve>> cellBoundaryLoL;
 
-                        //DataTree<Curve> horizontalCellBoundary;
-                        //DataTree<Curve> verticalCellBoundary;
-
-                        List<List<Cell>> cellLoL = GenerateVolumeBaseLine(w, 
-                                                                                W, 
-                                                                                lMin, 
-                                                                                lMax, 
-                                                                                d, 
-                                                                                isJitter, 
+                        List<List<Cell>> cellLoL = GenerateVolumeBaseLine(w,
+                                                                                W,
+                                                                                lMin,
+                                                                                lMax,
+                                                                                d,
+                                                                                isJitter,
 
                                                                                 false,
                                                                                 Point3d.Unset,
 
-                                                                                out hCurveLoL, 
-                                                                                out vCurveLoL, 
-                                                                                out contourLoL, 
+                                                                                out hCurveLoL,
+                                                                                out vCurveLoL,
+                                                                                out contourLoL,
                                                                                 out holeLoL,
 
                                                                                 out southBaseLineForShow,
@@ -649,11 +635,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                                                                                 out cellBoundaryLoL,
 
-                                                                                //out horizontalCellBoundary,
-                                                                                //out verticalCellBoundary,
-
-                                                                                sortedBoundaryPolyline, 
-                                                                                lineForEachEdge, 
+                                                                                sortedBoundaryPolyline,
+                                                                                lineForEachEdge,
                                                                                 isGenerateables);
 
                         // Temp
@@ -670,32 +653,16 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         GapCenterLineList.AddRange(gap);
 
                         #region output dataTree
-                        //allBlockBrepDT.EnsurePath(ghPathForBrep);
-                        //allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL);
+                        allBlockPolylineDT.EnsurePath(ghPathForBlockPolyline);
+                        allBlockPolylineDT.Branch(ghPathForBlockPolyline).Add(sortedBoundaryPolyline);
 
                         for (int j = 0; j < cellLoL.Count; j++)
                         {
                             ghPathForCell = ghPathForCell.AppendElement(j);
-                            allBlockCellDT.EnsurePath(ghPathForCell);
-                            allBlockCellDT.Branch(ghPathForCell).AddRange(cellLoL[j]);
+                            allBlockBasicCellDT.EnsurePath(ghPathForCell);
+                            allBlockBasicCellDT.Branch(ghPathForCell).AddRange(cellLoL[j]);
                             ghPathForCell = ghPathForCell.CullElement();
                         }
-
-
-                        //for (int j = 0; j < brepLoL.Count; j++)
-                        //{
-                        //    ghPathForBrep = ghPathForBrep.AppendElement(j);
-                        //    for (int k = 0; k < brepLoL[j].Count; k++)
-                        //    {
-                        //        
-
-                        //        allBlockBrepDT.EnsurePath(ghPathForBrep);
-                        //        allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL[j][k]);
-
-                        //        ghPathForBrep = ghPathForBrep.CullElement();
-                        //    }
-                        //    ghPathForBrep = ghPathForBrep.CullElement();
-                        //}
 
                         for (int j = 0; j < hCurveLoL.Count; j++)
                         {
@@ -742,12 +709,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             ghPathForContour = ghPathForContour.CullElement();
                         }
 
-                        //allBlockContourDT.EnsurePath(ghPathForContour);
-                        //allBlockContourDT.Branch(ghPathForContour).AddRange(contourLoL);
-
-                        //allBlockHoleDT.EnsurePath(ghPathForHole);
-                        //allBlockHoleDT.Branch(ghPathForHole).AddRange(holeLoL);
-
                         for (int j = 0; j < holeLoL.Count; j++)
                         {
                             ghPathForHole = ghPathForHole.AppendElement(j);
@@ -776,43 +737,20 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
                             }
                         }
-                        //for (int k = 0; k < verticalCellBoundary.BranchCount; k++)
-                        //{
-                        //    ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(k);
-                        //    for (int l = 0; l < verticalCellBoundary.Branch(k).Count; l++)
-                        //    {
-                        //        ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(l);
-                        //        allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
-                        //        allBlockCellBoundaryDT.Branch(ghPathForCellBoundary).Add(verticalCellBoundary.Branch(k)[l]);
-                        //        ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
-                        //    }
-                        //    ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
-                        //}
-
-                        //for (int k = 0; k < horizontalCellBoundary.BranchCount; k++)
-                        //{
-                        //    ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(k);
-                        //    for (int l = 0; l < horizontalCellBoundary.Branch(k).Count; l++)
-                        //    {
-                        //        ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(l);
-                        //        allBlockCellBoundaryDT2.EnsurePath(ghPathForCellBoundary2);
-                        //        allBlockCellBoundaryDT2.Branch(ghPathForCellBoundary2).Add(horizontalCellBoundary.Branch(k)[l]);
-                        //        ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
-                        //    }
-                        //    ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
-                        //}
                         #endregion
 
                         #region 清除当前第二层级的序号
-                        ghPathForBrep = ghPathForBrep.CullElement();
+                        //ghPathForBrep = ghPathForBrep.CullElement();
                         ghPathForHCurve = ghPathForHCurve.CullElement();
                         ghPathForVCurve = ghPathForVCurve.CullElement();
                         ghPathForContour = ghPathForContour.CullElement();
                         ghPathForHole = ghPathForHole.CullElement();
 
                         ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
-                        //ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
+
                         ghPathForCell = ghPathForCell.CullElement();
+
+                        ghPathForBlockPolyline = ghPathForBlockPolyline.CullElement();
                         #endregion
                     }
                     else
@@ -828,15 +766,17 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         for (int j = 0; j < splitedPolylines.Count; j++)
                         {
                             #region 向path中添加第二层小Block层级的序号
-                            ghPathForBrep = ghPathForBrep.AppendElement(j);
+                            //ghPathForBrep = ghPathForBrep.AppendElement(j);
                             ghPathForHCurve = ghPathForHCurve.AppendElement(j);
                             ghPathForVCurve = ghPathForVCurve.AppendElement(j);
                             ghPathForContour = ghPathForContour.AppendElement(j);
                             ghPathForHole = ghPathForHole.AppendElement(j);
 
-                            ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(0);
-                            //ghPathForCellBoundary2 = ghPathForCellBoundary.AppendElement(0);
-                            ghPathForCell = ghPathForCell.AppendElement(0);
+                            ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(j);
+
+                            ghPathForCell = ghPathForCell.AppendElement(j);
+
+                            ghPathForBlockPolyline = ghPathForBlockPolyline.AppendElement(j);
                             #endregion
 
                             if (splitedPolylines[j].Count == 5)
@@ -860,9 +800,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 List<Curve> gap;
 
                                 List<List<Curve>> cellBoundaryLoL;
-
-                                //DataTree<Curve> horizontalCellBoundary;
-                                //DataTree<Curve> verticalCellBoundary;
 
                                 List<List<Cell>> cellLoL = GenerateVolumeBaseLine(w,
                                                                              W,
@@ -893,9 +830,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                                                                              out cellBoundaryLoL,
 
-                                                                             //out horizontalCellBoundary,
-                                                                             //out verticalCellBoundary,
-
                                                                              splitedPolylines[j],
                                                                              newLineforEachEdgeLoL[j],
                                                                              isGenerateablesLoL[j]);
@@ -914,29 +848,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 GapCenterLineList.AddRange(gap);
 
                                 #region output dataTree
-                                //allBlockBrepDT.EnsurePath(ghPathForBrep);
-                                //allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL);
-
-                                //for (int k = 0; k < brepLoL.Count; k++)
-                                //{
-                                //    ghPathForBrep = ghPathForBrep.AppendElement(k);
-                                //    for (int l = 0; l < brepLoL[k].Count; l++)
-                                //    {
-                                //        ghPathForBrep = ghPathForBrep.AppendElement(l);
-
-                                //        allBlockBrepDT.EnsurePath(ghPathForBrep);
-                                //        allBlockBrepDT.Branch(ghPathForBrep).AddRange(brepLoL[k][l]);
-
-                                //        ghPathForBrep = ghPathForBrep.CullElement();
-                                //    }
-                                //    ghPathForBrep = ghPathForBrep.CullElement();
-                                //}
+                                allBlockPolylineDT.EnsurePath(ghPathForBlockPolyline);
+                                allBlockPolylineDT.Branch(ghPathForBlockPolyline).Add(splitedPolylines[j]);
 
                                 for (int k = 0; k < cellLoL.Count; k++)
                                 {
                                     ghPathForCell = ghPathForCell.AppendElement(k);
-                                    allBlockCellDT.EnsurePath(ghPathForCell);
-                                    allBlockCellDT.Branch(ghPathForCell).AddRange(cellLoL[k]);
+                                    allBlockBasicCellDT.EnsurePath(ghPathForCell);
+                                    allBlockBasicCellDT.Branch(ghPathForCell).AddRange(cellLoL[k]);
                                     ghPathForCell = ghPathForCell.CullElement();
                                 }
 
@@ -985,12 +904,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     ghPathForContour = ghPathForContour.CullElement();
                                 }
 
-                                //allBlockContourDT.EnsurePath(ghPathForContour);
-                                //allBlockContourDT.Branch(ghPathForContour).AddRange(contourLoL);
-
-                                //allBlockHoleDT.EnsurePath(ghPathForHole);
-                                //allBlockHoleDT.Branch(ghPathForHole).AddRange(holeLoL);
-
                                 for (int k = 0; k < holeLoL.Count; k++)
                                 {
                                     ghPathForHole = ghPathForHole.AppendElement(k);
@@ -1019,60 +932,37 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                         ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
                                     }
                                 }
-
-                                //for (int k = 0; k < verticalCellBoundary.BranchCount; k++)
-                                //{
-                                //    ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(k);
-                                //    for (int l = 0; l < verticalCellBoundary.Branch(k).Count; l++)
-                                //    {
-                                //        ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(l);
-                                //        allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
-                                //        allBlockCellBoundaryDT.Branch(ghPathForCellBoundary).Add(verticalCellBoundary.Branch(k)[l]);
-                                //        ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
-                                //    }
-                                //    ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
-                                //}
-
-                                //for (int k = 0; k < horizontalCellBoundary.BranchCount; k++)
-                                //{
-                                //    ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(k);
-                                //    for (int l = 0; l < horizontalCellBoundary.Branch(k).Count; l++)
-                                //    {
-                                //        ghPathForCellBoundary2 = ghPathForCellBoundary2.AppendElement(l);
-                                //        allBlockCellBoundaryDT2.EnsurePath(ghPathForCellBoundary2);
-                                //        allBlockCellBoundaryDT2.Branch(ghPathForCellBoundary2).Add(horizontalCellBoundary.Branch(k)[l]);
-                                //        ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
-                                //    }
-                                //    ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
-                                //}
-
                                 #endregion
                             }
                             else
                             {
                                 #region output dataTree
-                                allBlockBrepDT.EnsurePath(ghPathForBrep);
+                                //allBlockGroundBrepDT.EnsurePath(ghPathForBrep);
                                 allBlockHCurvesDT.EnsurePath(ghPathForHCurve);
                                 allBlockVCurvesDT.EnsurePath(ghPathForVCurve);
                                 allBlockContourDT.EnsurePath(ghPathForContour);
                                 allBlockHoleDT.EnsurePath(ghPathForHole);
 
                                 allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
-                                //allBlockCellBoundaryDT2.EnsurePath(ghPathForCellBoundary2);
-                                allBlockCellDT.EnsurePath(ghPathForCell);
+
+                                allBlockBasicCellDT.EnsurePath(ghPathForCell);
+
+                                allBlockPolylineDT.EnsurePath(ghPathForBlockPolyline);
                                 #endregion
                             }
 
                             #region 清除当前第二层级的序号
-                            ghPathForBrep = ghPathForBrep.CullElement();
+                            //ghPathForBrep = ghPathForBrep.CullElement();
                             ghPathForHCurve = ghPathForHCurve.CullElement();
                             ghPathForVCurve = ghPathForVCurve.CullElement();
                             ghPathForContour = ghPathForContour.CullElement();
                             ghPathForHole = ghPathForHole.CullElement();
 
                             ghPathForCellBoundary = ghPathForCellBoundary.CullElement();
-                            //ghPathForCellBoundary2 = ghPathForCellBoundary2.CullElement();
+
                             ghPathForCell = ghPathForCell.CullElement();
+
+                            ghPathForBlockPolyline = ghPathForBlockPolyline.CullElement();
                             #endregion
                         }
 
@@ -1082,79 +972,35 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 AllBlockCellBoundaryDT = allBlockCellBoundaryDT;
                 //AllBlockCellBoundaryDT2 = allBlockCellBoundaryDT2;
 
+                //int additionalGenerations = allBlockBasicCellDT.Path(0).Length - 2;
+                //DataTree<Cell> shiftedAllBlockCellDT = DataTreeShiftPath<Cell>(allBlockBasicCellDT, additionalGenerations);
 
-                #region 对 DataTree<Cell> allBlockCellDT做 Shift Path
-                DataTree<Cell> newAllBlockCellDT = new DataTree<Cell>();
-                int additionalGenerations = 1;
-                for (int i = 0; i < newAllFaceBS.Count; i++)
+                // DataTree<Brep[]> shiftedAllBlockCellBrepDT = new DataTree<Brep[]>();
+                #region 生成每个Cell所对应的Brep[]，注意此时的cell中的brep是所有baseline构成的，口字或8字或I字或C字等，没有经过削减的
+                for (int i = 0; i < allBlockBasicCellDT.BranchCount; i++)
                 {
-                    GH_Path ancestorPath = new GH_Path(i);
-                    newAllBlockCellDT.EnsurePath(ancestorPath);
-                    for (int j = 0; j < allBlockCellDT.BranchCount; j++)
-                    {
-                        GH_Path currentPath = allBlockCellDT.Path(j);
-                        if (currentPath.IsAncestor(ancestorPath,ref additionalGenerations))
-                        {
-                            newAllBlockCellDT.Branch(ancestorPath).AddRange(allBlockCellDT.Branch(currentPath));
-                        }
-                    }
-                }
-                #endregion
-
-                #region 对于每个branch上的Cell，按照CellBoundary是否相交，来决定是否将这两个Cell的所有H,V线进行join计算
-                for (int i = 0; i < newAllBlockCellDT.BranchCount; i++)
-                {
-                    allBlockBrepDT.EnsurePath(i);
-
-                    List<List<Curve>> hCurveLoL = new List<List<Curve>>();
-                    List<List<Curve>> vCurveLoL = new List<List<Curve>>();
-
-
-                    int index0 = -1;
-                    int index1 = -1;
-                    if (isBlockSplitedList[i])
-                    {
-                        for (int j = 0; j < newAllBlockCellDT.Branch(i).Count; j++)
-                        {
-                            for (int k = 0; k < newAllBlockCellDT.Branch(i).Count; k++)
-                            {
-                                if (j != k)
-                                {
-                                    Curve[] crvs = Curve.CreateBooleanDifference(newAllBlockCellDT.Branch(i)[j].CellBoundary, newAllBlockCellDT.Branch(i)[k].CellBoundary, GH_Component.DocumentTolerance());
-                                    if (crvs != null)
-                                    {
-                                        index0 = j;
-                                        index1 = k;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-
-                    // 正常进行裁切和生成brep
-                    #region 生成building
+                    #region 生成Brep[]，并将 brep[] 添加到对应的Cell对象中
                     //List<List<List<Curve>>> curveForJoinLoL = new List<List<List<Curve>>>();
                     //List<Curve> allCurveForJoin = new List<Curve>();
-                    for (int j = 0; j < newAllBlockCellDT.Branch(i).Count; j++)
+                    for (int j = 0; j < allBlockBasicCellDT.Branch(i).Count; j++)
                     {
                         List<Curve> allCurves = new List<Curve>();
-                        if (newAllBlockCellDT.Branch(i)[j] is BilinearCell)
+                        if (allBlockBasicCellDT.Branch(i)[j] is BilinearCell)
                         {
-                            BilinearCell bCell = newAllBlockCellDT.Branch(i)[j] as BilinearCell;
+                            BilinearCell bCell = allBlockBasicCellDT.Branch(i)[j] as BilinearCell;
                             if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
                             {
                                 Brep[] brepArray = BoundarySurfaces(bCell.CellBoundary);
-                                if (brepArray != null)
-                                {
-                                    allBlockBrepDT.Branch(i).AddRange(brepArray);
-                                }
+                                //if (brepArray != null)
+                                //{
+                                //    allBlockGroundBrepDT.Branch(i).AddRange(brepArray);
+                                //}
+                                allBlockBasicCellDT.Branch(i)[j].CellBreps = brepArray;
                             }
                             else
                             {
-                                List<Curve> hCurves = newAllBlockCellDT.Branch(i)[j].GetAllHorizontal();
-                                List<Curve> vCurves = newAllBlockCellDT.Branch(i)[j].GetAllVertical();
+                                List<Curve> hCurves = allBlockBasicCellDT.Branch(i)[j].GetAllHorizontal();
+                                List<Curve> vCurves = allBlockBasicCellDT.Branch(i)[j].GetAllVertical();
                                 allCurves.AddRange(hCurves);
                                 allCurves.AddRange(vCurves);
 
@@ -1172,7 +1018,910 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                         {
                                             if (!joined[k].IsClosed)
                                             {
-                                                Curve crv = TrimBothEnd(newAllBlockCellDT.Branch(i)[j].CellBoundary, joined[k], 0, w);
+                                                Curve crv = TrimBothEnd(allBlockBasicCellDT.Branch(i)[j].CellBoundary, joined[k], 0, w);
+                                                trimedJoined.Add(crv);
+                                            }
+                                            else
+                                            {
+                                                trimedJoined.Add(joined[k]);
+                                            }
+                                        }
+                                    }
+
+                                    List<Polyline> outContours;
+                                    List<Polyline> outHoles;
+                                    GenerateBuilding(trimedJoined.ToArray(), w, out outContours, out outHoles);
+                                    //GenerateBuilding(joined, w, out outContours, out outHoles);
+
+                                    List<Curve> all = new List<Curve>();
+                                    for (int k = 0; k < outContours.Count; k++)
+                                    {
+                                        all.Add(outContours[k].ToPolylineCurve());
+                                    }
+                                    for (int k = 0; k < outHoles.Count; k++)
+                                    {
+                                        all.Add(outHoles[k].ToPolylineCurve());
+                                    }
+
+                                    Brep[] brepArray = BoundarySurfaces(all);
+                                    //if (brepArray != null)
+                                    //{
+                                    //    allBlockGroundBrepDT.Branch(i).AddRange(brepArray);
+                                    //}
+                                    allBlockBasicCellDT.Branch(i)[j].CellBreps = brepArray;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            List<Curve> hCurves = allBlockBasicCellDT.Branch(i)[j].GetAllHorizontal();
+                            List<Curve> vCurves = allBlockBasicCellDT.Branch(i)[j].GetAllVertical();
+                            allCurves.AddRange(hCurves);
+                            allCurves.AddRange(vCurves);
+
+                            Curve[] joined = Curve.JoinCurves(allCurves);
+                            //Curve[] trimedJoined = new Curve[joined.Length];
+                            List<Curve> trimedJoined = new List<Curve>();
+                            if (joined != null)
+                            {
+                                for (int k = 0; k < joined.Length; k++)
+                                {
+                                    //Vector3d vec = joined[k].TangentAtStart;
+                                    //Vector3d depthVec =  new Vector3d(-vec.Y, vec.X, vec.Z);
+
+                                    if (joined[k] != null)
+                                    {
+                                        if (!joined[k].IsClosed)
+                                        {
+                                            Curve crv = TrimBothEnd(allBlockBasicCellDT.Branch(i)[j].CellBoundary, joined[k], 0, w);
+                                            trimedJoined.Add(crv);
+                                        }
+                                        else
+                                        {
+                                            trimedJoined.Add(joined[k]);
+                                        }
+                                    }
+                                }
+
+                                List<Polyline> outContours;
+                                List<Polyline> outHoles;
+                                GenerateBuilding(trimedJoined.ToArray(), w, out outContours, out outHoles);
+                                //GenerateBuilding(joined, w, out outContours, out outHoles);
+
+                                List<Curve> all = new List<Curve>();
+                                for (int k = 0; k < outContours.Count; k++)
+                                {
+                                    all.Add(outContours[k].ToPolylineCurve());
+                                }
+                                for (int k = 0; k < outHoles.Count; k++)
+                                {
+                                    all.Add(outHoles[k].ToPolylineCurve());
+                                }
+
+                                Brep[] brepArray = BoundarySurfaces(all);
+                                //if (brepArray != null)
+                                //{
+                                //    allBlockGroundBrepDT.Branch(i).AddRange(brepArray);
+                                //}
+                                allBlockBasicCellDT.Branch(i)[j].CellBreps = brepArray;
+                            }
+                        }
+
+
+
+
+                    }
+
+                    #endregion
+                }
+                #endregion
+
+                #region 对allBlockBasicCellDT的每一个Branch，计算HAverageLength，VAverageLength，AverageLength，MaxFirstFloorArea
+                DataTree<double> allBlockHAverageLength = new DataTree<double>();
+                DataTree<double> allBlockVAverageLength = new DataTree<double>();
+                DataTree<double> allBlockAverageLength = new DataTree<double>();
+                DataTree<double> allBlockMaxFirstFloorArea = new DataTree<double>();
+                foreach (GH_Path path in allBlockBasicCellDT.Paths)
+                {
+                    allBlockHAverageLength.EnsurePath(new GH_Path(path[0],path[1]));
+                    allBlockVAverageLength.EnsurePath(new GH_Path(path[0], path[1]));
+                    allBlockAverageLength.EnsurePath(new GH_Path(path[0], path[1]));
+                    allBlockMaxFirstFloorArea.EnsurePath(new GH_Path(path[0], path[1]));
+
+                    double smallBlockFirstFloorAreaSum = 0.0;
+                    double smallBlockHLengthSum = 0;
+                    double smallBlockVLengthSum = 0;
+                    //double smallBlockAllLengthSum = 0;
+                    int hCountSum = 0;
+                    int vCountSum = 0;
+                    for (int i = 0; i < allBlockBasicCellDT.Branch(path).Count; i++)
+                    {
+
+                        for (int j = 0; j < allBlockBasicCellDT.Branch(path)[i].CellBreps.Length; j++)
+                        {
+                            smallBlockFirstFloorAreaSum += allBlockBasicCellDT.Branch(path)[i].CellBreps[j].GetArea();
+                        }
+
+                        int hCount;
+                        smallBlockHLengthSum += allBlockBasicCellDT.Branch(path)[i].GetAllHCurveLength(out hCount);
+                        int vCount;
+                        smallBlockVLengthSum += allBlockBasicCellDT.Branch(path)[i].GetAllVCurveLength(out vCount);
+                        hCountSum += hCount;
+                        vCountSum += vCount;
+                    }
+
+                    allBlockMaxFirstFloorArea.Branch(new GH_Path(path[0], path[1])).Add(smallBlockFirstFloorAreaSum);
+                    allBlockHAverageLength.Branch(new GH_Path(path[0], path[1])).Add(smallBlockHLengthSum / hCountSum);
+                    allBlockVAverageLength.Branch(new GH_Path(path[0], path[1])).Add(smallBlockVLengthSum / vCountSum);
+                    allBlockAverageLength.Branch(new GH_Path(path[0], path[1])).Add((smallBlockHLengthSum + smallBlockVLengthSum) / (hCountSum + vCountSum));
+                }
+
+                #endregion
+
+                foreach (GH_Path path in allBlockMaxFirstFloorArea.Paths)
+                {
+                    double h = 0;
+                    for (int i = 0; i < allBlockHAverageLength.Branch(path).Count; i++)
+                    {
+                        h += allBlockHAverageLength.Branch(path)[i];
+                    }
+                    h /= allBlockHAverageLength.Branch(path).Count;
+                    allBlockHAverageLength.Branch(path).Clear();
+                    allBlockHAverageLength.Branch(path).Add(h);
+
+                    double v = 0;
+                    for (int i = 0; i < allBlockVAverageLength.Branch(path).Count; i++)
+                    {
+                        v += allBlockVAverageLength.Branch(path)[i];
+                    }
+                    v /= allBlockVAverageLength.Branch(path).Count;
+                    allBlockVAverageLength.Branch(path).Clear();
+                    allBlockVAverageLength.Branch(path).Add(v);
+
+                    double average = 0;
+                    for (int i = 0; i < allBlockAverageLength.Branch(path).Count; i++)
+                    {
+                        average += allBlockAverageLength.Branch(path)[i];
+                    }
+                    average /= allBlockAverageLength.Branch(path).Count;
+                    allBlockAverageLength.Branch(path).Clear();
+                    allBlockAverageLength.Branch(path).Add(average);
+
+                    double maxA = 0;
+                    for (int i = 0; i < allBlockMaxFirstFloorArea.Branch(path).Count; i++)
+                    {
+                        maxA += allBlockMaxFirstFloorArea.Branch(path)[i];
+                    }
+                    maxA /= allBlockMaxFirstFloorArea.Branch(path).Count;
+                    allBlockMaxFirstFloorArea.Branch(path).Clear();
+                    allBlockMaxFirstFloorArea.Branch(path).Add(maxA);
+                }
+
+                #region 进行建筑密度约束
+                // 对每个大的Block来说
+                //List<double> allBlockArea = new List<double>();
+                //List<double> allBlockExpectedFirstFloorArea = new List<double>();
+                //for (int i = 0; i < allFaceBS.Count; i++)
+                //{
+                //    AreaMassProperties blockMass = AreaMassProperties.Compute(facePolylines[i].ToNurbsCurve());
+                //    allBlockArea.Add(blockMass.Area);
+                //    allBlockExpectedFirstFloorArea.Add(densitys[i] * blockMass.Area);
+                //}
+
+                DataTree<double> allBlockArea = new DataTree<double>();
+                DataTree<double> allBlockExpectedFirstFloorArea = new DataTree<double>();
+                foreach (var path in allBlockPolylineDT.Paths)
+                {
+                    allBlockArea.EnsurePath(path);
+                    allBlockExpectedFirstFloorArea.EnsurePath(path);
+                    AreaMassProperties blockMass = AreaMassProperties.Compute(allBlockPolylineDT.Branch(path)[0].ToNurbsCurve());
+                    allBlockArea.Branch(path).Add(blockMass.Area);
+                    allBlockExpectedFirstFloorArea.Branch(path).Add(densitys[path[0]] * blockMass.Area);
+                }
+
+                // 对 allBlockPolylineDT 进行 shift Path
+                //int additionalGenerations = allBlockPolylineDT.Path(0).Length - 2;
+                //DataTree<Polyline> shiftedAllBlockPolylineDT = DataTreeShiftPath<Polyline>(allBlockPolylineDT, additionalGenerations);
+
+                //DataTree<double> allBlockExpectedFirstFloorArea = new DataTree<double>();
+                //foreach (GH_Path path in allBlockPolylineDT.Paths)
+                //{
+                //    //int index = allBlockPolylineDT.Paths.IndexOf(path);
+                //    AreaMassProperties smallBlockMass = AreaMassProperties.Compute(allBlockPolylineDT.Branch(path)[0].ToNurbsCurve());
+                //    double smallBlockAreas = smallBlockMass.Area;
+
+                //    double expectedFirstFloorArea = allBlockExpectedFirstFloorArea.Branch(path)[0] * (smallBlockAreas / allBlockArea.Branch(path)[0]);
+
+                //    //allBlockExpectedFirstFloorArea.EnsurePath(path);
+                //    allBlockExpectedFirstFloorArea.Branch(path)[0] = expectedFirstFloorArea;
+                //}
+
+                // 计算所能满足的最大建筑密度
+                // 所有的shift都是每个branch都是大Block，branch中的每个元素是每个小Block
+                //int additionalGenerations = allBlockHAverageLength.Path(0).Length - 2;
+                //DataTree<double> allBlockHAverageLength = DataTreeShiftPath<double>(allBlockHAverageLength, additionalGenerations);
+                //additionalGenerations = allBlockVAverageLength.Path(0).Length - 2;
+                //DataTree<double> allBlockVAverageLength = DataTreeShiftPath<double>(allBlockVAverageLength, additionalGenerations);
+                //additionalGenerations = allBlockAverageLength.Path(0).Length - 2;
+                //DataTree<double> allBlockAverageLength = DataTreeShiftPath<double>(allBlockAverageLength, additionalGenerations);
+                //additionalGenerations = allBlockMaxFirstFloorArea.Path(0).Length - 2;
+                //DataTree<double> allBlockMaxFirstFloorArea = DataTreeShiftPath<double>(allBlockMaxFirstFloorArea, additionalGenerations);
+
+                #region 计算每个小block所能生成的最大建筑密度与输入给定的期望建筑密度之间的差值
+                DataTree<double> allBlockDelta = new DataTree<double>();
+                foreach (var path in allBlockPolylineDT.Paths)
+                {
+                    allBlockDelta.EnsurePath(path);
+                    if (allBlockMaxFirstFloorArea.Branch(path)[0] < allBlockExpectedFirstFloorArea.Branch(path)[0])
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处所给定的建筑密度，大于所能生成的最大建筑密度！", path.ToString()));
+                        // 此时要全部生成 口字 或 8字 
+                        allBlockDelta.Branch(path).Add(0);
+                    }
+                    else
+                    {
+                        // 此时要修剪
+                        allBlockDelta.Branch(path).Add(allBlockMaxFirstFloorArea.Branch(path)[0] - allBlockExpectedFirstFloorArea.Branch(path)[0]);
+                    }
+                }
+                #endregion
+
+                #region 找到属于每个大Block的所有分支 List<List<GH_Path>> pathsBelongsToSameBlock
+                //List<List<GH_Path>> pathsBelongsToSameBlock = new List<List<GH_Path>>();
+                //for (int i = 0; i < allFaceBS.Count; i++)
+                //{
+                //    pathsBelongsToSameBlock.Add(new List<GH_Path>());
+                //    // 对于每个大的Block，要从allBlockBasicCellDT中找到属于这个大Block的所有分支
+                //    foreach (var path in allBlockBasicCellDT.Paths)
+                //    {
+                //        if (path[0] == i)
+                //        {
+                //            pathsBelongsToSameBlock[i].Add(path);
+                //        }
+                //    }
+                //}
+
+                DataTree<GH_Path> pathsBelongsToSameBlock = new DataTree<GH_Path>();
+                foreach (var path in allBlockPolylineDT.Paths)
+                {
+                    pathsBelongsToSameBlock.EnsurePath(path);
+                    foreach (var path1 in allBlockBasicCellDT.Paths)
+                    {
+                        if (path[0] == path1[0] && path[1] == path1[1])
+                        {
+                            pathsBelongsToSameBlock.Branch(path).Add(path1);
+                        }
+                    }
+                }
+                #endregion
+
+                int additionalGenerations = -(allBlockBasicCellDT.Path(0).Length - 2);
+                //DataTree<double> allBlockHAverageLength = DataTreeShiftPath<double>(allBlockHAverageLength, additionalGenerations);
+                DataTree<Cell> shiftedAllBlockBasicCellDT = DataTreeShiftPath<Cell>(allBlockBasicCellDT, additionalGenerations);
+
+                #region 整理每个小Block，需要的vReduceCount，offset
+                // 整理每个小Block，需要的vReduceCount，offset，每个小Block各自为战，对应shiftedAllBlockExpectedFirstFloorArea即可
+                DataTree<int> vReduceCountDT = new DataTree<int>();
+                DataTree<double> scaleFactorDT = new DataTree<double>();
+                foreach (var path in allBlockPolylineDT.Paths)
+                {
+                    vReduceCountDT.EnsurePath(path);
+                    scaleFactorDT.EnsurePath(path);
+
+                    /* 因为是各自为战，所以不用管当前这个大Block中包不包含小block */
+
+                    //if (pathsBelongsToSameBlock[path[0]].Count == 1)
+                    //{
+                    //    // 当前这个大Block中不存在小Block
+                    //}
+                    //else
+                    //{
+                    //    // 当前这个大Block中存在小Block
+                    //}
+
+                    /* 只需先判断当前这个小Block中Cell的情况 */
+                    int singleRegionCount = 0;
+                    int singlePolylineCount = 0;
+                    int IShapeCount = 0;
+                    int CShapeCount = 0;
+                    int elseCount = 0;
+                    for (int i = 0; i < shiftedAllBlockBasicCellDT.Branch(path).Count; i++)
+                    {
+                        if (shiftedAllBlockBasicCellDT.Branch(path)[i] is BilinearCell)
+                        {
+                            // 这个Cell是否是BilinearCell
+                            BilinearCell bCell = shiftedAllBlockBasicCellDT.Branch(path)[i] as BilinearCell;
+                            if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                            {
+                                singleRegionCount++;
+                            }
+                            else if (bCell.ShapeType == BilinearCell.BilinearShapeType.IShape)
+                            {
+                                IShapeCount++;
+                            }
+                            else if (bCell.ShapeType == BilinearCell.BilinearShapeType.CShape)
+                            {
+                                CShapeCount++;
+                            }
+                            else if (bCell.ShapeType == BilinearCell.BilinearShapeType.SinglePolyline)
+                            {
+                                singlePolylineCount++;
+                            }
+                            else
+                            {
+                                elseCount++;
+                            }
+                        }
+                        else
+                        {
+                            elseCount++;
+                        }
+                    }
+
+                    if (singleRegionCount == shiftedAllBlockBasicCellDT.Branch(path).Count)
+                    {
+                        // 全部都是 singleRegion 时
+                        // 此时不计算VReduceCount，计算scaleFactor
+                        if (singleRegionCount != 1)
+                        {
+                            // 应该不可能
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内,存在多个singleRegion的情况，该部分的代码未完善", path.ToString()));
+                        }
+                        else
+                        {
+                            // 不计算VReduceCount
+                            vReduceCountDT.Branch(path).Add(-1);
+                            // 计算scaleFactor
+                            double scaleFactor = (allBlockMaxFirstFloorArea.Branch(path)[0] - allBlockDelta.Branch(path)[0]) / allBlockMaxFirstFloorArea.Branch(path)[0];
+                            scaleFactorDT.Branch(path).Add(scaleFactor);
+
+                        }
+                    }
+                    else if (singleRegionCount + singlePolylineCount + IShapeCount + CShapeCount == shiftedAllBlockBasicCellDT.Branch(path).Count
+                             && singleRegionCount != 0)
+                    {
+                        // 应该不可能
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内,存在singleRegion与singlePolyline(或者可能是IShape,CShape)共存的情况，该部分的代码未完善", path.ToString()));
+                    }
+                    else if (singlePolylineCount + IShapeCount + CShapeCount == shiftedAllBlockBasicCellDT.Branch(path).Count)
+                    {
+                        // 全部是 singlePolyline 或 IShape 或 CShape 时
+                        // 此时先，判断当前形状减去 vReduceCount 个V后，是否仍比期望的首层面积 shiftedAllBlockExpectedFirstFloorArea 大
+                        // 如果是的话，就模仿 SingleRegion 进行 offset，不过这个offset操作，与 SingleRegion 的 offset 操作是反的
+
+                        int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
+                        if (vCount > singlePolylineCount + IShapeCount + CShapeCount)
+                        {
+                            // 此时已经大于了可以减去的V的数量，
+                            // 首先求一下平均每个Cell的面积
+                            double averageArea = 0;
+                            for (int i = 0; i < shiftedAllBlockBasicCellDT.Branch(path).Count; i++)
+                            {
+                                for (int j = 0; j < shiftedAllBlockBasicCellDT.Branch(path)[i].CellBreps.Length; j++)
+                                {
+                                    averageArea += shiftedAllBlockBasicCellDT.Branch(path)[i].CellBreps[j].GetArea();
+                                }
+                            }
+                            averageArea /= allBlockBasicCellDT.Branch(pathsBelongsToSameBlock.Branch(path)[0]).Count;
+                            // 然后看大于的量有几个（平均面积 - 平均VL*宽），这个几个，肯定比singlePolylineCount + IShapeCount + CShapeCount小，有几个，就让几个进行offset
+                            int count = (int)Math.Ceiling(allBlockDelta.Branch(path)[0] / (averageArea - allBlockVAverageLength.Branch(path)[0] * w));
+                            if (count > allBlockBasicCellDT.Branch(pathsBelongsToSameBlock.Branch(path)[0]).Count)
+                            {
+                                // 应该不可能
+                                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内，存在面积差值溢出的问题，该部分的代码未完善", path.ToString()));
+                            }
+                            else
+                            {
+                                // 计算VReduceCount
+                                vReduceCountDT.Branch(path).Add(count);
+                                // 计算scaleFactor，这里在后面计算offset时，要取offset后剩下的部分作为建筑体量
+                                double A = allBlockMaxFirstFloorArea.Branch(path[0])[path[1]];
+                                double deltaA = (allBlockDelta.Branch(path)[0] - (averageArea - allBlockVAverageLength.Branch(path)[0] * w));
+                                int anotherCount = shiftedAllBlockBasicCellDT.Branch(path).Count - count;
+                                double scaleFactor = (A - deltaA/ anotherCount) / A;
+                                scaleFactorDT.Branch(path).Add(scaleFactor);
+                            }
+                        }
+                        else
+                        {
+                            // 此时全按照VCount即可，不需要scale
+                            // 计算VReduceCount
+                            vReduceCountDT.Branch(path).Add(vCount);
+                            // 不计算scaleFactor
+                            scaleFactorDT.Branch(path).Add(-1);
+                        }
+                    }
+                    else if (singlePolylineCount + IShapeCount + CShapeCount + elseCount == shiftedAllBlockBasicCellDT.Branch(path).Count
+                             && singlePolylineCount + IShapeCount + CShapeCount != 0)
+                    {
+                        // 应该不可能
+                        //AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内，存在else与singlePolyline(或者可能是IShape,CShape)共存的情况，该部分的代码未完善", path.ToString()));
+
+                        // 此时计算VReduceCount，不计算OffsetValue
+                        // 计算VReduceCount
+                        int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
+                        vReduceCountDT.Branch(path).Add(vCount);
+                        // 不计算scaleFactor
+                        scaleFactorDT.Branch(path).Add(-1);
+                    }
+                    else
+                    {
+                        // 全部都是 elseCount 时
+                        // 此时计算VReduceCount，不计算OffsetValue
+
+                        // 计算VReduceCount
+                        int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
+                        vReduceCountDT.Branch(path).Add(vCount);
+                        // 不计算scaleFactor
+                        scaleFactorDT.Branch(path).Add(-1);
+                    }
+                }
+                #endregion
+
+
+
+                // todo 基于DataTree<int> vReduceCountDT 和 DataTree<double> offsetValueDT 来进行计算
+                DataTree<Cell> allBlockCellDT = new DataTree<Cell>();
+                foreach (var path in allBlockBasicCellDT.Paths)
+                {
+                    allBlockCellDT.EnsurePath(path);
+                    foreach (var cell in allBlockBasicCellDT.Branch(path))
+                    {
+                        if (cell is BilinearCell)
+                        {
+                            BilinearCell bCell = cell as BilinearCell;
+                            allBlockCellDT.Branch(path).Add(new BilinearCell(bCell));
+                        }
+                        else
+                        {
+                            TrilinearCell tCell = cell as TrilinearCell;
+                            allBlockCellDT.Branch(path).Add(new TrilinearCell(tCell));
+                        }
+                    }
+                }
+
+                foreach (var path in allBlockPolylineDT.Paths)
+                {
+                    int vRecuceCount = vReduceCountDT.Branch(path)[0];
+                    double scaleFactor = scaleFactorDT.Branch(path)[0];
+
+                    if (vRecuceCount == -1 && scaleFactor != -1)
+                    {
+                        // 全部都是 singleRegion 时
+                        // 此时不计算VReduceCount，计算OffsetValue
+
+                        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, scaleFactor);
+                    }
+                    else if (vRecuceCount != -1 && scaleFactor != -1)
+                    {
+                        // 全部是 singlePolyline 或 IShape 或 CShape 时
+
+                        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, vRecuceCount, scaleFactor);
+                    }
+                    else
+                    {
+                        // vRecuceCount != -1 && offsetValue == -1
+                        // 全部都是 elseCount 时
+                        // 此时计算VReduceCount，不计算OffsetValue
+                        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, vRecuceCount, lMin, w);
+                    }
+                }
+
+
+                #region 暂存
+                //for (int i = 0; i < pathsBelongsToSameBlock.Count; i++)
+                //{
+                //    // 对于每个大Block
+
+                //    if (pathsBelongsToSameBlock[i].Count == 1)
+                //    {
+                //        // 不存在小Block时
+                //        // 首先判断这个Block中是否只有一个Cell，并且是SingleRegion形
+                //        if (allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][0]).Count == 1)
+                //        {
+                //            if (allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][0])[0] is BilinearCell)
+                //            {
+                //                // 这个Cell是否是BilinearCell
+                //                BilinearCell bCell = allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][0])[0] as BilinearCell;
+                //                if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                //                {
+
+                //                }
+                //                else if (bCell.ShapeType == BilinearCell.BilinearShapeType.IShape)
+                //                {
+
+                //                }
+                //                else if (bCell.ShapeType == BilinearCell.BilinearShapeType.CShape)
+                //                {
+
+                //                }
+                //                else
+                //                {
+                //                    goto Label0;
+                //                }
+                //            }
+                //            else
+                //            {
+                //                goto Label0;
+                //            }
+                //        }
+                //        else
+                //        {
+                //            goto Label0;
+                //        }
+
+                //        Label0:
+
+
+                //    }
+                //    else
+                //    {
+                //        // 存在小Block时
+                //        // 首先判断这两个小Block中是否有只包含一个Cell的
+                //        bool containsSingleRegion = false;
+                //        GH_Path pathContainsSingleRegion = new GH_Path();
+                //        for (int j = 0; j < pathsBelongsToSameBlock[i].Count; j++)
+                //        {
+                //            for (int k = 0; k < allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][j]).Count; k++)
+                //            {
+                //                if (allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][j])[k].IsBilinearCell())
+                //                {
+                //                    BilinearCell bCell = allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][j])[k] as BilinearCell;
+                //                    if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                //                    {
+
+                //                    }
+                //                }
+                //            }
+                //        }
+
+                //        bool isOnleOne = false;
+
+                //        GH_Path pathContainsSingleRegion = new GH_Path();
+                //        int singleRegionJIndex = -1;
+                //        int anotherRegionJIndex = -1;
+                //        //int singleRegionIndex = 0;
+                //        for (int j = 0; j < pathsBelongsToSameBlock[i].Count; j++)
+                //        {
+                //            // 对于每个小Block，找到其中的所有Cell
+                //            for (int k = 0; k < allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][j]).Count; k++)
+                //            {
+                //                if (allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][j])[k] is BilinearCell)
+                //                {
+                //                    BilinearCell bCell = allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][j])[k] as BilinearCell;
+                //                    if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                //                    {
+                //                        containsSingleRegion = true;
+
+                //                        pathContainsSingleRegion = pathsBelongsToSameBlock[i][j];
+                //                        //singleRegionIndex = k;
+                //                        singleRegionJIndex = pathContainsSingleRegion[1];
+                //                        anotherRegionJIndex = 2 - singleRegionJIndex - 1;
+                //                        if (allBlockBasicCellDT.Branch(pathsBelongsToSameBlock[i][j]).Count == 1)
+                //                        {
+                //                            isOnleOne = true;
+                //                        }
+                //                        break;
+                //                    }
+                //                }
+                //            }
+                //        }
+
+
+                //        if (containsSingleRegion)
+                //        {
+                //            if (isOnleOne)
+                //            {
+                //                // 如果只有一个SingleRegion，就只对这个Cell进行处理，直接削减
+                //                double offset = allBlockDelta.Branch(new GH_Path(i, singleRegionJIndex))[0] / (shiftedAllBlockHAverageLength.Branch(i)[singleRegionJIndex] + shiftedAllBlockVAverageLength.Branch(i)[singleRegionJIndex]);
+
+                //                // todo: 对于不是公共边的，两条边（一条h，一条v）进行offset
+                //            }
+                //            else
+                //            {
+                //                // 如果除了这个SingleRegion还有别的Cell，就先按CellBoundary的面积对差值进行分配后，再削减。
+                //                // 差值是shiftedAllBlockMaxFirstFloorArea.Branch(i)[j] - shiftedAllBlockExpectedFirstFloorArea.Branch(i)[j]
+                //                double deltaArea0 = allBlockDelta.Branch(new GH_Path(i, singleRegionJIndex))[0];
+                //                double deltaArea1 = allBlockDelta.Branch(new GH_Path(i, anotherRegionJIndex))[0];
+
+                //                double offset0 = deltaArea0 / (shiftedAllBlockHAverageLength.Branch(i)[singleRegionJIndex] + shiftedAllBlockVAverageLength.Branch(i)[singleRegionJIndex]);
+
+                //                List<int> vReduceCounts = new List<int>();
+                //                vReduceCounts.Add((int)(Math.Ceiling(deltaArea1 / shiftedAllBlockVAverageLength.Branch(i)[anotherRegionJIndex])));
+                //                if (singleRegionJIndex < anotherRegionJIndex)
+                //                {
+                //                    // singleRegionJIndex = 0;anotherRegionJIndex = 1
+                //                    vReduceCounts.Insert(0, 0);
+                //                }
+                //                else
+                //                {
+                //                    // singleRegionJIndex =1;anotherRegionJIndex = 0
+                //                    vReduceCounts.Add(0);
+                //                }
+
+                //                // 剩余的一个或多个Cell，直接重新调用DoDensityReduce函数即可
+                //                DoDensityReduce(allBlockBasicCellDT, pathsBelongsToSameBlock, vReduceCounts);
+                //            }
+                //        }
+                //        else
+                //        {
+                //            double deltaArea0 = allBlockDelta.Branch(new GH_Path(i, 0))[0];
+                //            double deltaArea1 = allBlockDelta.Branch(new GH_Path(i, 1))[0];
+                //            // 计算List<int> vReduceCountList
+                //            List<int> vReduceCounts = new List<int>();
+                //            vReduceCounts.Add((int)(Math.Ceiling(deltaArea0 / shiftedAllBlockVAverageLength.Branch(i)[0])));
+                //            vReduceCounts.Add((int)(Math.Ceiling(deltaArea1 / shiftedAllBlockVAverageLength.Branch(i)[1])));
+
+                //            DoDensityReduce(allBlockBasicCellDT, pathsBelongsToSameBlock, vReduceCounts);
+                //        }
+                //    }
+                //}
+                #endregion
+
+                // 首先先从口字或8字进行削减，如果还大，那么直接去掉一个BiliCell 或 TriCell，直到满足输入的建筑密度
+                #region 暂存
+                //for (int i = 0; i < allBlockCellDT.BranchCount; i++)
+                //{
+                //    // 对于每个大Block
+                //    bool isOnleOne = false;
+
+                //    bool containsSingleRegion = false;
+                //    int singleRegionJIndex = 0;
+                //    int singleRegionKIndex = 0;
+                //    for (int j = 0; j < allBlockCellDT.Branch(i).Count; j++)
+                //    {
+                //        // 对于每个小Block中的所有Cell
+                //        for (int k = 0; k < allBlockCellDT.Branch(i)[j].Count; k++)
+                //        {
+                //            if (allBlockCellDT.Branch(i)[j][k] is BilinearCell)
+                //            {
+                //                BilinearCell bCell = allBlockCellLoL[i][j][k] as BilinearCell;
+                //                if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                //                {
+                //                    containsSingleRegion = true;
+                //                    singleRegionJIndex = j;
+                //                    singleRegionKIndex = k;
+                //                    if (allBlockCellLoL[i][j].Count == 1)
+                //                    {
+                //                        isOnleOne = true;
+                //                    }
+                //                    break;
+                //                }
+                //            }
+                //        }
+                //    }
+                //    int anotherRegionJIndex = 2 - singleRegionJIndex - 1;
+
+                //    if (containsSingleRegion)
+                //    {
+                //        if (isOnleOne)
+                //        {
+                //            // 如果只有一个SingleRegion，就只对这个Cell进行处理，直接削减
+                //            double offset = (shiftedAllBlockMaxFirstFloorArea.Branch(i)[singleRegionJIndex] - shiftedAllBlockExpectedFirstFloorArea.Branch(i)[singleRegionJIndex]) / (shiftedAllBlockHAverageLength.Branch(i)[singleRegionJIndex] + shiftedAllBlockVAverageLength.Branch(i)[singleRegionJIndex]);
+                //        }
+                //        else
+                //        {
+                //            // 如果除了这个SingleRegion还有别的Cell，就先按CellBoundary的面积对差值进行分配后，再削减。
+                //            // 差值是shiftedAllBlockMaxFirstFloorArea.Branch(i)[j] - shiftedAllBlockExpectedFirstFloorArea.Branch(i)[j]
+                //            //double areaSum = AreaMassProperties.Compute(facePolylines[i].ToNurbsCurve()).Area;
+                //            //double area0 = AreaMassProperties.Compute(shiftedAllBlockPolylineDT.Branch(i)[singleRegionJIndex].ToNurbsCurve()).Area;
+                //            //double area1 = areaSum - area0;
+                //            double deltaArea0 = shiftedAllBlockMaxFirstFloorArea.Branch(i)[singleRegionJIndex] - shiftedAllBlockExpectedFirstFloorArea.Branch(i)[singleRegionJIndex];
+                //            double deltaArea1 = shiftedAllBlockMaxFirstFloorArea.Branch(i)[anotherRegionJIndex] - shiftedAllBlockExpectedFirstFloorArea.Branch(i)[anotherRegionJIndex];
+
+                //            double offset = 
+                //            double vReduceCount =
+                //            // 剩余的一个或多个Cell，直接重新调用DoDensityReduce函数即可
+                //        }
+                //    }
+                //    else
+                //    {
+                //        DoDensityReduce(allBlockCellLoL[i], vReduceCountDT.Branch(i), i);
+                //    }
+                //}
+                #endregion
+
+                #region 暂存
+                //for (int i = 0; i < allBlockCellLoL.Count; i++)
+                //{
+                //    // 如果allBlockCellLoL[i]中包含有BilinearCell.BilinearShapeType.SingleRegion
+                //    bool containsSingleRegion = false;
+                //    int singleRegionIndex = 0;
+                //    bool isOnleOne = false;
+                //    for (int j = 0; j < allBlockCellLoL[i].Count; j++)
+                //    {
+                //        if (allBlockCellLoL[i][j] is BilinearCell)
+                //        {
+                //            BilinearCell bCell = allBlockCellLoL[i][j] as BilinearCell;
+                //            if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                //            {
+                //                containsSingleRegion = true;
+                //                singleRegionIndex = j;
+                //                if (allBlockCellLoL[i].Count == 1)
+                //                {
+                //                    isOnleOne = true;
+                //                }
+                //                break;
+                //            }
+                //        }
+                //    }
+
+                //    if (containsSingleRegion)
+                //    {
+                //        if (isOnleOne)
+                //        {
+                //            // 如果只有一个SingleRegion，就只对这个Cell进行处理，直接削减
+                //            double offset = (shiftedAllBlockMaxFirstFloorArea[i] - allBlockExpectedFirstFloorArea[i]) / (hAverageLength[i] + vAverageLength[i]);
+
+
+                //        }
+                //        else
+                //        {
+                //            // 如果除了这个SingleRegion还有别的Cell，就先按CellBoundary的面积对差值进行分配后，再削减
+                //            double area0 = AreaMassProperties.Compute(allBlockCellLoL[i][singleRegionIndex].CellBoundary).Area;
+                //            double area1 = AreaMassProperties.Compute(facePolylines[i].ToNurbsCurve()).Area - area0;
+                //            double deltaArea0 =
+
+                //            // 剩余的一个或多个Cell，直接重新调用DoDensityReduce函数即可
+
+                //        }
+                //    }
+                //    else
+                //    {
+                //        DoDensityReduce(allBlockCellLoL, vReduceCounts, i);
+
+                //    }
+                //}
+
+
+
+                //for (int i = 0; i < newAllBlockBasicCellDT.BranchCount; i++)
+                //{
+                //    // AreaMassProperties blockMass = AreaMassProperties.Compute(facePolylines[i].ToNurbsCurve());
+                //    // double landArea = blockMass.Area;
+                //    // double expectedFirstFloorArea = densitys[i] * landArea;
+
+                //    // 根据Basic Cell进行削减生成
+                //    List<List<Cell>> cellLoL;
+
+
+
+
+                //    //// 基于随机生成的cell结果，判断是否满足建筑密度约束
+                //    //double firstFloorAreaSum = 0;
+                //    //for (int j = 0; j < allBlockBasicCellDT.Branch(i).Count; j++)
+                //    //{
+                //    //    if (allBlockBasicCellDT.Branch(i)[j] is BilinearCell)
+                //    //    {
+                //    //        BilinearCell bCell = allBlockBasicCellDT.Branch(i)[j] as BilinearCell;
+                //    //        if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                //    //        {
+                //    //            Brep[] brepArray = BoundarySurfaces(bCell.CellBoundary);
+                //    //            if (brepArray != null)
+                //    //            {
+                //    //                Brep currentGroundFloor = brepArray[0];
+                //    //                AreaMassProperties areaMass = AreaMassProperties.Compute(currentGroundFloor);
+                //    //                firstFloorAreaSum += areaMass.Area;
+                //    //            }
+                //    //        }
+                //    //        else
+                //    //        {
+                //    //            List<Curve> allCurves = new List<Curve>();
+                //    //            allCurves.AddRange(allBlockBasicCellDT.Branch(i)[j].GetAllHorizontal());
+                //    //            allCurves.AddRange(allBlockBasicCellDT.Branch(i)[j].GetAllVertical());
+
+
+                //    //            for (int k = 0; k < allCurves.Count; k++)
+                //    //            {
+                //    //                firstFloorAreaSum += allCurves[k].GetLength() * w;
+                //    //            }
+                //    //        }
+                //    //    }
+                //    //    else
+                //    //    {
+                //    //        List<Curve> allCurves = new List<Curve>();
+                //    //        allCurves.AddRange(allBlockBasicCellDT.Branch(i)[j].GetAllHorizontal());
+                //    //        allCurves.AddRange(allBlockBasicCellDT.Branch(i)[j].GetAllVertical());
+
+
+                //    //        for (int k = 0; k < allCurves.Count; k++)
+                //    //        {
+                //    //            firstFloorAreaSum += allCurves[k].GetLength() * w;
+                //    //        }
+                //    //    }
+                //    //}
+
+                //    //if (firstFloorAreaSum < 0.9 * expectedFirstFloorArea)
+                //    //{
+                //    //    // 不够，就加到够
+                //    //}
+                //    //else if (firstFloorAreaSum > expectedFirstFloorArea)
+                //    //{
+                //    //    // 够，就减到正好
+                //    //}
+                //    //else
+                //    //{
+                //    //    // 不做处理
+                //    //}
+                //}
+                #endregion
+
+
+                #endregion
+
+
+                DataTree<Brep> allBlockGroundBrepDT = new DataTree<Brep>();
+                #region 对于每个branch上的Cell，按照CellBoundary是否相交，来决定是否将这两个Cell的所有H,V线进行join计算
+                for (int i = 0; i < allBlockCellDT.BranchCount; i++)
+                {
+                    allBlockGroundBrepDT.EnsurePath(i);
+
+                    List<List<Curve>> hCurveLoL = new List<List<Curve>>();
+                    List<List<Curve>> vCurveLoL = new List<List<Curve>>();
+
+                    //int index0 = -1;
+                    //int index1 = -1;
+                    //if (isBlockSplitedList[i])
+                    //{
+                    //    for (int j = 0; j < newAllBlockCellDT.Branch(i).Count; j++)
+                    //    {
+                    //        for (int k = 0; k < newAllBlockCellDT.Branch(i).Count; k++)
+                    //        {
+                    //            if (j != k)
+                    //            {
+                    //                Curve[] crvs = Curve.CreateBooleanDifference(newAllBlockCellDT.Branch(i)[j].CellBoundary, newAllBlockCellDT.Branch(i)[k].CellBoundary, GH_Component.DocumentTolerance());
+                    //                if (crvs != null)
+                    //                {
+                    //                    index0 = j;
+                    //                    index1 = k;
+                    //                    break;
+                    //                }
+                    //            }
+                    //        }
+                    //    }
+                    //}
+
+
+                    // 正常进行裁切和生成brep
+                    #region 生成building的底面
+                    //List<List<List<Curve>>> curveForJoinLoL = new List<List<List<Curve>>>();
+                    //List<Curve> allCurveForJoin = new List<Curve>();
+                    for (int j = 0; j < allBlockCellDT.Branch(i).Count; j++)
+                    {
+                        List<Curve> allCurves = new List<Curve>();
+                        if (allBlockCellDT.Branch(i)[j] is BilinearCell)
+                        {
+                            BilinearCell bCell = allBlockCellDT.Branch(i)[j] as BilinearCell;
+                            if (bCell.ShapeType == BilinearCell.BilinearShapeType.SingleRegion)
+                            {
+                                Brep[] brepArray = BoundarySurfaces(bCell.CellBoundary);
+                                if (brepArray != null)
+                                {
+                                    allBlockGroundBrepDT.Branch(i).AddRange(brepArray);
+                                }
+                            }
+                            else
+                            {
+                                List<Curve> hCurves = allBlockCellDT.Branch(i)[j].GetAllHorizontal();
+                                List<Curve> vCurves = allBlockCellDT.Branch(i)[j].GetAllVertical();
+                                allCurves.AddRange(hCurves);
+                                allCurves.AddRange(vCurves);
+
+                                Curve[] joined = Curve.JoinCurves(allCurves);
+                                //Curve[] trimedJoined = new Curve[joined.Length];
+                                List<Curve> trimedJoined = new List<Curve>();
+                                if (joined != null)
+                                {
+                                    for (int k = 0; k < joined.Length; k++)
+                                    {
+                                        //Vector3d vec = joined[k].TangentAtStart;
+                                        //Vector3d depthVec =  new Vector3d(-vec.Y, vec.X, vec.Z);
+
+                                        if (joined[k] != null)
+                                        {
+                                            if (!joined[k].IsClosed)
+                                            {
+                                                Curve crv = TrimBothEnd(allBlockCellDT.Branch(i)[j].CellBoundary, joined[k], 0, w);
                                                 trimedJoined.Add(crv);
                                             }
                                             else
@@ -1200,15 +1949,15 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     Brep[] brepArray = BoundarySurfaces(all);
                                     if (brepArray != null)
                                     {
-                                        allBlockBrepDT.Branch(i).AddRange(brepArray);
+                                        allBlockGroundBrepDT.Branch(i).AddRange(brepArray);
                                     }
                                 }
                             }
                         }
                         else
                         {
-                            List<Curve> hCurves = newAllBlockCellDT.Branch(i)[j].GetAllHorizontal();
-                            List<Curve> vCurves = newAllBlockCellDT.Branch(i)[j].GetAllVertical();
+                            List<Curve> hCurves = allBlockCellDT.Branch(i)[j].GetAllHorizontal();
+                            List<Curve> vCurves = allBlockCellDT.Branch(i)[j].GetAllVertical();
                             allCurves.AddRange(hCurves);
                             allCurves.AddRange(vCurves);
 
@@ -1226,7 +1975,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     {
                                         if (!joined[k].IsClosed)
                                         {
-                                            Curve crv = TrimBothEnd(newAllBlockCellDT.Branch(i)[j].CellBoundary, joined[k], 0, w);
+                                            Curve crv = TrimBothEnd(allBlockCellDT.Branch(i)[j].CellBoundary, joined[k], 0, w);
                                             trimedJoined.Add(crv);
                                         }
                                         else
@@ -1254,25 +2003,15 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 Brep[] brepArray = BoundarySurfaces(all);
                                 if (brepArray != null)
                                 {
-                                    allBlockBrepDT.Branch(i).AddRange(brepArray);
+                                    allBlockGroundBrepDT.Branch(i).AddRange(brepArray);
                                 }
                             }
                         }
-
-
-
-
                     }
 
                     #endregion
                 }
                 #endregion
-
-
-
-
-
-
 
                 //DataTree<Polyline> contourDT = UtilityFunctions.LoLToDataTree<Polyline>(contourLoL);
                 //DataTree<Polyline> holeDT = UtilityFunctions.LoLToDataTree<Polyline>(holeLoL);
@@ -1280,7 +2019,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 DA.SetDataTree(4, allBlockHoleDT);
 
                 //DataTree<Brep> brepDT = UtilityFunctions.LoLToDataTree<Brep>(brepLoL);
-                DA.SetDataTree(2, allBlockBrepDT);
+                DA.SetDataTree(2, allBlockGroundBrepDT);
 
                 //DataTree<Curve> allHCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(allHCurvesLoL);
                 //DataTree<Curve> allVCurvesDT = UtilityFunctions.LoLToDataTree<Curve>(allVCurvesLoL);
@@ -1289,8 +2028,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 //DA.SetDataTree(7, allBlockCellBoundaryDT2);
                 //DA.SetDataTree(8, allBlockCellBoundaryDT);
-
-
                 #region 可视化
                 InnerResultPolyline.Clear();
                 InnerNodeTextDots.Clear();
@@ -1307,6 +2044,482 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 #endregion
             }
+        }
+
+        /// <summary>
+        /// -1 是从path的后开始减，1 是从path的前开始减
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sourceDT"></param>
+        /// <param name="additionalGenerations"></param>
+        /// <returns></returns>
+        private DataTree<T> DataTreeShiftPath<T>(DataTree<T> sourceDT, int additionalGenerations)
+        {
+            int num = additionalGenerations;
+
+            DataTree<T> outDataTree = new DataTree<T>();
+
+            int num2 = sourceDT.Paths.Count - 1;
+            int i = 0;
+            while (i <= num2)
+            {
+                GH_Path gh_Path = sourceDT.Path(i);
+                List<T> data = sourceDT.Branch(i);
+                if (num == 0)
+                {
+                    goto IL_A9;
+                }
+                int num3 = Math.Abs(num);
+                for (int j = 0; j < num3; j++)
+                {
+                    if (num < 0)
+                    {
+                        gh_Path = gh_Path.CullElement();
+                    }
+                    else
+                    {
+                        gh_Path = gh_Path.CullFirstElement();
+                    }
+                }
+                if (gh_Path.Length != 0)
+                {
+                    goto IL_A9;
+                }
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path {0} was shifted out of existence", outDataTree.Path(i)));
+
+            IL_A9:
+                outDataTree.AddRange(data, gh_Path);
+                goto IL_B3;
+            IL_B3:
+                i++;
+                continue;
+            }
+
+            return outDataTree;
+        }
+
+
+
+        /// <summary>
+        /// 全部都是 singleRegion 时，此时不计算VReduceCount，计算OffsetValue
+        /// </summary>
+        /// <param name="cellDT"></param>
+        /// <param name="currentSmallBlockPathList"></param>
+        /// <param name="scaleFactor"></param>
+        /// <returns></returns>
+        private DataTree<Cell> DoDensityReduce(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList, double scaleFactor)
+        {
+            List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
+            foreach (var cellPath in cellDT.Paths)
+            {
+                // 找到所有属于当前这个小Block的所有Cell
+                if (cellPath[0] == currentSmallBlockPathList[0] && cellPath[1] == currentSmallBlockPathList[1])
+                {
+                    currentSmallBlockContainsCellPath.Add(cellPath);
+                }
+            }
+
+            // 注意此时只会有一个Cell，所以这个For循环也只会循环一次
+            for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
+            {
+                GenerateDensityConstrainedCell(cellDT, currentSmallBlockContainsCellPath[i], scaleFactor);
+            }
+
+            return cellDT;
+        }
+
+        /// <summary>
+        /// 全部是 singlePolyline 或 IShape 或 CShape 时
+        /// </summary>
+        /// <param name="cellDT"></param>
+        /// <param name="currentSmallBlockPathList"></param>
+        /// <param name="vReduceCount"></param>
+        /// <param name="scaleFactor"></param>
+        /// <returns></returns>
+        private DataTree<Cell> DoDensityReduce(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList,int vReduceCount, double scaleFactor)
+        {
+            List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
+            foreach (var cellPath in cellDT.Paths)
+            {
+                // 找到所有属于当前这个小Block的所有Cell
+                if (cellPath[0] == currentSmallBlockPathList[0] && cellPath[1] == currentSmallBlockPathList[1])
+                {
+                    currentSmallBlockContainsCellPath.Add(cellPath);
+                }
+            }
+
+            DataTree<Cell> subTree = new DataTree<Cell>();
+            for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
+            {
+                subTree.EnsurePath(currentSmallBlockContainsCellPath[i]);
+                subTree.Branch(currentSmallBlockContainsCellPath[i]).AddRange(cellDT.Branch(currentSmallBlockContainsCellPath[i]));
+            }
+
+            List<Tuple<GH_Path, int>> indexForReduce = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexForScale = new List<Tuple<GH_Path, int>>();
+            for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
+            {
+                for (int j = 0; j < subTree.Branch(currentSmallBlockContainsCellPath[i]).Count; j++)
+                {
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
+                    indexForScale.Add(path_index);
+                }
+            }
+
+            int temp = 0;
+            int length = vReduceCount;
+            while (temp < length)
+            {
+                int randomPathIndex = m_random.Next(0, subTree.Paths.Count);
+                GH_Path randomPath = subTree.Paths[randomPathIndex];
+                int randomIndex = m_random.Next(0, subTree.Branch(randomPath).Count);
+                Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                if (!indexForReduce.Contains(path_index))
+                {
+                    indexForReduce.Add(path_index);
+                    indexForScale.Remove(path_index);
+                    temp++;
+                    //if (temp == length)
+                    //{
+                    //    break;
+                    //}
+                }
+            }
+
+            GenerateDensityConstrainedCell(cellDT, indexForReduce, indexForScale, scaleFactor);
+            return cellDT;
+        }
+
+        /// <summary>
+        /// 全部都是 elseCount 时，此时计算VReduceCount，不计算OffsetValue
+        /// </summary>
+        /// <param name="cellDT"></param>
+        /// <param name="currentSmallBlockPathList"></param>
+        /// <param name="vReduceCount"></param>
+        /// <param name="lMin"></param>
+        /// <param name="w"></param>
+        /// <returns></returns>
+        private DataTree<Cell> DoDensityReduce(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList, int vReduceCount, double lMin, double w)
+        {
+            List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
+            foreach (var cellPath in cellDT.Paths)
+            {
+                // 找到所有属于当前这个小Block的所有Cell
+                if (cellPath[0] == currentSmallBlockPathList[0] && cellPath[1] == currentSmallBlockPathList[1])
+                {
+                    currentSmallBlockContainsCellPath.Add(cellPath);
+                }
+            }
+
+            DataTree<Cell> subTree = new DataTree<Cell>();
+            for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
+            {
+                subTree.EnsurePath(currentSmallBlockContainsCellPath[i]);
+                subTree.Branch(currentSmallBlockContainsCellPath[i]).AddRange(cellDT.Branch(currentSmallBlockContainsCellPath[i]));
+            }
+
+            List<Tuple<GH_Path, int>> indexNotChangeListForBiCell = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexNotChangeListForTriCell = new List<Tuple<GH_Path, int>>();
+
+            int triCellCount = 0;
+            int biCellCount = 0;
+            DataTree<int> biCellIndexDT = new DataTree<int>();
+            DataTree<int> triCellIndexDT = new DataTree<int>();
+            //List<List<int>> biCellIndexLoL = new List<List<int>>();
+            //List<List<int>> triCellIndexLoL = new List<List<int>>();
+            for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
+            {
+                //biCellIndexLoL.Add(new List<int>());
+                //triCellIndexLoL.Add(new List<int>());
+
+                biCellIndexDT.EnsurePath(currentSmallBlockContainsCellPath[i]);
+                triCellIndexDT.EnsurePath(currentSmallBlockContainsCellPath[i]);
+
+                for (int j = 0; j < subTree.Branch(currentSmallBlockContainsCellPath[i]).Count; j++)
+                {
+                    if (subTree.Branch(currentSmallBlockContainsCellPath[i])[j] is BilinearCell)
+                    {
+                        biCellIndexDT.Branch(currentSmallBlockContainsCellPath[i]).Add(j);
+                        biCellCount++;
+
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
+                        indexNotChangeListForBiCell.Add(path_index);
+                    }
+                    else
+                    {
+                        triCellIndexDT.Branch(currentSmallBlockContainsCellPath[i]).Add(j);
+                        triCellCount++;
+
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
+                        indexNotChangeListForTriCell.Add(path_index);
+                    }
+                }
+            }
+
+            if (vReduceCount > biCellCount * 1 + triCellCount * 2)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处所给定的建筑密度，小于所能生成的最小建筑密度！", currentSmallBlockPathList.ToString()));
+                vReduceCount = biCellCount * 1 + triCellCount * 2;
+            }
+
+            List<int[]> countPairs = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, vReduceCount);
+            List<int[]> finalCountPairs = new List<int[]>();
+            for (int j = 0; j < countPairs.Count; j++)
+            {
+                bool flag0 = false;
+                bool flag1 = true;
+                if (countPairs[j][0] >= 0 && countPairs[j][0] <= triCellCount)
+                {
+                    flag0 = true;
+                }
+                if (countPairs[j][1] >= 0 && countPairs[j][1] <= biCellCount)
+                {
+                    flag1 = true;
+                }
+                if (flag0 && flag1)
+                {
+                    finalCountPairs.Add(countPairs[j]);
+                }
+            }
+
+            // 随机选择一组finalCountPairs 对Basic Cell进行削减生成
+            //List<Cell> densityConstrainedCells = new List<Cell>();
+            if (finalCountPairs.Count != 0)
+            {
+                int randomCountPairsIndex = m_random.Next(0, finalCountPairs.Count);
+
+                int[] finalPair = finalCountPairs[randomCountPairsIndex];
+
+                List<Tuple<GH_Path, int>> indexToChangeListForBiCell = new List<Tuple<GH_Path, int>>();
+                List<Tuple<GH_Path, int>> indexToChangeListForTriCell = new List<Tuple<GH_Path, int>>();
+
+                // 对于triCell来说
+                int temp = 0;
+                int length = finalPair[0];
+                while (temp < length)
+                {
+                    int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
+                    GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
+                    int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    if (!indexToChangeListForTriCell.Contains(path_index))
+                    {
+                        indexToChangeListForTriCell.Add(path_index);
+                        indexNotChangeListForTriCell.Remove(path_index);
+                        temp++;
+                        //if (temp == length)
+                        //{
+                        //    break;
+                        //}
+                    }
+                }
+                // 对于biCell来说
+                temp = 0;
+                length = finalPair[1];
+                while (temp < length)
+                {
+                    int randomPathIndex = m_random.Next(0, biCellIndexDT.Paths.Count);
+                    GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
+                    int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    if (!indexToChangeListForBiCell.Contains(path_index))
+                    {
+                        indexToChangeListForBiCell.Add(path_index);
+                        indexNotChangeListForBiCell.Remove(path_index);
+                        temp++;
+                        //if (temp == length)
+                        //{
+                        //    break;
+                        //}
+                    }
+                }
+
+                GenerateDensityConstrainedCell(cellDT, indexToChangeListForBiCell, indexToChangeListForTriCell, indexNotChangeListForBiCell, indexNotChangeListForTriCell, lMin, w);
+                return cellDT;
+            }
+            else
+            {
+                // 应该不会出现，待测试
+                return null;
+            }
+        }
+
+
+
+        /// <summary>
+        /// 全部都是 singleRegion 时，此时不计算VReduceCount，计算OffsetValue
+        /// </summary>
+        /// <param name="cellDT"></param>
+        /// <param name="path"></param>
+        /// <param name="scaleFactor"></param>
+        private void GenerateDensityConstrainedCell(DataTree<Cell> cellDT, GH_Path path, double scaleFactor)
+        {
+            BilinearCell bCell = cellDT.Branch(path)[0] as BilinearCell;
+            cellDT.Branch(path)[0] = bCell.GenerateOffsetedSingleRegion(scaleFactor);
+
+        }
+
+        /// <summary>
+        /// 全部是 singlePolyline 或 IShape 或 CShape 时
+        /// </summary>
+        /// <param name="cellDT"></param>
+        /// <param name="indexForReduce"></param>
+        /// <param name="indexForScale"></param>
+        /// <param name="scaleFactor"></param>
+        private void GenerateDensityConstrainedCell(DataTree<Cell> cellDT, List<Tuple<GH_Path, int>> indexForReduce, List<Tuple<GH_Path, int>> indexForScale,double scaleFactor)
+        {
+            #region 对于需要进行reduce操作的
+            foreach (var path_index in indexForReduce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                cellDT.Branch(path)[index] = bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline();
+            }
+            #endregion
+
+            #region 对于需要进行scale操作的
+            foreach (var path_index in indexForScale)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                cellDT.Branch(path)[index] = bCell.GenerateOffsetedSingleRegion(scaleFactor);
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// 全部都是 elseCount 时，此时计算VReduceCount，不计算OffsetValue
+        /// </summary>
+        /// <param name="cellDT"></param>
+        /// <param name="indexToChangeListForBiCell"></param>
+        /// <param name="indexToChangeListForTriCell"></param>
+        /// <param name="indexNotChangeListForBiCell"></param>
+        /// <param name="indexNotChangeListForTriCell"></param>
+        /// <param name="lMin"></param>
+        /// <param name="w"></param>
+        private void GenerateDensityConstrainedCell(DataTree<Cell> cellDT, 
+                                                    List<Tuple<GH_Path, int>> indexToChangeListForBiCell, List<Tuple<GH_Path, int>> indexToChangeListForTriCell,
+                                                    List<Tuple<GH_Path, int>> indexNotChangeListForBiCell, List<Tuple<GH_Path, int>> indexNotChangeListForTriCell,
+                                                    double lMin, double w)
+        {
+            #region 对于需要修改的
+            foreach (var path_index in indexToChangeListForBiCell)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                if (bCell.ShapeType == BilinearCell.BilinearShapeType.SinglePolyline
+                    || bCell.ShapeType == BilinearCell.BilinearShapeType.IShape
+                    || bCell.ShapeType == BilinearCell.BilinearShapeType.CShape)
+                {
+                    // 去掉一横或一竖
+                    cellDT.Branch(path)[index] = bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline();
+                }
+                else
+                {
+                    // 随机生成工,C
+                    int random0 = m_random.Next(0, 2);// 取值范围是0, 1
+                    double randomT0 = m_random.Next(0, 3) / 2; // 取值范围是0, 0.5, 1
+                    int directionCode0 = m_random.Next(0, 4);
+                    // 如果在面宽方向上被切割过，就不走IShape分支
+                    if ((bCell.South_Interval != null && bCell.South_Interval.Count > 1)
+                        || (bCell.North_Interval != null && bCell.North_Interval.Count > 1))
+                    {
+                        random0 = m_random.Next(1, 2);
+                    }
+
+                    if (random0 == 0)
+                    {
+                        cellDT.Branch(path)[index] = bCell.GenerateIAndIVariantShape(randomT0, directionCode0, w);
+                    }
+                    else
+                    {
+                        cellDT.Branch(path)[index] = bCell.GenerateCAndCVariantShape(randomT0, directionCode0, w);
+                    }
+                }
+            }
+
+            foreach (var path_index in indexToChangeListForTriCell)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                TrilinearCell tCell = cellDT.Branch(path)[index] as TrilinearCell;
+
+                // 随机生成E,2,王,
+                int random1 = m_random.Next(0, 3);// 取值范围是0,1,2
+                double randomT0 = m_random.Next(0, 3) / 2; // 取值范围是0, 0.5, 1
+                double randomT1 = m_random.Next(0, 3) / 2; // 取值范围是0, 0.5, 1
+                int directionCode1 = m_random.Next(0, 4);
+                // 如果在面宽方向上被切割过，就不走EVariantShape分支
+                if ((tCell.South_Interval != null && tCell.South_Interval.Count > 1)
+                    || (tCell.Middle_Interval != null && tCell.Middle_Interval.Count > 1)
+                    || (tCell.North_Interval != null && tCell.North_Interval.Count > 1))
+                {
+                    random1 = m_random.Next(1, 3);
+                }
+
+                if (random1 == 0)
+                {
+                    cellDT.Branch(path)[index] = tCell.GenerateEVariantShape(directionCode1, randomT0, randomT1, w);
+                }
+                else if (random1 == 1)
+                {
+                    cellDT.Branch(path)[index] = tCell.GenerateEShape(directionCode1);
+                }
+                else
+                {
+                    cellDT.Branch(path)[index] = tCell.GenerateZShape(directionCode1);
+                }
+            }
+            #endregion
+
+            #region 其他不需要修改的Rec或Eight
+            foreach (var path_index in indexToChangeListForBiCell)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+
+                // 随机生成Rec或Rec变体
+                // 如果在面宽方向上被切割过，就不走RecVariantShape分支
+                double randomT0 = m_random.Next(0, 3) / 2; // 取值范围是0, 0.5, 1
+                int directionCode0 = m_random.Next(0, 4);
+                bool flag = false;
+                if ((bCell.South_Interval != null && bCell.South_Interval.Count > 1)
+                        || (bCell.North_Interval != null && bCell.North_Interval.Count > 1))
+                {
+                    flag = true;
+                }
+
+                cellDT.Branch(path)[index] = bCell.GenerateRecAndRecVariantShape(randomT0, directionCode0, lMin, w, flag);
+            }
+
+            foreach (var path_index in indexToChangeListForTriCell)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+                TrilinearCell tCell = cellDT.Branch(path)[index] as TrilinearCell;
+
+                // 随机生成Eight或Eight变体
+                // 如果在面宽方向上被切割过，就不走EightVariantShape分支
+                double randomT1 = m_random.Next(0, 3) / 2; // 取值范围是0, 0.5, 1
+                int directionCode1 = m_random.Next(0, 4);
+                bool flag = false;
+                if ((tCell.South_Interval != null && tCell.South_Interval.Count > 1)
+                    || (tCell.Middle_Interval != null && tCell.Middle_Interval.Count > 1)
+                    || (tCell.North_Interval != null && tCell.North_Interval.Count > 1))
+                {
+                    flag = true;
+                }
+
+                cellDT.Branch(path)[index] = tCell.GenerateEightAndEightVariantShape(randomT1, directionCode1, lMin, w, flag);
+            }
+            #endregion
         }
 
         private List<Polyline> SplitBlockIntoQuadBlock(Polyline polyline,
@@ -1686,6 +2899,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                                 
                                                                 out horizontalCellBoundary,
                                                                 out verticalCellBoundary);
+            int turningPointIndex = sortedBoundaryPolyline.IndexOf(turningPoint);
 
             // out
             allHCurvesLoL = new List<List<List<Curve>>>();
@@ -1697,13 +2911,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             if (singleRegion == null)
             {
                 #region 由得到的baseLine构造生成初步的Cell对象，并且对初步生成的Cell对象进行随机修改，形成工，口，C
-                cellLoL = GenerateCells(hCurvesDT, 
+                cellLoL = GenerateBasicCells(hCurvesDT, 
                                         vCurvesDT, 
 
                                         horizontalCellBoundary,
                                         verticalCellBoundary,
 
                                         lineForEachEdge,
+                                        turningPointIndex,
 
                                         isJitter,
                                         lMin, lMax, d, w);
@@ -1810,7 +3025,22 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     #region 构造Cell对象
                     Curve[] segment = singleRegion.DuplicateSegments();
 
-                    BilinearCell bCell = new BilinearCell(singleRegion, segment[0], segment[2], segment[3], segment[1], 0, 0);
+                    int pulicBaseLineIndex = isGenerateables.IndexOf(false);
+                    int anotherBaseLineIndexRelatedToCutPoint = -1;
+                    if (pulicBaseLineIndex != -1)
+                    {
+                        Line publicLine = lineForEachEdge[pulicBaseLineIndex];
+                        if (publicLine.From.EpsilonEquals(turningPoint, GH_Component.DocumentTolerance()))
+                        {
+                            anotherBaseLineIndexRelatedToCutPoint = (pulicBaseLineIndex + 1) % lineForEachEdge.Count;
+                        }
+                        else
+                        {
+                            anotherBaseLineIndexRelatedToCutPoint = ((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
+                        }
+                    }
+
+                    BilinearCell bCell = new BilinearCell(singleRegion, segment[0], segment[2], segment[3], segment[1], pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                     cellLoL = new List<List<Cell>>();
                     cellLoL.Add(new List<Cell>());
                     cellLoL[0].Add(bCell);
@@ -1856,12 +3086,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     Curve[] result = new Curve[1];
 
                     BilinearCell bCell;
-                    int index = isGenerateables.IndexOf(false);
-                    Line publicLine = lineForEachEdge[index];
+                    int pulicBaseLineIndex = isGenerateables.IndexOf(false);
+                    Line publicLine = lineForEachEdge[pulicBaseLineIndex];
                     if (publicLine.From.EpsilonEquals(turningPoint, GH_Component.DocumentTolerance()))
                     {
-                        Curve crv = lineForEachEdge[(index + 1) % lineForEachEdge.Count].ToNurbsCurve();
-                        Curve nextCrv = lineForEachEdge[(index + 2) % lineForEachEdge.Count].ToNurbsCurve();
+                        int anotherBaseLineIndexRelatedToCutPoint = (pulicBaseLineIndex + 1) % lineForEachEdge.Count;
+
+                        Curve crv = lineForEachEdge[(pulicBaseLineIndex + 1) % lineForEachEdge.Count].ToNurbsCurve();
+                        Curve nextCrv = lineForEachEdge[(pulicBaseLineIndex + 2) % lineForEachEdge.Count].ToNurbsCurve();
 
                         Curve offsetCrv = crv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
                         Curve offsetNextCrv = nextCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
@@ -1870,22 +3102,22 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve newCrv = new Line(offsetCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
                         Curve newNextCrv = new Line(event0[0].PointA, offsetNextCrv.PointAtEnd).ToNurbsCurve();
 
-                        int indexCrv = (index + 1) % lineForEachEdge.Count;
+                        int indexCrv = (pulicBaseLineIndex + 1) % lineForEachEdge.Count;
                         if (indexCrv == 0)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, null, newNextCrv, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, null, newNextCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                         }
                         else if (indexCrv == 1)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newNextCrv, null, newCrv, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newNextCrv, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                         }
                         else if (indexCrv == 2)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, newNextCrv, null, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, newNextCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                         }
                         else
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newNextCrv, null, newCrv, null, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newNextCrv, null, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                         }
 
                         //// nextCrv需要在末端进行裁切
@@ -1898,8 +3130,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                     else
                     {
-                        Curve crv = lineForEachEdge[((index - 1) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
-                        Curve prevCrv = lineForEachEdge[((index - 2) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
+                        int anotherBaseLineIndexRelatedToCutPoint = ((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
+
+                        Curve crv = lineForEachEdge[((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
+                        Curve prevCrv = lineForEachEdge[((pulicBaseLineIndex - 2) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
 
                         Curve offsetCrv = crv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
                         Curve offsetPrevCrv = prevCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
@@ -1908,22 +3142,22 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve newCrv = new Line(event0[0].PointA, offsetCrv.PointAtEnd).ToNurbsCurve();
                         Curve newPrevCrv = new Line(offsetPrevCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
 
-                        int indexCrv = ((index - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
+                        int indexCrv = ((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
                         if (indexCrv == 0)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, newPrevCrv, null, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, newPrevCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                         }
                         else if (indexCrv == 1)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newPrevCrv, null, null, newCrv, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newPrevCrv, null, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                         }
                         else if (indexCrv == 2)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, null, newPrevCrv, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, null, newPrevCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                         }
                         else
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newPrevCrv, newCrv, null, 0, 0);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newPrevCrv, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
                         }
 
                         //// prevCrv需要在起始端进行裁切
@@ -2024,13 +3258,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return numList;
         }
 
-        private List<List<Cell>> GenerateCells(DataTree<Curve> hCurvesDT, 
+        private List<List<Cell>> GenerateBasicCells(DataTree<Curve> hCurvesDT, 
                                                DataTree<Curve> vCurvesDT, 
 
                                                DataTree<Curve> horizontalCellBoundary,
                                                DataTree<Curve> verticalCellBoundary,
 
                                                List<Line> lineForEachEdge,
+                                               int turningPointIndex,
 
                                                bool isJitter,
                                                double lMin, 
@@ -2116,7 +3351,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 Curve verticalCellBoundary_West = verticalCellBoundary.Branch(0)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
                                 Curve verticalCellBoundary_East = verticalCellBoundary.Branch(0)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
-                                BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
+                                BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, turningPointIndex);
                                 cellLoL[i].Add(bilinearCell);
                             }
                             else
@@ -2163,7 +3398,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
 
-                                BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
+                                BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, turningPointIndex);
                                 cellLoL[i].Add(bilinearCell);
                             }
                         }
@@ -2216,9 +3451,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                                             horizontalCellBoundary_North,
                                                                             joined_West,
                                                                             joined_East,
-                                                                            //verticalCellBoundary_West1,
-                                                                            //verticalCellBoundary_East1,
-                                                                            i, j);
+                                                                            turningPointIndex);
                             cellLoL[i].Add(trilinearCell);
                         }
 
@@ -2252,7 +3485,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     Curve verticalCellBoundary_West = verticalCellBoundary.Branch(0)[0].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
                     Curve verticalCellBoundary_East = verticalCellBoundary.Branch(0)[3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
-                    BilinearCell cell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, 0, 0);
+                    BilinearCell cell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, turningPointIndex);
                     cellLoL[0].Add(cell);
                 }
                 else
@@ -2319,7 +3552,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
                                     Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
-                                    BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
+                                    BilinearCell bilinearCell = new BilinearCell(centerH, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, turningPointIndex);
                                     cellLoL[i].Add(bilinearCell);
                                 }
                                 else if (HBranchType == HorizontalVolumeBranchType.OnlyOneSouth)
@@ -2343,7 +3576,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
                                     Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
-                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
+                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, turningPointIndex);
                                     cellLoL[i].Add(bilinearCell);
                                 }
                                 else if (HBranchType == HorizontalVolumeBranchType.OnlyOneNorth)
@@ -2367,7 +3600,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     Curve verticalCellBoundary_West = verticalCellBoundary.Branch(j)[4 * i].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
                                     Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
-                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
+                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, turningPointIndex);
                                     cellLoL[i].Add(bilinearCell);
                                 }
                                 else
@@ -2396,7 +3629,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     Curve verticalCellBoundary_East = verticalCellBoundary.Branch(j)[4 * i + 3].Extend(CurveEnd.Both, 5 * w, CurveExtensionStyle.Line);
 
 
-                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, i, j);
+                                    BilinearCell bilinearCell = new BilinearCell(southLine, northLine, westLine, eastLine, horizontalCellBoundary_South, horizontalCellBoundary_North, verticalCellBoundary_West, verticalCellBoundary_East, turningPointIndex);
                                     cellLoL[i].Add(bilinearCell);
                                 }
                             }
@@ -2448,9 +3681,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                                             horizontalCellBoundary_North,
                                                                             joined_West,
                                                                             joined_East,
-                                                                            //verticalCellBoundary_West1,
-                                                                            //verticalCellBoundary_East1,
-                                                                            i, j);
+                                                                            turningPointIndex);
                                 cellLoL[i].Add(trilinearCell);
                             }
 
@@ -2550,11 +3781,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                 }
             }
-            #endregion
-
-
-            #region todo 边缘裁切
-
             #endregion
 
             return cellLoL;
