@@ -729,7 +729,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(j);
                             for (int k = 0; k < cellBoundaryLoL[j].Count; k++)
                             {
-                                ghPathForHole = ghPathForHole.AppendElement(k);
+                                ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(k);
 
                                 allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
                                 allBlockCellBoundaryDT.Branch(ghPathForCellBoundary).Add(cellBoundaryLoL[j][k]);
@@ -924,7 +924,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(k);
                                     for (int l = 0; l < cellBoundaryLoL[k].Count; l++)
                                     {
-                                        ghPathForHole = ghPathForHole.AppendElement(l);
+                                        ghPathForCellBoundary = ghPathForCellBoundary.AppendElement(l);
 
                                         allBlockCellBoundaryDT.EnsurePath(ghPathForCellBoundary);
                                         allBlockCellBoundaryDT.Branch(ghPathForCellBoundary).Add(cellBoundaryLoL[k][l]);
