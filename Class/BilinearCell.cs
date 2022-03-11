@@ -35,6 +35,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
         // south:0;east:1;north:2;west:3
         //List<int> WhichBoundaryToOffset { get; set; }
 
+
+        public Curve FinalRegion { get; set; }
+
         public enum BilinearShapeType
         {
             Unset = 0,
@@ -43,7 +46,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
             RecShape = 3,
             RecVariantShape = 4,
             SingleRegion = 5,
-            SinglePolyline = 6
+            SinglePolyline = 6,
+
+            Scaled = 7
         }
 
         public BilinearShapeType ShapeType { get; set; }
@@ -164,27 +169,39 @@ namespace VolumeGeneratorBasedOnGraph.Class
                             
                             int turningPointIndex)
         {
-            #region baseLine
+            #region baseLine 和 interval
             int count = 0;
             if (southLine != null)
             {
                 this.SouthBaseLine = new Line(southLine.PointAtStart, southLine.PointAtEnd);
                 count++;
+
+                this.South_Interval = new List<Interval>();
+                this.South_Interval.Add(new Interval(0, 1));
             }
             if (northLine != null)
             {
                 this.NorthBaseLine = new Line(northLine.PointAtStart, northLine.PointAtEnd);
                 count++;
+
+                this.North_Interval = new List<Interval>();
+                this.North_Interval.Add(new Interval(0, 1));
             }
             if (westLine != null)
             {
                 this.WestBaseLine = new Line(westLine.PointAtStart, westLine.PointAtEnd);
                 count++;
+
+                this.West_Interval = new List<Interval>();
+                this.West_Interval.Add(new Interval(0, 1));
             }
             if (eastLine != null)
             {
                 this.EastBaseLine = new Line(eastLine.PointAtStart, eastLine.PointAtEnd);
                 count++;
+
+                this.East_Interval = new List<Interval>();
+                this.East_Interval.Add(new Interval(0, 1));
             }
             #endregion
 
@@ -240,28 +257,34 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 boundaryList.Add(new Line(p0, p1).ToNurbsCurve());
             }
 
-            Curve[] joinedCrv = Curve.JoinCurves(boundaryList);
-            this.CellBoundary = joinedCrv[0];
+            List<Point3d> pts = new List<Point3d>();
+            for (int k = 0; k < boundaryList.Count; k++)
+            {
+                pts.Add(boundaryList[k].PointAtStart);
+            }
+            pts.Add(pts[0]);
+
+            //Curve[] joinedCrv = Curve.JoinCurves(boundaryList);
+            //this.CellBoundary = joinedCrv[0];
+            this.CellBoundary = new Polyline(pts).ToNurbsCurve();
 
             #endregion
 
-            Polyline poly;
-            this.CellBoundary.TryGetPolyline(out poly);
             if (turningPointIndex == 0)
             {
-                this.TurningPoint = poly[0];
+                this.TurningPoint = pts[0];
             }
             else if (turningPointIndex == 1)
             {
-                this.TurningPoint = poly[1];
+                this.TurningPoint = pts[1];
             }
             else if (turningPointIndex == 2)
             {
-                this.TurningPoint = poly[2];
+                this.TurningPoint = pts[2];
             }
             else
             {
-                this.TurningPoint = poly[3];
+                this.TurningPoint = pts[3];
             }
 
         }
@@ -363,23 +386,32 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                             int turningPointIndex)
         {
-            #region baseLine
+            #region baseLine 和 interval
             int centerCount = 0;
             int count = 0;
             if (centerH != null)
             {
                 this.HCenterBaseLine = new Line(centerH.PointAtStart, centerH.PointAtEnd);
                 centerCount++;
+
+                this.HCenter_Interval = new List<Interval>();
+                this.HCenter_Interval.Add(new Interval(0, 1));
             }
             if (westLine != null)
             {
                 this.WestBaseLine = new Line(westLine.PointAtStart, westLine.PointAtEnd);
                 count++;
+
+                this.West_Interval = new List<Interval>();
+                this.West_Interval.Add(new Interval(0, 1));
             }
             if (eastLine != null)
             {
                 this.EastBaseLine = new Line(eastLine.PointAtStart, eastLine.PointAtEnd);
                 count++;
+
+                this.East_Interval = new List<Interval>();
+                this.East_Interval.Add(new Interval(0, 1));
             }
             #endregion
 
@@ -427,28 +459,34 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 boundaryList.Add(new Line(p0, p1).ToNurbsCurve());
             }
 
-            Curve[] joinedCrv = Curve.JoinCurves(boundaryList);
-            this.CellBoundary = joinedCrv[0];
+            List<Point3d> pts = new List<Point3d>();
+            for (int k = 0; k < boundaryList.Count; k++)
+            {
+                pts.Add(boundaryList[k].PointAtStart);
+            }
+            pts.Add(pts[0]);
+
+            //Curve[] joinedCrv = Curve.JoinCurves(boundaryList);
+            //this.CellBoundary = joinedCrv[0];
+            this.CellBoundary = new Polyline(pts).ToNurbsCurve();
 
             #endregion
 
-            Polyline poly;
-            this.CellBoundary.TryGetPolyline(out poly);
             if (turningPointIndex == 0)
             {
-                this.TurningPoint = poly[0];
+                this.TurningPoint = pts[0];
             }
             else if (turningPointIndex == 1)
             {
-                this.TurningPoint = poly[1];
+                this.TurningPoint = pts[1];
             }
             else if (turningPointIndex == 2)
             {
-                this.TurningPoint = poly[2];
+                this.TurningPoint = pts[2];
             }
             else
             {
-                this.TurningPoint = poly[3];
+                this.TurningPoint = pts[3];
             }
         }
 
@@ -1035,131 +1073,44 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
         }
 
-        public BilinearCell GenerateOffsetedSingleRegion(double scaleFactor)
+        public BilinearCell GenerateScaledShape(double scaleFactor, double lMin, double w)
         {
-            if (this.ShapeType != BilinearShapeType.SingleRegion)
-            {
-                return this;
-            }
-            else
-            {
+            Polyline poly;
+            this.CellBoundary.TryGetPolyline(out poly);
+            List<Point3d> pts = poly.ToList();
+            pts.RemoveAt(pts.Count - 1);
+            int index = pts.IndexOf(this.TurningPoint);
 
-                //if (this.PublicBaseLineIndex == -1 && this.AnotherBaseLineIndexRelatedToCutPoint == -1)
-                //{
-                //    this.PublicBaseLineIndex = randomIndex;
-                //    this.AnotherBaseLineIndexRelatedToCutPoint = (randomIndex + 1) % 4;
-                //}
+            Plane plane0 = new Plane(this.TurningPoint, pts[(index + 1) % pts.Count], pts[((index - 1) + pts.Count) % pts.Count] + this.TurningPoint);
+            BoundingBox box0 = this.CellBoundary.GetBoundingBox(plane0);
+            double x0 = box0.Max.X - box0.Min.X;
+            double y0 = box0.Max.Y - box0.Min.Y;
+            double scale_x0 = lMin / x0;
+            double scale_y0 = w / y0;
+            double minScale0 = scale_x0 > scale_y0 ? scale_x0 : scale_y0;
 
-                //int index0ForBLPublic = this.PublicBaseLineIndex;
-                //int index1ForBLPublic = this.AnotherBaseLineIndexRelatedToCutPoint;
-                //int index0ForBLNeedToOffset = (this.PublicBaseLineIndex + 2) % 4;
-                //int index1ForBLNeedToOffset = (this.AnotherBaseLineIndexRelatedToCutPoint + 2) % 4;
+            Transform transform = Transform.Scale(this.TurningPoint, minScale0);
+            Curve crv = this.CellBoundary.DuplicateCurve();
+            crv.Transform(transform);
 
-                //#region 对于index0ForBLPublic
-                //Line line0Public = Line.Unset;
-                //if (index0ForBLPublic == 0)
-                //{
-                //    line0Public = this.SouthBaseLine;
-                //}
-                //else if (index0ForBLPublic == 1)
-                //{
-                //    line0Public = this.EastBaseLine;
-                //}
-                //else if (index0ForBLPublic == 2)
-                //{
-                //    line0Public = this.NorthBaseLine;
-                //}
-                //else
-                //{
-                //    line0Public = this.WestBaseLine;
-                //}
-                //#endregion
+            this.FinalRegion = crv.DuplicateCurve();
 
-                //#region 对于index1ForBLPublic
-                //Line line1Public = Line.Unset;
-                //if (index1ForBLPublic == 0)
-                //{
-                //    line1Public = this.SouthBaseLine;
-                //}
-                //else if (index1ForBLPublic == 1)
-                //{
-                //    line1Public = this.EastBaseLine;
-                //}
-                //else if (index1ForBLPublic == 2)
-                //{
-                //    line1Public = this.NorthBaseLine;
-                //}
-                //else
-                //{
-                //    line1Public = this.WestBaseLine;
-                //}
-                //#endregion
+            //Curve[] segments = crv.DuplicateSegments();
+            //this.SouthBaseLine = new Line(segments[0].PointAtStart, segments[0].PointAtEnd);
+            //this.EastBaseLine = new Line(segments[1].PointAtStart, segments[1].PointAtEnd);
+            //this.NorthBaseLine = new Line(segments[2].PointAtEnd, segments[2].PointAtStart);
+            //this.WestBaseLine = new Line(segments[3].PointAtEnd, segments[3].PointAtStart);
+            #region 清空所有的interval
+            this.South_Interval = null;
+            this.North_Interval = null;
+            this.East_Interval = null;
+            this.West_Interval = null;
+            this.HCenter_Interval = null;
+            this.VCenter_Interval = null;
+            #endregion
+            this.ShapeType = BilinearShapeType.Scaled;
 
-                //#region 对于index0ForBLNeedToOffset
-                //Line line0 = Line.Unset;
-                //if (index0ForBLNeedToOffset == 0)
-                //{
-                //    line0 = this.SouthBaseLine;
-                //}
-                //else if (index0ForBLNeedToOffset == 1)
-                //{
-                //    line0 = this.EastBaseLine;
-                //}
-                //else if (index0ForBLNeedToOffset == 2)
-                //{
-                //    line0 = this.NorthBaseLine;
-                //}
-                //else
-                //{
-                //    line0 = this.WestBaseLine;
-                //}
-                //#endregion
-
-                //#region 对于index1ForBLNeedToOffset
-                //Line line1 = Line.Unset;
-                //if (index1ForBLNeedToOffset == 0)
-                //{
-                //    line1 = this.SouthBaseLine;
-                //}
-                //else if (index1ForBLNeedToOffset == 1)
-                //{
-                //    line1 = this.EastBaseLine;
-                //}
-                //else if (index1ForBLNeedToOffset == 2)
-                //{
-                //    line1 = this.NorthBaseLine;
-                //}
-                //else
-                //{
-                //    line1 = this.WestBaseLine;
-                //}
-                //#endregion
-
-                //#region offsetedIndex0
-                //Vector3d vec = line0.Direction;
-                //Vector3d verticalVec = new Vector3d(-vec.Y, vec.X, vec.Z);
-                //verticalVec.Unitize();
-                //verticalVec *= offset0;
-                //Line offsetdLine0 = new Line(line0.From + verticalVec, line0.To + verticalVec);
-                //#endregion
-                //#region offsetedIndex1
-                //vec = line1.Direction;
-                //verticalVec = new Vector3d(-vec.Y, vec.X, vec.Z);
-                //verticalVec.Unitize();
-                //verticalVec *= offset1;
-                //#endregion
-
-                Transform transform = Transform.Scale(this.TurningPoint, scaleFactor);
-                Curve crv = this.CellBoundary.DuplicateCurve();
-                crv.Transform(transform);
-                Curve[] segments = crv.DuplicateSegments();
-                this.SouthBaseLine = new Line(segments[0].PointAtStart, segments[0].PointAtEnd);
-                this.EastBaseLine = new Line(segments[1].PointAtStart, segments[1].PointAtEnd);
-                this.NorthBaseLine = new Line(segments[2].PointAtEnd, segments[2].PointAtStart);
-                this.WestBaseLine = new Line(segments[3].PointAtEnd, segments[3].PointAtStart);
-
-                return this;
-            }
+            return this;
         }
 
         private int GetBoundaryBaseLinesCount()
