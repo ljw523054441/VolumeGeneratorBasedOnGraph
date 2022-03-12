@@ -1351,7 +1351,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     int RecShapeCount = 0;
                     int EightShapeCount = 0;
                     //int elseCount = 0;
-
                     for (int i = 0; i < shiftedAllBlockBasicCellDT.Branch(path).Count; i++)
                     {
                         if (shiftedAllBlockBasicCellDT.Branch(path)[i] is BilinearCell)
@@ -1400,14 +1399,129 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         }
                         else
                         {
-                            // 不计算VReduceCount
-                            vReduceCountDT.Branch(path).Add(-1);
-                            // 不计算hReduceCount
-                            hReduceCountDT.Branch(path).Add(-1);
+                            //// 不计算VReduceCount
+                            //vReduceCountDT.Branch(path).Add(-1);
+                            //// 不计算hReduceCount
+                            //hReduceCountDT.Branch(path).Add(-1);
                             // 计算scaleFactor
                             double scaleFactor = (allBlockMaxFirstFloorArea.Branch(path)[0] - allBlockDelta.Branch(path)[0]) / allBlockMaxFirstFloorArea.Branch(path)[0];
-                            scaleFactorDT.Branch(path).Add(scaleFactor);
+                            allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scaleFactor, lMin, w);
+                        }
+                    }
+                    else if (singlePolylineCount == shiftedAllBlockBasicCellDT.Branch(path).Count)
+                    {
+                        // 此时只有一个 而且它是 singlePolyline
+                        if (singlePolylineCount != 1)
+                        {
+                            // 应该不可能
+                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内,存在多个singlePolyline的情况，该部分的代码未完善", path.ToString()));
+                        }
+                        else
+                        {
+                            BilinearCell bCell = allBlockCellDT.Branch(new GH_Path(path[0], path[1]))[0] as BilinearCell;
 
+                            if ((bCell.East_Interval.Count==0 && bCell.AnotherBaseLineIndexRelatedToCutPoint == 3))
+                            {
+                                // 此时 West_Interval.Count 一定大于0
+                                // 此时先减h，再减v
+                                // 即，先判断减 S 还是减 N ，再减West
+                                int hCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0]));
+                                if (hCount > singlePolylineCount)
+                                {
+                                    hCount = singlePolylineCount;
+                                    double area = allBlockDelta.Branch(path)[0] - hCount * allBlockHAverageLength.Branch(path)[0];
+                                    int vCount = (int)Math.Ceiling(area / allBlockVAverageLength.Branch(path)[0]);
+                                    if (vCount > singlePolylineCount)
+                                    {
+                                        double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
+                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                    }
+                                    else
+                                    {
+                                        // h直接切除，并且将原来的v变短
+                                        vCount = 0;
+                                        double sV = area / allBlockVAverageLength.Branch(path)[0];
+                                        double sH = 0;
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
+                                    }
+                                }
+                                else
+                                {
+                                    // 将原来的h变短
+                                    int vCount = 0;
+                                    double sV = 0;
+                                    double sH = allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0];
+                                    allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
+                                }
+                            }
+                            else if (bCell.West_Interval.Count == 0 && bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                            {
+                                // 此时先减h，再减v
+                                // 即，先判断减 S 还是减 N ，再减West
+                                int hCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0]));
+                                if (hCount > singlePolylineCount)
+                                {
+                                    hCount = singlePolylineCount;
+                                    double area = allBlockDelta.Branch(path)[0] - hCount * allBlockHAverageLength.Branch(path)[0];
+                                    int vCount = (int)Math.Ceiling(area / allBlockVAverageLength.Branch(path)[0]);
+                                    if (vCount > singlePolylineCount)
+                                    {
+                                        double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
+                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                    }
+                                    else
+                                    {
+                                        // h直接切除，并且将原来的v变短
+                                        vCount = 0;
+                                        double sV = area / allBlockVAverageLength.Branch(path)[0];
+                                        double sH = 0;
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
+                                    }
+                                }
+                                else
+                                {
+                                    // 将原来的h变短
+                                    hCount = 0;
+                                    int vCount = 0;
+                                    double sV = 0;
+                                    double sH = allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0];
+                                    allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
+                                }
+                            }
+                            else
+                            {
+                                // 此时先减v，再减h
+                                // 即，先减West，然后再判断减 S 还是减 N 
+                                int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
+                                if (vCount > singlePolylineCount)
+                                {
+                                    vCount = singlePolylineCount;
+                                    double area = allBlockDelta.Branch(path)[0] - vCount * allBlockVAverageLength.Branch(path)[0];
+                                    int hCount = (int)Math.Ceiling(area / allBlockHAverageLength.Branch(path)[0]);
+                                    if (hCount > singlePolylineCount)
+                                    {
+                                        double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
+                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                    }
+                                    else
+                                    {
+                                        // v直接切除，并且将原来的h变短
+                                        hCount = 0;
+                                        double sH = area / allBlockHAverageLength.Branch(path)[0];
+                                        double sV = 0;
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
+                                    }
+                                }
+                                else
+                                {
+                                    // 将原来的v变短
+                                    vCount = 0;
+                                    int hCount = 0;
+                                    double sH = 0;
+                                    double sV = allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0];
+                                    allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
+                                }
+                            }
                         }
                     }
                     else if (singleRegionCount + singlePolylineCount + IShapeCount + CShapeCount == shiftedAllBlockBasicCellDT.Branch(path).Count
@@ -1416,100 +1530,81 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         // 应该不可能
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内,存在singleRegion与singlePolyline(或者可能是IShape,CShape)共存的情况，该部分的代码未完善", path.ToString()));
                     }
-                    else if (singlePolylineCount + IShapeCount + CShapeCount == shiftedAllBlockBasicCellDT.Branch(path).Count)
+                    else if (IShapeCount + CShapeCount == shiftedAllBlockBasicCellDT.Branch(path).Count)
                     {
                         // 全部是 singlePolyline 或 IShape 或 CShape 时
                         // 此时先，判断当前形状减去 vReduceCount 个V后，是否仍比期望的首层面积 shiftedAllBlockExpectedFirstFloorArea 大
                         // 如果是的话，就模仿 SingleRegion 进行 offset，不过这个offset操作，与 SingleRegion 的 offset 操作是反的
 
-                        int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
-                        if (vCount > singlePolylineCount + IShapeCount + CShapeCount)
+                        int vCountOnce = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
+                        // 注意此时存在的IShape一定是有两条V的，CShape也是一定是有两条V的
+                        if (vCountOnce > IShapeCount * 2 + CShapeCount * 2)
                         {
-                            // 此时已经大于了可以减去的V的数量，
-                            // 首先求一下平均每个Cell的面积
-                            double averageArea = 0;
-                            for (int i = 0; i < shiftedAllBlockBasicCellDT.Branch(path).Count; i++)
+                            // 不用vCountTwice
+                            vCountOnce = IShapeCount * 2 + CShapeCount * 2;
+                            double area = allBlockDelta.Branch(path)[0] - vCountOnce * allBlockVAverageLength.Branch(path)[0];
+                            int hCount = (int)Math.Ceiling(area / allBlockHAverageLength.Branch(path)[0]);
+                            if (hCount > IShapeCount + CShapeCount)
                             {
-                                for (int j = 0; j < shiftedAllBlockBasicCellDT.Branch(path)[i].CellBreps.Length; j++)
-                                {
-                                    averageArea += shiftedAllBlockBasicCellDT.Branch(path)[i].CellBreps[j].GetArea();
-                                }
-                            }
-                            averageArea /= allBlockBasicCellDT.Branch(pathsBelongsToSameBlock.Branch(path)[0]).Count;
-                            // 然后看大于的量有几个（平均面积 - 平均VL*宽），这个几个，肯定比singlePolylineCount + IShapeCount + CShapeCount小，有几个，就让几个进行offset
-                            int count = (int)Math.Ceiling(allBlockDelta.Branch(path)[0] / (averageArea - allBlockVAverageLength.Branch(path)[0] * w));
-                            if (count > allBlockBasicCellDT.Branch(pathsBelongsToSameBlock.Branch(path)[0]).Count)
-                            {
-                                // 应该不可能
-                                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内，存在面积差值溢出的问题，该部分的代码未完善", path.ToString()));
+                                double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
+                                allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
                             }
                             else
                             {
-                                // 计算VReduceCount
-                                vReduceCountDT.Branch(path).Add(count);
-                                // 计算scaleFactor，这里在后面计算offset时，要取offset后剩下的部分作为建筑体量
-                                double A = allBlockMaxFirstFloorArea.Branch(path)[0];
-                                double deltaA = (allBlockDelta.Branch(path)[0] - (averageArea - allBlockVAverageLength.Branch(path)[0] * w));
-                                int anotherCount = shiftedAllBlockBasicCellDT.Branch(path).Count - count;
-                                double scaleFactor = (A - deltaA/ anotherCount) / A;
-                                scaleFactorDT.Branch(path).Add(scaleFactor);
+                                allBlockCellDT = DoDensityReduce_IOrC(allBlockCellDT, path, vCountOnce, hCount, IShapeCount, CShapeCount);
                             }
                         }
                         else
                         {
-                            // 此时全按照VCount即可，不需要scale
-                            // 计算VReduceCount
-                            vReduceCountDT.Branch(path).Add(vCount);
-                            // 不计算scaleFactor
-                            scaleFactorDT.Branch(path).Add(-1);
+                            allBlockCellDT = DoDensityReduce_IOrC(allBlockCellDT, path, vCountOnce, 0, IShapeCount, CShapeCount);
                         }
                     }
-                    else if (singlePolylineCount + IShapeCount + CShapeCount + RecShapeCount + EightShapeCount == shiftedAllBlockBasicCellDT.Branch(path).Count
-                             && singlePolylineCount + IShapeCount + CShapeCount != 0)
+                    else if (IShapeCount + CShapeCount + RecShapeCount + EightShapeCount == shiftedAllBlockBasicCellDT.Branch(path).Count
+                             && IShapeCount + CShapeCount != 0)
                     {
                         // 应该不可能
-                        //AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内，存在else与singlePolyline(或者可能是IShape,CShape)共存的情况，该部分的代码未完善", path.ToString()));
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内，存在else与singlePolyline(或者可能是IShape,CShape)共存的情况，该部分的代码未完善", path.ToString()));
 
-                        // 此时计算VReduceCount，不计算OffsetValue
-                        // 计算VReduceCount
-                        int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
-                        if (vCount > singlePolylineCount + IShapeCount * 2 + CShapeCount * 2 + RecShapeCount * 2 + 4 * EightShapeCount)
-                        {
-                            // 如果需要减去的v，比所有v的数量还要多
-                            // 那么就要减去h，否则不用
-                            vCount = singlePolylineCount + IShapeCount * 2 + CShapeCount * 2 + RecShapeCount * 2 + 4 * EightShapeCount;
+                    //    // 此时计算VReduceCount，不计算OffsetValue
+                    //    // 计算VReduceCount
+                    //    int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
+                    //    if (vCount > singlePolylineCount + IShapeCount * 2 + CShapeCount * 2 + RecShapeCount * 2 + 4 * EightShapeCount)
+                    //    {
+                    //        // 如果需要减去的v，比所有v的数量还要多
+                    //        // 那么就要减去h，否则不用
+                    //        vCount = singlePolylineCount + IShapeCount * 2 + CShapeCount * 2 + RecShapeCount * 2 + 4 * EightShapeCount;
 
-                            double area = allBlockDelta.Branch(path)[0] - vCount * allBlockVAverageLength.Branch(path)[0];
-                            //double area = vNum * ;
-                            int hCount = (int)Math.Ceiling(area / allBlockHAverageLength.Branch(path)[0]);
-                            if (hCount > singlePolylineCount + IShapeCount + CShapeCount + RecShapeCount * 2 + EightShapeCount * 3)
-                            {
-                                vReduceCountDT.Branch(path).Add(-1);
-                                //hCount = singlePolylineCount + IShapeCount + CShapeCount + RecShapeCount * 2 + EightShapeCount * 3;
-                                // 如果h全减去也不够，
-                                hReduceCountDT.Branch(path).Add(-1);
-                                // 那么直接全员做scale生成
-                                // 计算scaleFactor
-                                double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                                scaleFactorDT.Branch(path).Add(scale);
-                            }
-                            else
-                            {
-                                vReduceCountDT.Branch(path).Add(vCount);
-                                // 计算hReduceCount
-                                hReduceCountDT.Branch(path).Add(hCount);
-                                // 不计算scaleFactor
-                                scaleFactorDT.Branch(path).Add(-1);
-                            }
-                        }
-                        else
-                        {
-                            vReduceCountDT.Branch(path).Add(vCount);
-                            // 计算hReduceCount
-                            hReduceCountDT.Branch(path).Add(-1);
-                            // 不计算scaleFactor
-                            scaleFactorDT.Branch(path).Add(-1);
-                        }
+                    //        double area = allBlockDelta.Branch(path)[0] - vCount * allBlockVAverageLength.Branch(path)[0];
+                    //        //double area = vNum * ;
+                    //        int hCount = (int)Math.Ceiling(area / allBlockHAverageLength.Branch(path)[0]);
+                    //        if (hCount > singlePolylineCount + IShapeCount + CShapeCount + RecShapeCount * 2 + EightShapeCount * 3)
+                    //        {
+                    //            vReduceCountDT.Branch(path).Add(-1);
+                    //            //hCount = singlePolylineCount + IShapeCount + CShapeCount + RecShapeCount * 2 + EightShapeCount * 3;
+                    //            // 如果h全减去也不够，
+                    //            hReduceCountDT.Branch(path).Add(-1);
+                    //            // 那么直接全员做scale生成
+                    //            // 计算scaleFactor
+                    //            double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
+                    //            scaleFactorDT.Branch(path).Add(scale);
+                    //        }
+                    //        else
+                    //        {
+                    //            vReduceCountDT.Branch(path).Add(vCount);
+                    //            // 计算hReduceCount
+                    //            hReduceCountDT.Branch(path).Add(hCount);
+                    //            // 不计算scaleFactor
+                    //            scaleFactorDT.Branch(path).Add(-1);
+                    //        }
+                    //    }
+                    //    else
+                    //    {
+                    //        vReduceCountDT.Branch(path).Add(vCount);
+                    //        // 计算hReduceCount
+                    //        hReduceCountDT.Branch(path).Add(-1);
+                    //        // 不计算scaleFactor
+                    //        scaleFactorDT.Branch(path).Add(-1);
+                    //    }
                     }
                     else
                     {
@@ -1517,76 +1612,70 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         // 此时计算VReduceCount，不计算OffsetValue
 
                         // 计算VReduceCount
-                        int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
-                        if (vCount > RecShapeCount * 2 + 4 * EightShapeCount)
+                        int vCountOnce = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
+                        if (vCountOnce > RecShapeCount * 1 + 2 * EightShapeCount)
                         {
-                            vCount = RecShapeCount * 2 + 4 * EightShapeCount;
-                            double area = allBlockDelta.Branch(path)[0] - vCount * allBlockVAverageLength.Branch(path)[0];
-                            int hCount = (int)Math.Ceiling(area / allBlockHAverageLength.Branch(path)[0]);
-                            if (hCount > RecShapeCount * 2 + 3 * EightShapeCount)
+                            int vCountTwice = vCountOnce - RecShapeCount * 1 + 2 * EightShapeCount;
+                            vCountOnce = RecShapeCount * 1 + 2 * EightShapeCount;
+
+                            if (vCountTwice > RecShapeCount * 1 + 2 * EightShapeCount)
                             {
-                                vReduceCountDT.Branch(path).Add(-1);
-                                hReduceCountDT.Branch(path).Add(-1);
-                                double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                                scaleFactorDT.Branch(path).Add(scale);
+                                vCountTwice = RecShapeCount * 1 + 2 * EightShapeCount;
+
+                                double area = allBlockDelta.Branch(path)[0] - (vCountOnce + vCountTwice) * allBlockVAverageLength.Branch(path)[0];
+                                int hCount = (int)Math.Ceiling(area / allBlockHAverageLength.Branch(path)[0]);
+                                if (hCount > RecShapeCount * 2 + 3 * EightShapeCount)
+                                {
+                                    double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
+                                    allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                }
+                                else
+                                {
+                                    allBlockCellDT = DoDensityReduce_RecOrEight(allBlockCellDT, path, vCountOnce, vCountTwice, hCount, RecShapeCount, EightShapeCount, lMin, w);
+                                }
                             }
                             else
                             {
-                                vReduceCountDT.Branch(path).Add(vCount);
-                                // 计算hReduceCount
-                                hReduceCountDT.Branch(path).Add(hCount);
-                                // 不计算scaleFactor
-                                scaleFactorDT.Branch(path).Add(-1);
+                                allBlockCellDT = DoDensityReduce_RecOrEight(allBlockCellDT, path, vCountOnce, vCountTwice, 0, RecShapeCount, EightShapeCount, lMin, w);
                             }
                         }
                         else
                         {
-                            vReduceCountDT.Branch(path).Add(vCount);
-                            // 计算hReduceCount
-                            hReduceCountDT.Branch(path).Add(-1);
-                            // 不计算scaleFactor
-                            scaleFactorDT.Branch(path).Add(-1);
+                            allBlockCellDT = DoDensityReduce_RecOrEight(allBlockCellDT, path, vCountOnce, 0, 0, RecShapeCount, EightShapeCount, lMin, w);
                         }
-
-                        //vReduceCountDT.Branch(path).Add(vCount);
-                        //// 不计算scaleFactor
-                        //scaleFactorDT.Branch(path).Add(-1);
                     }
                 }
                 #endregion
 
+                #region 暂存
+                //foreach (var path in allBlockPolylineDT.Paths)
+                //{
+                //    int vReduceCount = vReduceCountDT.Branch(path)[0];
+                //    int hReduceCount = hReduceCountDT.Branch(path)[0];
+                //    double scaleFactor = scaleFactorDT.Branch(path)[0];
 
+                //    if (vReduceCount == -1 && scaleFactor != -1)
+                //    {
+                //        // 全部都是 singleRegion 时
+                //        // 此时不计算VReduceCount，计算OffsetValue
 
-                
+                //        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, scaleFactor, lMin, w);
+                //    }
+                //    else if (vReduceCount != -1 && scaleFactor != -1)
+                //    {
+                //        // 全部是 singlePolyline 或 IShape 或 CShape 时
 
-                foreach (var path in allBlockPolylineDT.Paths)
-                {
-                    int vReduceCount = vReduceCountDT.Branch(path)[0];
-                    int hReduceCount = hReduceCountDT.Branch(path)[0];
-                    double scaleFactor = scaleFactorDT.Branch(path)[0];
-
-                    if (vReduceCount == -1 && scaleFactor != -1)
-                    {
-                        // 全部都是 singleRegion 时
-                        // 此时不计算VReduceCount，计算OffsetValue
-
-                        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, scaleFactor, lMin, w);
-                    }
-                    else if (vReduceCount != -1 && scaleFactor != -1)
-                    {
-                        // 全部是 singlePolyline 或 IShape 或 CShape 时
-
-                        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, vReduceCount, scaleFactor, lMin, w);
-                    }
-                    else
-                    {
-                        // vRecuceCount != -1 && offsetValue == -1
-                        // 全部都是 elseCount 时
-                        // 此时计算VReduceCount，不计算OffsetValue
-                        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, vReduceCount, lMin, w);
-                    }
-                }
-
+                //        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, vReduceCount, scaleFactor, lMin, w);
+                //    }
+                //    else
+                //    {
+                //        // vRecuceCount != -1 && offsetValue == -1
+                //        // 全部都是 elseCount 时
+                //        // 此时计算VReduceCount，不计算OffsetValue
+                //        allBlockCellDT = DoDensityReduce(allBlockCellDT, path, vReduceCountOnce,vReduceCountTwice,hReduceCount,RecShapeCount,EightShapeCount, lMin, w);
+                //    }
+                //}
+                #endregion
 
                 #region 暂存
                 //for (int i = 0; i < pathsBelongsToSameBlock.Count; i++)
@@ -2217,7 +2306,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         /// <param name="currentSmallBlockPathList"></param>
         /// <param name="scaleFactor"></param>
         /// <returns></returns>
-        private DataTree<Cell> DoDensityReduce(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList, double scaleFactor, double lMin, double w)
+        private DataTree<Cell> DoDensityReduce_Scale(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList, double scaleFactor, double lMin, double w)
         {
             List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
             foreach (var cellPath in cellDT.Paths)
@@ -2238,6 +2327,253 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return cellDT;
         }
 
+        private DataTree<Cell> DoDensityReduce_SP(DataTree<Cell> cellDT,GH_Path currentSmallBlockPathList, int vReduceCount, int hReduceCount, double sV, double sH)
+        {
+            #region 得到当前小block的子树
+            List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
+            foreach (var cellPath in cellDT.Paths)
+            {
+                // 找到所有属于当前这个小Block的所有Cell
+                if (cellPath[0] == currentSmallBlockPathList[0] && cellPath[1] == currentSmallBlockPathList[1])
+                {
+                    currentSmallBlockContainsCellPath.Add(cellPath);
+                }
+            }
+
+            DataTree<Cell> subTree = new DataTree<Cell>();
+            for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
+            {
+                subTree.EnsurePath(currentSmallBlockContainsCellPath[i]);
+                subTree.Branch(currentSmallBlockContainsCellPath[i]).AddRange(cellDT.Branch(currentSmallBlockContainsCellPath[i]));
+            }
+            #endregion
+
+            List<Tuple<GH_Path, int>> indexNotChangeListForSinglePolyline_vReduce = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexNotChangeListForSinglePolyline_hReduce = new List<Tuple<GH_Path, int>>();
+
+            DataTree<int> singlePolylineIndexDT = new DataTree<int>();
+            for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
+            {
+                singlePolylineIndexDT.EnsurePath(currentSmallBlockContainsCellPath[i]);
+                for (int j = 0; j < subTree.Branch(currentSmallBlockContainsCellPath[i]).Count; j++)
+                {
+                    BilinearCell cell = subTree.Branch(currentSmallBlockContainsCellPath[i])[j] as BilinearCell;
+                    if (cell.ShapeType == BilinearCell.BilinearShapeType.SinglePolyline)
+                    {
+                        singlePolylineIndexDT.Branch(currentSmallBlockContainsCellPath[i]).Add(j);
+
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
+                        indexNotChangeListForSinglePolyline_vReduce.Add(path_index);
+                        indexNotChangeListForSinglePolyline_hReduce.Add(path_index);
+                    }
+                }
+                
+            }
+
+            BilinearCell bCell = cellDT.Branch(singlePolylineIndexDT.Paths[0])[0] as BilinearCell;
+            if (hReduceCount == 0 && vReduceCount == 0)
+            {
+                if (sH == 0)
+                {
+                    // 将原来的v变短
+                    if (bCell.West_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(sV, 1));
+                        }
+                    }
+                    else if (bCell.East_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(sV, 1));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                    }
+                }
+                else if (sV == 0)
+                {
+                    // 将原来的h变短
+                    if (bCell.South_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        {
+                            bCell.South_Interval.Clear();
+                            bCell.South_Interval.Add(new Interval(sV, 1));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        {
+                            bCell.South_Interval.Clear();
+                            bCell.South_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                    }
+                    else if (bCell.North_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(sV, 1));
+                        }
+                    }
+                }
+            }
+            else if (hReduceCount == 1 && vReduceCount == 0)
+            {
+                if (bCell.South_Interval.Count != 0)
+                {
+                    bCell.South_Interval.Clear();
+
+                    // 将原来的v变短
+                    if (bCell.West_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(sV, 1));
+                        }
+                    }
+                    else if (bCell.East_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(sV, 1));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                    }
+                }
+                else if (bCell.North_Interval.Count != 0)
+                {
+                    bCell.North_Interval.Clear();
+
+                    // 将原来的v变短
+                    if (bCell.West_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(sV, 1));
+                        }
+                    }
+                    else if (bCell.East_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(sV, 1));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        {
+                            bCell.West_Interval.Clear();
+                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                    }
+                }
+            }
+            else if (vReduceCount == 1 && hReduceCount == 0)
+            {
+                if (bCell.West_Interval.Count != 0)
+                {
+                    bCell.West_Interval.Clear();
+
+                    // 将原来的h变短
+                    if (bCell.South_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        {
+                            bCell.South_Interval.Clear();
+                            bCell.South_Interval.Add(new Interval(sV, 1));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        {
+                            bCell.South_Interval.Clear();
+                            bCell.South_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                    }
+                    else if (bCell.North_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(sV, 1));
+                        }
+                    }
+                }
+                else if (bCell.East_Interval.Count != 0)
+                {
+                    bCell.East_Interval.Clear();
+
+                    // 将原来的h变短
+                    if (bCell.South_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        {
+                            bCell.South_Interval.Clear();
+                            bCell.South_Interval.Add(new Interval(sV, 1));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        {
+                            bCell.South_Interval.Clear();
+                            bCell.South_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                    }
+                    else if (bCell.North_Interval.Count != 0)
+                    {
+                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
+                        }
+                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(sV, 1));
+                        }
+                    }
+                }
+            }
+
+            cellDT.Branch(singlePolylineIndexDT.Paths[0])[0] = bCell;
+
+            return cellDT;
+        }
+
         /// <summary>
         /// 全部是 singlePolyline 或 IShape 或 CShape 时
         /// </summary>
@@ -2246,8 +2582,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         /// <param name="vReduceCount"></param>
         /// <param name="scaleFactor"></param>
         /// <returns></returns>
-        private DataTree<Cell> DoDensityReduce(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList,int vReduceCount, double scaleFactor, double lMin, double w)
+        private DataTree<Cell> DoDensityReduce_IOrC(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList,
+                                                    int vReduceCount, int hReduceCount, 
+                                                    int IShapeCount, int CShapeCount)
         {
+            #region 得到当前小block的子树
             List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
             foreach (var cellPath in cellDT.Paths)
             {
@@ -2264,53 +2603,302 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 subTree.EnsurePath(currentSmallBlockContainsCellPath[i]);
                 subTree.Branch(currentSmallBlockContainsCellPath[i]).AddRange(cellDT.Branch(currentSmallBlockContainsCellPath[i]));
             }
+            #endregion
 
-            List<Tuple<GH_Path, int>> indexForReduce = new List<Tuple<GH_Path, int>>();
-            List<Tuple<GH_Path, int>> indexForScale = new List<Tuple<GH_Path, int>>();
+            //List<Tuple<GH_Path, int>> indexForReduce = new List<Tuple<GH_Path, int>>();
+            //List<Tuple<GH_Path, int>> indexForScale = new List<Tuple<GH_Path, int>>();
+
+            List<Tuple<GH_Path, int>> indexNotChangeListForIShape_vReduceOnce = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexNotChangeListForCShape_vReduceOnce = new List<Tuple<GH_Path, int>>();
+
+            List<Tuple<GH_Path, int>> indexNotChangeListForIShape_hReduce = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexNotChangeListForCShape_hReduce = new List<Tuple<GH_Path, int>>();
+
+            DataTree<int> IShapeIndexDT = new DataTree<int>();
+            DataTree<int> CShapeIndexDT = new DataTree<int>();
             for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
             {
+                IShapeIndexDT.EnsurePath(currentSmallBlockContainsCellPath[i]);
+                CShapeIndexDT.EnsurePath(currentSmallBlockContainsCellPath[i]);
+
                 for (int j = 0; j < subTree.Branch(currentSmallBlockContainsCellPath[i]).Count; j++)
                 {
-                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
-                    indexForScale.Add(path_index);
+                    BilinearCell bCell = subTree.Branch(currentSmallBlockContainsCellPath[i])[j] as BilinearCell;
+                    if (bCell.ShapeType == BilinearCell.BilinearShapeType.IShape)
+                    {
+                        IShapeIndexDT.Branch(currentSmallBlockContainsCellPath[i]).Add(j);
+
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
+                        indexNotChangeListForIShape_vReduceOnce.Add(path_index);
+                        indexNotChangeListForIShape_hReduce.Add(path_index);
+                    }
+                    else if (bCell.ShapeType == BilinearCell.BilinearShapeType.CShape)
+                    {
+                        CShapeIndexDT.Branch(currentSmallBlockContainsCellPath[i]).Add(j);
+
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
+                        indexNotChangeListForCShape_vReduceOnce.Add(path_index);
+                        indexNotChangeListForCShape_hReduce.Add(path_index);
+                    }
                 }
             }
 
-            int temp = 0;
-            int length = vReduceCount;
-            while (temp < length)
+            #region 进行vReduce
+            #region 求解四元一次不定方程，得到finalCountPairs
+            // 求解四元一次不定方程问题：由于参数的特殊性，可以选择扩展二元不定方程的解法
+            // x:IShape减2条    y:CShape减1条    z:CShape减2条    w:IShape减1条
+            // countPair:[a,b,c,d]
+            List<int[]> countPairs_vReduceOnce = new List<int[]>();
+            int cd = 0;
+            while (vReduceCount - cd >= 0)
             {
-                int randomPathIndex = m_random.Next(0, subTree.Paths.Count);
-                GH_Path randomPath = subTree.Paths[randomPathIndex];
-                int randomIndex = m_random.Next(0, subTree.Branch(randomPath).Count);
-                Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
-                if (!indexForReduce.Contains(path_index))
+                List<int[]> abPairs_vReduce = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, vReduceCount - cd);
+                for (int i = 0; i < abPairs_vReduce.Count; i++)
                 {
-                    indexForReduce.Add(path_index);
-                    indexForScale.Remove(path_index);
-                    temp++;
-                    //if (temp == length)
-                    //{
-                    //    break;
-                    //}
+                    List<int[]> countPairs_cd_vReduce = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, cd);
+                    for (int j = 0; j < countPairs_cd_vReduce.Count; j++)
+                    {
+                        int[] abcdPair_vReduce = new int[4] { abPairs_vReduce[i][0], abPairs_vReduce[i][1], countPairs_cd_vReduce[j][0], countPairs_cd_vReduce[j][1] };
+                        countPairs_vReduceOnce.Add(abcdPair_vReduce);
+                    }
                 }
             }
 
-            GenerateDensityConstrainedCell(cellDT, indexForReduce, indexForScale, scaleFactor, lMin, w);
+            List<int[]> finalCountPairs_vReduceOnce = new List<int[]>();
+            for (int i = 0; i < countPairs_vReduceOnce.Count; i++)
+            {
+                if (countPairs_vReduceOnce[i][0] + countPairs_vReduceOnce[i][3] <= IShapeCount
+                    && countPairs_vReduceOnce[i][1] + countPairs_vReduceOnce[i][2] <= CShapeCount)
+                {
+                    bool flag0 = false;
+                    bool flag1 = false;
+                    bool flag2 = false;
+                    bool flag3 = false;
+                    if (countPairs_vReduceOnce[i][0] >= 0)
+                    {
+                        flag0 = true;
+                    }
+                    if (countPairs_vReduceOnce[i][1] >= 0)
+                    {
+                        flag1 = true;
+                    }
+                    if (countPairs_vReduceOnce[i][2] >= 0)
+                    {
+                        flag2 = true;
+                    }
+                    if (countPairs_vReduceOnce[i][3] >= 0)
+                    {
+                        flag3 = true;
+                    }
+
+                    if (flag0 && flag1 && flag2 && flag3)
+                    {
+                        finalCountPairs_vReduceOnce.Add(countPairs_vReduceOnce[i]);
+                    }
+                }
+            }
+            #endregion
+
+            if (finalCountPairs_vReduceOnce.Count != 0)
+            {
+                int randomCountPairsIndex = m_random.Next(0, finalCountPairs_vReduceOnce.Count);
+
+                int[] finalPair = finalCountPairs_vReduceOnce[randomCountPairsIndex];
+
+                List<Tuple<GH_Path, int>> indexToChangeListForIShapeCutTwo_vReduceOnce = new List<Tuple<GH_Path, int>>();
+                List<Tuple<GH_Path, int>> indexToChangeListForCShapeCutOne_vReduceOnce = new List<Tuple<GH_Path, int>>();
+                List<Tuple<GH_Path, int>> indexToChangeListForCShapeCutTwo_vReduceOnce = new List<Tuple<GH_Path, int>>();
+                List<Tuple<GH_Path, int>> indexToChangeListForIShapeCutOne_vReduceOnce = new List<Tuple<GH_Path, int>>();
+
+                // 对于IShapeCutTwo来说
+                int temp = 0;
+                int length = finalPair[0];
+                while (temp < length)
+                {
+                    int randomPathIndex = m_random.Next(0, IShapeIndexDT.Paths.Count);
+                    GH_Path randomPath = IShapeIndexDT.Paths[randomPathIndex];
+                    int randomIndex = m_random.Next(0, IShapeIndexDT.Branch(randomPath).Count);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    if (!indexToChangeListForIShapeCutTwo_vReduceOnce.Contains(path_index)
+                        && !indexToChangeListForIShapeCutOne_vReduceOnce.Contains(path_index))
+                    {
+                        indexToChangeListForIShapeCutTwo_vReduceOnce.Add(path_index);
+                        indexNotChangeListForIShape_vReduceOnce.Remove(path_index);
+                        temp++;
+                    }
+                }
+                // 对于CShapeCutOne来说
+                temp = 0;
+                length = finalPair[1];
+                while (temp < length)
+                {
+                    int randomPathIndex = m_random.Next(0, CShapeIndexDT.Paths.Count);
+                    GH_Path randomPath = CShapeIndexDT.Paths[randomPathIndex];
+                    int randomIndex = m_random.Next(0, CShapeIndexDT.Branch(randomPath).Count);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    if (!indexToChangeListForCShapeCutOne_vReduceOnce.Contains(path_index)
+                        && !indexToChangeListForCShapeCutTwo_vReduceOnce.Contains(path_index))
+                    {
+                        indexToChangeListForCShapeCutOne_vReduceOnce.Add(path_index);
+                        indexNotChangeListForCShape_vReduceOnce.Remove(path_index);
+                        temp++;
+                    }
+                }
+                // 对于CShapeCutTwo来说
+                temp = 0;
+                length = finalPair[2];
+                while (temp < length)
+                {
+                    int randomPathIndex = m_random.Next(0, CShapeIndexDT.Paths.Count);
+                    GH_Path randomPath = CShapeIndexDT.Paths[randomPathIndex];
+                    int randomIndex = m_random.Next(0, CShapeIndexDT.Branch(randomPath).Count);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    if (!indexToChangeListForCShapeCutTwo_vReduceOnce.Contains(path_index)
+                        && !indexToChangeListForCShapeCutOne_vReduceOnce.Contains(path_index))
+                    {
+                        indexToChangeListForCShapeCutTwo_vReduceOnce.Add(path_index);
+                        indexNotChangeListForCShape_vReduceOnce.Remove(path_index);
+                        temp++;
+                    }
+                }
+                // 对于IShapeCutOne来说
+                temp = 0;
+                length = finalPair[3];
+                while (temp < length)
+                {
+                    int randomPathIndex = m_random.Next(0, IShapeIndexDT.Paths.Count);
+                    GH_Path randomPath = IShapeIndexDT.Paths[randomPathIndex];
+                    int randomIndex = m_random.Next(0, IShapeIndexDT.Branch(randomPath).Count);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    if (!indexToChangeListForIShapeCutOne_vReduceOnce.Contains(path_index)
+                        && !indexToChangeListForIShapeCutTwo_vReduceOnce.Contains(path_index))
+                    {
+                        indexToChangeListForIShapeCutOne_vReduceOnce.Add(path_index);
+                        indexNotChangeListForIShape_vReduceOnce.Remove(path_index);
+                        temp++;
+                    }
+                }
+
+                GenerateDensityConstrainedCell_vReduceOnce(cellDT,
+                                                           indexToChangeListForIShapeCutTwo_vReduceOnce,
+                                                           indexToChangeListForCShapeCutOne_vReduceOnce,
+                                                           indexToChangeListForCShapeCutTwo_vReduceOnce,
+                                                           indexToChangeListForIShapeCutOne_vReduceOnce,
+                                                           indexNotChangeListForIShape_vReduceOnce, indexNotChangeListForCShape_vReduceOnce);
+            }
+            else
+            {
+                // 应该不会出现，待测试
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处出现了无法分配的vReduceCountOnce：{1}，此时的IShapeCount：{2}，CShapeCount：{3}", currentSmallBlockPathList.ToString(), vReduceCount, IShapeCount, CShapeCount));
+                return null;
+            }
+
+
+            #endregion
+
+            if (hReduceCount != 0)
+            {
+                #region 进行hReduce
+                #region 求解二元一次不定方程，得到finalCountPairs
+                List<int[]> countPairs_hReduce = UtilityFunctions.GetAllPositiveIntegerSolution(1, 1, hReduceCount);
+
+                List<int[]> finalCountPairs_hReduce = new List<int[]>();
+                for (int i = 0; i < countPairs_hReduce.Count; i++)
+                {
+                    if (countPairs_hReduce[i][0] <= IShapeCount
+                        && countPairs_hReduce[i][1] <= CShapeCount)
+                    {
+                        bool flag0 = false;
+                        bool flag1 = false;
+                        if (countPairs_hReduce[i][0] >= 0)
+                        {
+                            flag0 = true;
+                        }
+                        if (countPairs_hReduce[i][1] >= 0)
+                        {
+                            flag1 = true;
+                        }
+
+                        if (flag0 && flag1)
+                        {
+                            finalCountPairs_hReduce.Add(countPairs_hReduce[i]);
+                        }
+                    }
+                }
+                #endregion
+
+                if (finalCountPairs_hReduce.Count != 0)
+                {
+                    int randomCountPairsIndex = m_random.Next(0, finalCountPairs_hReduce.Count);
+                    int[] finalPair = finalCountPairs_hReduce[randomCountPairsIndex];
+
+                    List<Tuple<GH_Path, int>> indexToChangeListForIShape_hReduce = new List<Tuple<GH_Path, int>>();
+                    List<Tuple<GH_Path, int>> indexToChangeListForCShape_hReduce = new List<Tuple<GH_Path, int>>();
+
+                    // 对于IShape来说
+                    int temp = 0;
+                    int length = finalPair[0];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, IShapeIndexDT.Paths.Count);
+                        GH_Path randomPath = IShapeIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, IShapeIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForIShape_hReduce.Contains(path_index))
+                        {
+                            indexToChangeListForIShape_hReduce.Add(path_index);
+                            indexNotChangeListForIShape_hReduce.Remove(path_index);
+                            temp++;
+                        }
+                    }
+                    // 对于CShape来说
+                    temp = 0;
+                    length = finalPair[1];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, CShapeIndexDT.Paths.Count);
+                        GH_Path randomPath = CShapeIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, CShapeIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForCShape_hReduce.Contains(path_index))
+                        {
+                            indexToChangeListForCShape_hReduce.Add(path_index);
+                            indexNotChangeListForCShape_hReduce.Remove(path_index);
+                            temp++;
+                        }
+                    }
+                }
+                else
+                {
+                    // 应该不会出现，待测试
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处出现了无法分配的hReduceCount：{1}，此时的IShapeCount：{2}，CShapeCount：{3}", currentSmallBlockPathList.ToString(), hReduceCount, IShapeCount, CShapeCount));
+                    return null;
+                }
+                #endregion
+            }
+
             return cellDT;
         }
 
         /// <summary>
-        /// 全部都是 elseCount 时，此时计算VReduceCount，不计算OffsetValue
+        /// 全部为RecShape和EightShape时
         /// </summary>
         /// <param name="cellDT"></param>
         /// <param name="currentSmallBlockPathList"></param>
-        /// <param name="vReduceCount"></param>
+        /// <param name="vReduceCountOnce"></param>
+        /// <param name="vReduceCountTwice"></param>
+        /// <param name="hReduceCount"></param>
+        /// <param name="RecShapeCount"></param>
+        /// <param name="EightShapeCount"></param>
         /// <param name="lMin"></param>
         /// <param name="w"></param>
         /// <returns></returns>
-        private DataTree<Cell> DoDensityReduce(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList, int vReduceCount, double lMin, double w)
+        private DataTree<Cell> DoDensityReduce_RecOrEight(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList, 
+                                                          int vReduceCountOnce, int vReduceCountTwice, int hReduceCount, 
+                                                          int RecShapeCount, int EightShapeCount,
+                                                          double lMin, double w)
         {
+            #region 得到当前小block的子树
             List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
             foreach (var cellPath in cellDT.Paths)
             {
@@ -2327,21 +2915,21 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 subTree.EnsurePath(currentSmallBlockContainsCellPath[i]);
                 subTree.Branch(currentSmallBlockContainsCellPath[i]).AddRange(cellDT.Branch(currentSmallBlockContainsCellPath[i]));
             }
+            #endregion
 
-            List<Tuple<GH_Path, int>> indexNotChangeListForBiCell = new List<Tuple<GH_Path, int>>();
-            List<Tuple<GH_Path, int>> indexNotChangeListForTriCell = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexNotChangeListForBiCell_vReduceOnce = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexNotChangeListForTriCell_vReduceOnce = new List<Tuple<GH_Path, int>>();
 
-            int triCellCount = 0;
-            int biCellCount = 0;
+            List<Tuple<GH_Path, int>> indexNotChangeListForBiCell_vReduceTwice = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexNotChangeListForTriCell_vReduceTwice = new List<Tuple<GH_Path, int>>();
+
+            List<Tuple<GH_Path, int>> indexNotChangeListForBiCell_hReduce = new List<Tuple<GH_Path, int>>();
+            List<Tuple<GH_Path, int>> indexNotChangeListForTriCell_hReduce = new List<Tuple<GH_Path, int>>();
+
             DataTree<int> biCellIndexDT = new DataTree<int>();
             DataTree<int> triCellIndexDT = new DataTree<int>();
-            //List<List<int>> biCellIndexLoL = new List<List<int>>();
-            //List<List<int>> triCellIndexLoL = new List<List<int>>();
             for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
             {
-                //biCellIndexLoL.Add(new List<int>());
-                //triCellIndexLoL.Add(new List<int>());
-
                 biCellIndexDT.EnsurePath(currentSmallBlockContainsCellPath[i]);
                 triCellIndexDT.EnsurePath(currentSmallBlockContainsCellPath[i]);
 
@@ -2350,88 +2938,87 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     if (subTree.Branch(currentSmallBlockContainsCellPath[i])[j] is BilinearCell)
                     {
                         biCellIndexDT.Branch(currentSmallBlockContainsCellPath[i]).Add(j);
-                        biCellCount++;
+                        //biCellCount++;
 
                         Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
-                        indexNotChangeListForBiCell.Add(path_index);
+                        indexNotChangeListForBiCell_vReduceOnce.Add(path_index);
+                        indexNotChangeListForBiCell_vReduceTwice.Add(path_index);
+                        indexNotChangeListForBiCell_hReduce.Add(path_index);
                     }
                     else
                     {
                         triCellIndexDT.Branch(currentSmallBlockContainsCellPath[i]).Add(j);
-                        triCellCount++;
+                        //triCellCount++;
 
                         Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(currentSmallBlockContainsCellPath[i], j);
-                        indexNotChangeListForTriCell.Add(path_index);
+                        indexNotChangeListForTriCell_vReduceOnce.Add(path_index);
+                        indexNotChangeListForTriCell_vReduceTwice.Add(path_index);
+                        indexNotChangeListForTriCell_hReduce.Add(path_index);
                     }
                 }
             }
 
-            double vReduceCountTwice = 0;
-            if (vReduceCount > biCellCount * 1 + triCellCount * 2)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处所给定的建筑密度，小于所能生成的最小建筑密度！", currentSmallBlockPathList.ToString()));
-                vReduceCountTwice = vReduceCount - (biCellCount * 1 + triCellCount * 2);
-                vReduceCount = biCellCount * 1 + triCellCount * 2;
-
-                // todo 想办法减horizontal
-
-            }
-
+            #region 进行第一轮vReduce
+            #region 求解三元一次不定方程，得到finalCountPairs
             // 求解三元一次不定方程问题：由于参数的特殊性，可以选择扩展二元不定方程的解法
             // x:TriCell减2条    y:BiCell减1条    z:TriCell减1条
             // countPair:[a,b,c]
-
-            List<int[]> countPairs = new List<int[]>();
+            List<int[]> countPairs_vReduceOnce = new List<int[]>();
             int v = 0;
-            while (vReduceCount - v >= 0)
+            while (vReduceCountOnce - v >= 0)
             {
-                List<int[]> abPairs = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, vReduceCount - v);
+                List<int[]> abPairs = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, vReduceCountOnce - v);
                 //List<int[]> abcPairs = new List<int[]>();
                 for (int i = 0; i < abPairs.Count; i++)
                 {
                     int[] abcPair = new int[3] { abPairs[i][0], abPairs[i][1], v };
-                    countPairs.Add(abcPair);
+                    countPairs_vReduceOnce.Add(abcPair);
                 }
                 v++;
             }
 
             //List<int[]> countPairs = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, vReduceCount);
-            List<int[]> finalCountPairs = new List<int[]>();
-            for (int j = 0; j < countPairs.Count; j++)
+            List<int[]> finalCountPairs_vReduceOnce = new List<int[]>();
+            for (int i = 0; i < countPairs_vReduceOnce.Count; i++)
             {
-                bool flag0 = false;
-                bool flag1 = false;
-                bool flag2 = false;
-                if (countPairs[j][0] >= 0 && countPairs[j][0] <= triCellCount)
+                if (countPairs_vReduceOnce[i][0]+countPairs_vReduceOnce[i][2] <= EightShapeCount
+                    && countPairs_vReduceOnce[i][1] <= RecShapeCount)
                 {
-                    flag0 = true;
-                }
-                if (countPairs[j][1] >= 0 && countPairs[j][1] <= biCellCount)
-                {
-                    flag1 = true;
-                }
-                if (countPairs[j][2] >= 0 && countPairs[j][0] >= 0 && countPairs[j][2] <= triCellCount - countPairs[j][0])
-                {
-                    flag2 = true;
-                }
-                if (flag0 && flag1 && flag2)
-                {
-                    finalCountPairs.Add(countPairs[j]);
+                    bool flag0 = false;
+                    bool flag1 = false;
+                    bool flag2 = false;
+                    if (countPairs_vReduceOnce[i][0] >= 0)
+                    {
+                        flag0 = true;
+                    }
+                    if (countPairs_vReduceOnce[i][1] >= 0)
+                    {
+                        flag1 = true;
+                    }
+                    if (countPairs_vReduceOnce[i][2] >= 0)
+                    {
+                        flag2 = true;
+                    }
+
+                    if (flag0 && flag1 && flag2)
+                    {
+                        finalCountPairs_vReduceOnce.Add(countPairs_vReduceOnce[i]);
+                    }
                 }
             }
+            #endregion
 
             // 随机选择一组finalCountPairs 对Basic Cell进行削减生成
             //List<Cell> densityConstrainedCells = new List<Cell>();
-            if (finalCountPairs.Count != 0)
+            if (finalCountPairs_vReduceOnce.Count != 0)
             {
-                int randomCountPairsIndex = m_random.Next(0, finalCountPairs.Count);
+                int randomCountPairsIndex = m_random.Next(0, finalCountPairs_vReduceOnce.Count);
 
-                int[] finalPair = finalCountPairs[randomCountPairsIndex];
+                int[] finalPair = finalCountPairs_vReduceOnce[randomCountPairsIndex];
 
-                List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutTwo = new List<Tuple<GH_Path, int>>();
-                List<Tuple<GH_Path, int>> indexToChangeListForBiCell = new List<Tuple<GH_Path, int>>();
-                List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutOne = new List<Tuple<GH_Path, int>>();
-                
+                List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutTwo_vReduceOnce = new List<Tuple<GH_Path, int>>();
+                List<Tuple<GH_Path, int>> indexToChangeListForBiCell_vReduceOnce = new List<Tuple<GH_Path, int>>();
+                List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutOne_vReduceOnce = new List<Tuple<GH_Path, int>>();
 
                 // 对于triCellCutTwo来说
                 int temp = 0;
@@ -2442,15 +3029,12 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
                     Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
-                    if (!indexToChangeListForTriCellCutTwo.Contains(path_index))
+                    if (!indexToChangeListForTriCellCutTwo_vReduceOnce.Contains(path_index)
+                        && !indexToChangeListForTriCellCutOne_vReduceOnce.Contains(path_index))
                     {
-                        indexToChangeListForTriCellCutTwo.Add(path_index);
-                        indexNotChangeListForTriCell.Remove(path_index);
+                        indexToChangeListForTriCellCutTwo_vReduceOnce.Add(path_index);
+                        indexNotChangeListForTriCell_vReduceOnce.Remove(path_index);
                         temp++;
-                        //if (temp == length)
-                        //{
-                        //    break;
-                        //}
                     }
                 }
                 // 对于biCell来说
@@ -2462,15 +3046,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
                     Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
-                    if (!indexToChangeListForBiCell.Contains(path_index))
+                    if (!indexToChangeListForBiCell_vReduceOnce.Contains(path_index))
                     {
-                        indexToChangeListForBiCell.Add(path_index);
-                        indexNotChangeListForBiCell.Remove(path_index);
+                        indexToChangeListForBiCell_vReduceOnce.Add(path_index);
+                        indexNotChangeListForBiCell_vReduceOnce.Remove(path_index);
                         temp++;
-                        //if (temp == length)
-                        //{
-                        //    break;
-                        //}
                     }
                 }
                 // 对于TriCellCutOne来说
@@ -2482,45 +3062,345 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
                     Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
-                    if (!indexToChangeListForTriCellCutOne.Contains(path_index) && !indexToChangeListForTriCellCutTwo.Contains(path_index))
+                    if (!indexToChangeListForTriCellCutOne_vReduceOnce.Contains(path_index) 
+                        && !indexToChangeListForTriCellCutTwo_vReduceOnce.Contains(path_index))
                     {
-                        indexToChangeListForTriCellCutOne.Add(path_index);
-                        indexNotChangeListForTriCell.Remove(path_index);
+                        indexToChangeListForTriCellCutOne_vReduceOnce.Add(path_index);
+                        indexNotChangeListForTriCell_vReduceOnce.Remove(path_index);
                         temp++;
                     }
                 }
 
-                GenerateDensityConstrainedCell(cellDT, 
-                                               indexToChangeListForBiCell, 
-                                               indexToChangeListForTriCellCutTwo, 
-                                               indexToChangeListForTriCellCutOne,
-                                               indexNotChangeListForBiCell, 
-                                               indexNotChangeListForTriCell, 
+                GenerateDensityConstrainedCell_vReduceOnce(cellDT,
+                                               indexToChangeListForBiCell_vReduceOnce,
+                                               indexToChangeListForTriCellCutTwo_vReduceOnce,
+                                               indexToChangeListForTriCellCutOne_vReduceOnce,
+                                               indexNotChangeListForBiCell_vReduceOnce,
+                                               indexNotChangeListForTriCell_vReduceOnce,
                                                lMin, w);
-                return cellDT;
             }
             else
             {
-                //// 此时首先检查，是否存在全部是 TriCell 但是 vReduceCount 却是奇数的情况
-                //int[] pair = new int[2] { triCellCount - 1, 1 };
-                //if (countPairs.Contains(pair))
-                //{
-                //    //int[] finalPair = new int[2] {}
-
-                //    List<Tuple<GH_Path, int>> indexToChangeListForTriCellToCutTwo = new List<Tuple<GH_Path, int>>();
-                //    List<Tuple<GH_Path, int>> indexToChangeListForTriCellToCutOne = new List<Tuple<GH_Path, int>>();
-
-                //    // 对于要
-                //}
-                //else
-                //{
-                    
-                //}
-
                 // 应该不会出现，待测试
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处出现了无法分配的vReduceCount：{1}，此时的TriCellCount：{2}，BiCellCount：{3}", currentSmallBlockPathList.ToString(), vReduceCount, triCellCount, biCellCount));
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处出现了无法分配的vReduceCountOnce：{1}，此时的TriCellCount：{2}，BiCellCount：{3}", currentSmallBlockPathList.ToString(), vReduceCountOnce, EightShapeCount, RecShapeCount));
                 return null;
             }
+
+            #endregion
+
+            if (vReduceCountTwice != 0)
+            {
+                #region 进行第二轮vReduce
+                #region 求解三元一次不定方程，得到finalCountPairs
+                // 求解三元一次不定方程问题：由于参数的特殊性，可以选择扩展二元不定方程的解法
+                // x:TriCell减2条    y:BiCell减1条    z:TriCell减1条
+                // countPair:[a,b,c]
+                List<int[]> countPairs_vReduceTwice = new List<int[]>();
+                v = 0;
+                while (vReduceCountTwice - v >= 0)
+                {
+                    List<int[]> abPairs_vReduceTwice = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, vReduceCountTwice - v);
+                    for (int i = 0; i < abPairs_vReduceTwice.Count; i++)
+                    {
+                        int[] abcPair_vReduceTwice = new int[3] { abPairs_vReduceTwice[i][0], abPairs_vReduceTwice[i][1], v };
+                        countPairs_vReduceTwice.Add(abcPair_vReduceTwice);
+                    }
+                    v++;
+                }
+
+                List<int[]> finalCountPairs_vReduceTwice = new List<int[]>();
+                for (int i = 0; i < countPairs_vReduceTwice.Count; i++)
+                {
+                    if (countPairs_vReduceTwice[i][0] + countPairs_vReduceTwice[i][2] <= EightShapeCount
+                        && countPairs_vReduceTwice[i][1] <= RecShapeCount)
+                    {
+                        bool flag0 = false;
+                        bool flag1 = false;
+                        bool flag2 = false;
+                        if (countPairs_vReduceTwice[i][0] >= 0)
+                        {
+                            flag0 = true;
+                        }
+                        if (countPairs_vReduceTwice[i][1] >= 0)
+                        {
+                            flag1 = true;
+                        }
+                        if (countPairs_vReduceTwice[i][2] >= 0)
+                        {
+                            flag2 = true;
+                        }
+
+                        if (flag0 && flag1 && flag2)
+                        {
+                            finalCountPairs_vReduceTwice.Add(countPairs_vReduceTwice[i]);
+                        }
+                    }
+                }
+                #endregion
+
+                // 随机选择一组finalCountPairs_vReduceTwice 对Basic Cell进行削减生成
+                if (finalCountPairs_vReduceTwice.Count != 0)
+                {
+                    int randomCountPairsIndex = m_random.Next(0, finalCountPairs_vReduceTwice.Count);
+
+                    int[] finalPair = finalCountPairs_vReduceTwice[randomCountPairsIndex];
+
+                    List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutTwo_vReduceTwice = new List<Tuple<GH_Path, int>>();
+                    List<Tuple<GH_Path, int>> indexToChangeListForBiCell_vReduceTwice = new List<Tuple<GH_Path, int>>();
+                    List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutOne_vReduceTwice = new List<Tuple<GH_Path, int>>();
+
+                    // 对于triCellCutTwo来说
+                    int temp = 0;
+                    int length = finalPair[0];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
+                        GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForTriCellCutTwo_vReduceTwice.Contains(path_index))
+                        {
+                            indexToChangeListForTriCellCutTwo_vReduceTwice.Add(path_index);
+                            indexNotChangeListForTriCell_vReduceTwice.Remove(path_index);
+                            temp++;
+                        }
+                    }
+                    // 对于biCell来说
+                    temp = 0;
+                    length = finalPair[1];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, biCellIndexDT.Paths.Count);
+                        GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForBiCell_vReduceTwice.Contains(path_index))
+                        {
+                            indexToChangeListForBiCell_vReduceTwice.Add(path_index);
+                            indexNotChangeListForBiCell_vReduceTwice.Remove(path_index);
+                            temp++;
+                        }
+                    }
+                    // 对于TriCellCutOne来说
+                    temp = 0;
+                    length = finalPair[2];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
+                        GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForTriCellCutOne_vReduceTwice.Contains(path_index) && !indexToChangeListForTriCellCutTwo_vReduceTwice.Contains(path_index))
+                        {
+                            indexToChangeListForTriCellCutOne_vReduceTwice.Add(path_index);
+                            indexNotChangeListForTriCell_vReduceTwice.Remove(path_index);
+                            temp++;
+                        }
+                    }
+
+                    GenerateDensityConstrainedCell_vReduceTwice(cellDT,
+                                                                indexToChangeListForBiCell_vReduceTwice,
+                                                                indexToChangeListForTriCellCutTwo_vReduceTwice,
+                                                                indexToChangeListForTriCellCutOne_vReduceTwice,
+                                                                indexNotChangeListForBiCell_vReduceTwice, indexNotChangeListForTriCell_vReduceTwice);
+                }
+                else
+                {
+                    // 应该不会出现，待测试
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处出现了无法分配的vReduceCountTwice：{1}，此时的TriCellCount：{2}，BiCellCount：{3}", currentSmallBlockPathList.ToString(), vReduceCountTwice, EightShapeCount, RecShapeCount));
+                    return null;
+                }
+                #endregion
+            }
+
+            if (hReduceCount != 0)
+            {
+                #region 进行hReduce
+                #region 求解五元一次不定方程，得到finalCountPairs
+                // 求解五元一次不定方程问题：由于参数的特殊性，可以选择扩展二元不定方程的解法
+                // x:TriCell减3条    y:BiCell减2条    z:TriCell减2条    w:BiCell减1条    v:TriCell减1条
+                // countPair:[a,b,c,d,e]
+                List<int[]> countPairs_hReduce = new List<int[]>();
+                int cde = 0;
+                while (hReduceCount - cde >= 0)
+                {
+                    List<int[]> abPairs_hReduce = UtilityFunctions.GetAllPositiveIntegerSolution(3, 2, hReduceCount - cde);
+                    for (int i = 0; i < abPairs_hReduce.Count; i++)
+                    {
+                        List<int[]> countPairs_cde_hReduce = new List<int[]>();
+                        int e = 0;
+                        while (cde - e >= 0)
+                        {
+                            List<int[]> cdPairs_hReduce = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, cde - e);
+                            for (int j = 0; j < cdPairs_hReduce.Count; j++)
+                            {
+                                int[] cdePair_hReduce = new int[3] { cdPairs_hReduce[j][0], cdPairs_hReduce[j][1], e };
+                                countPairs_cde_hReduce.Add(cdePair_hReduce);
+                            }
+                        }
+
+                        for (int j = 0; j < countPairs_cde_hReduce.Count; j++)
+                        {
+                            int[] abcdePair_hReduce = new int[5] { abPairs_hReduce[i][0], abPairs_hReduce[i][1], countPairs_cde_hReduce[j][0], countPairs_cde_hReduce[j][1], countPairs_cde_hReduce[j][2] };
+                            countPairs_hReduce.Add(abcdePair_hReduce);
+                        }
+                    }
+                }
+
+                List<int[]> finalCountPairs_hReduce = new List<int[]>();
+                for (int i = 0; i < countPairs_hReduce.Count; i++)
+                {
+                    if (countPairs_hReduce[i][0] + countPairs_hReduce[i][2] + countPairs_hReduce[i][4] <= EightShapeCount
+                        && countPairs_hReduce[i][1] + countPairs_hReduce[i][3] <= RecShapeCount)
+                    {
+                        bool flag0 = false;
+                        bool flag1 = false;
+                        bool flag2 = false;
+                        bool flag3 = false;
+                        bool flag4 = false;
+                        if (countPairs_hReduce[i][0] >= 0)
+                        {
+                            flag0 = true;
+                        }
+                        if (countPairs_hReduce[i][1] >= 0)
+                        {
+                            flag1 = true;
+                        }
+                        if (countPairs_hReduce[i][2] >= 0)
+                        {
+                            flag2 = true;
+                        }
+                        if (countPairs_hReduce[i][3] >= 0)
+                        {
+                            flag3 = true;
+                        }
+                        if (countPairs_hReduce[i][4] >= 0)
+                        {
+                            flag4 = true;
+                        }
+
+                        if (flag0 && flag1 && flag2 && flag3 && flag4)
+                        {
+                            finalCountPairs_hReduce.Add(countPairs_hReduce[i]);
+                        }
+                    }
+                }
+
+                #endregion
+
+                if (finalCountPairs_hReduce.Count != 0)
+                {
+                    int randomCountPairsIndex = m_random.Next(0, finalCountPairs_hReduce.Count);
+
+                    int[] finalPair = finalCountPairs_hReduce[randomCountPairsIndex];
+
+                    List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutThree_hReduce = new List<Tuple<GH_Path, int>>();
+                    List<Tuple<GH_Path, int>> indexToChangeListForBiCellCutTwo_hReduce = new List<Tuple<GH_Path, int>>();
+                    List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutTwo_hReduce = new List<Tuple<GH_Path, int>>();
+                    List<Tuple<GH_Path, int>> indexToChangeListForBiCellCutOne_hReduce = new List<Tuple<GH_Path, int>>();
+                    List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutOne_hReduce = new List<Tuple<GH_Path, int>>();
+
+                    // 对于triCellCutThree来说
+                    int temp = 0;
+                    int length = finalPair[0];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
+                        GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForTriCellCutThree_hReduce.Contains(path_index)
+                            && !indexToChangeListForTriCellCutTwo_hReduce.Contains(path_index)
+                            && !indexToChangeListForTriCellCutOne_hReduce.Contains(path_index))
+                        {
+                            indexToChangeListForTriCellCutThree_hReduce.Add(path_index);
+                            indexNotChangeListForTriCell_hReduce.Remove(path_index);
+                            temp++;
+                        }
+                    }
+                    // 对于biCellCutTwo来说
+                    temp = 0;
+                    length = finalPair[1];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, biCellIndexDT.Paths.Count);
+                        GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForBiCellCutTwo_hReduce.Contains(path_index)
+                            && !indexToChangeListForBiCellCutOne_hReduce.Contains(path_index))
+                        {
+                            indexToChangeListForBiCellCutTwo_hReduce.Add(path_index);
+                            indexNotChangeListForBiCell_hReduce.Remove(path_index);
+                            temp++;
+                        }
+                    }
+                    // 对于triCellCutTwo来说
+                    temp = 0;
+                    length = finalPair[2];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
+                        GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForTriCellCutTwo_hReduce.Contains(path_index)
+                            && !indexToChangeListForTriCellCutThree_hReduce.Contains(path_index)
+                            && !indexToChangeListForTriCellCutOne_hReduce.Contains(path_index))
+                        {
+                            indexToChangeListForTriCellCutTwo_hReduce.Add(path_index);
+                            indexNotChangeListForTriCell_hReduce.Remove(path_index);
+                            temp++;
+                        }
+                    }
+                    // 对于biCellCutOne来说
+                    temp = 0;
+                    length = finalPair[3];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, biCellIndexDT.Paths.Count);
+                        GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForBiCellCutOne_hReduce.Contains(path_index)
+                            && !indexToChangeListForBiCellCutTwo_hReduce.Contains(path_index))
+                        {
+                            indexToChangeListForBiCellCutOne_hReduce.Add(path_index);
+                            indexNotChangeListForBiCell_hReduce.Remove(path_index);
+                            temp++;
+                        }
+                    }
+                    // 对于triCellCutOne来说
+                    temp = 0;
+                    length = finalPair[4];
+                    while (temp < length)
+                    {
+                        int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
+                        GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
+                        int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        if (!indexToChangeListForTriCellCutOne_hReduce.Contains(path_index)
+                            && !indexToChangeListForTriCellCutThree_hReduce.Contains(path_index)
+                            && !indexToChangeListForTriCellCutTwo_hReduce.Contains(path_index))
+                        {
+                            indexToChangeListForTriCellCutOne_hReduce.Add(path_index);
+                            indexNotChangeListForTriCell_hReduce.Remove(path_index);
+                            temp++;
+                        }
+                    }
+
+
+                }
+                else
+                {
+                    // 应该不会出现，待测试
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, string.Format("Path:{0} 处出现了无法分配的hReduceCount：{1}，此时的TriCellCount：{2}，BiCellCount：{3}", currentSmallBlockPathList.ToString(), hReduceCount, EightShapeCount, RecShapeCount));
+                    return null;
+                }
+                #endregion
+            }
+
+            return cellDT;
         }
 
 
@@ -2551,34 +3431,98 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
         }
 
+        ///// <summary>
+        ///// 全部是 singlePolyline 或 IShape 或 CShape 时
+        ///// </summary>
+        ///// <param name="cellDT"></param>
+        ///// <param name="indexForReduce"></param>
+        ///// <param name="indexForScale"></param>
+        ///// <param name="scaleFactor"></param>
+        //private void GenerateDensityConstrainedCell(DataTree<Cell> cellDT, List<Tuple<GH_Path, int>> indexForReduce, List<Tuple<GH_Path, int>> indexForScale,double scaleFactor, double lMin, double w)
+        //{
+        //    #region 对于需要进行reduce操作的
+        //    foreach (var path_index in indexForReduce)
+        //    {
+        //        GH_Path path = path_index.Item1;
+        //        int index = path_index.Item2;
+
+        //        BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+        //        int 
+        //        cellDT.Branch(path)[index] = bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline();
+        //    }
+        //    #endregion
+
+        //    #region 对于需要进行scale操作的
+        //    foreach (var path_index in indexForScale)
+        //    {
+        //        GH_Path path = path_index.Item1;
+        //        int index = path_index.Item2;
+        //        BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+        //        cellDT.Branch(path)[index] = bCell.GenerateScaledShape(scaleFactor, lMin, w);
+        //    }
+        //    #endregion
+        //}
+
+
         /// <summary>
-        /// 全部是 singlePolyline 或 IShape 或 CShape 时
+        /// 全部是 IShape 或 CShape 时
         /// </summary>
         /// <param name="cellDT"></param>
-        /// <param name="indexForReduce"></param>
-        /// <param name="indexForScale"></param>
-        /// <param name="scaleFactor"></param>
-        private void GenerateDensityConstrainedCell(DataTree<Cell> cellDT, List<Tuple<GH_Path, int>> indexForReduce, List<Tuple<GH_Path, int>> indexForScale,double scaleFactor, double lMin, double w)
+        /// <param name="indexToChangeListForIShapeCutTwo_vReduceOnce"></param>
+        /// <param name="indexToChangeListForCShapeCutOne_vReduceOnce"></param>
+        /// <param name="indexToChangeListForCShapeCutTwo_vReduceOnce"></param>
+        /// <param name="indexToChangeListForIShapeCutOne_vReduceOnce"></param>
+        /// <param name="indexNotChangeListForIShape_vReduceOnce"></param>
+        /// <param name="indexNotChangeListForCShape_vReduceOnce"></param>
+        private void GenerateDensityConstrainedCell_vReduceOnce(DataTree<Cell> cellDT,
+                                                                List<Tuple<GH_Path, int>> indexToChangeListForIShapeCutTwo_vReduceOnce,
+                                                                List<Tuple<GH_Path, int>> indexToChangeListForCShapeCutOne_vReduceOnce,
+                                                                List<Tuple<GH_Path, int>> indexToChangeListForCShapeCutTwo_vReduceOnce,
+                                                                List<Tuple<GH_Path, int>> indexToChangeListForIShapeCutOne_vReduceOnce,
+                                                                List<Tuple<GH_Path, int>> indexNotChangeListForIShape_vReduceOnce, List<Tuple<GH_Path, int>> indexNotChangeListForCShape_vReduceOnce)
         {
-            #region 对于需要进行reduce操作的
-            foreach (var path_index in indexForReduce)
+            #region 对于需要修改的
+            foreach (var path_index in indexToChangeListForIShapeCutTwo_vReduceOnce)
             {
                 GH_Path path = path_index.Item1;
                 int index = path_index.Item2;
 
                 BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
-                cellDT.Branch(path)[index] = bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline();
+                bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline(2, 0);
+            }
+
+            foreach (var path_index in indexToChangeListForCShapeCutOne_vReduceOnce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                int directionCode0 = m_random.Next(0, 4);
+                bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline(1, directionCode0);
+            }
+
+            foreach (var path_index in indexToChangeListForCShapeCutTwo_vReduceOnce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline(2, 0);
+            }
+
+            foreach (var path_index in indexToChangeListForIShapeCutOne_vReduceOnce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                int directionCode0 = m_random.Next(0, 4);
+                bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline(1, directionCode0);
             }
             #endregion
 
-            #region 对于需要进行scale操作的
-            foreach (var path_index in indexForScale)
-            {
-                GH_Path path = path_index.Item1;
-                int index = path_index.Item2;
-                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
-                cellDT.Branch(path)[index] = bCell.GenerateScaledShape(scaleFactor, lMin, w);
-            }
+            #region 其他不需要修改的
+            // 不动
             #endregion
         }
 
@@ -2592,12 +3536,12 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         /// <param name="indexNotChangeListForTriCell"></param>
         /// <param name="lMin"></param>
         /// <param name="w"></param>
-        private void GenerateDensityConstrainedCell(DataTree<Cell> cellDT, 
-                                                    List<Tuple<GH_Path, int>> indexToChangeListForBiCell, 
-                                                    List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutTwo,
-                                                    List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutOne,
-                                                    List<Tuple<GH_Path, int>> indexNotChangeListForBiCell, List<Tuple<GH_Path, int>> indexNotChangeListForTriCell,
-                                                    double lMin, double w)
+        private void GenerateDensityConstrainedCell_vReduceOnce(DataTree<Cell> cellDT, 
+                                                                List<Tuple<GH_Path, int>> indexToChangeListForBiCell, 
+                                                                List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutTwo,
+                                                                List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutOne,
+                                                                List<Tuple<GH_Path, int>> indexNotChangeListForBiCell, List<Tuple<GH_Path, int>> indexNotChangeListForTriCell,
+                                                                double lMin, double w)
         {
             #region 对于需要修改的
             foreach (var path_index in indexToChangeListForBiCell)
@@ -2606,34 +3550,26 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 int index = path_index.Item2;
 
                 BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
-                if (bCell.ShapeType == BilinearCell.BilinearShapeType.SinglePolyline
-                    || bCell.ShapeType == BilinearCell.BilinearShapeType.IShape
-                    || bCell.ShapeType == BilinearCell.BilinearShapeType.CShape)
+                // 随机生成工,C
+                int random0 = m_random.Next(0, 2);// 取值范围是0, 1
+                double randomT0 = m_random.Next(0, 3) / 2; // 取值范围是0, 0.5, 1
+                int directionCode0 = m_random.Next(2, 4);
+                // 如果在面宽方向上被切割过，就不走IShape分支
+                if ((bCell.South_Interval != null && bCell.South_Interval.Count > 1)
+                    || (bCell.North_Interval != null && bCell.North_Interval.Count > 1))
                 {
-                    // 去掉一横或一竖
-                    cellDT.Branch(path)[index] = bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline();
+                    random0 = m_random.Next(1, 2);
+                }
+
+                if (random0 == 0)
+                {
+                    // 此时只会生成 this.MainVolumeDirection = MainDirection.SouthNorth 的
+                    cellDT.Branch(path)[index] = bCell.GenerateIAndIVariantShape(randomT0, directionCode0, w);
                 }
                 else
                 {
-                    // 随机生成工,C
-                    int random0 = m_random.Next(0, 2);// 取值范围是0, 1
-                    double randomT0 = m_random.Next(0, 3) / 2; // 取值范围是0, 0.5, 1
-                    int directionCode0 = m_random.Next(0, 4);
-                    // 如果在面宽方向上被切割过，就不走IShape分支
-                    if ((bCell.South_Interval != null && bCell.South_Interval.Count > 1)
-                        || (bCell.North_Interval != null && bCell.North_Interval.Count > 1))
-                    {
-                        random0 = m_random.Next(1, 2);
-                    }
-
-                    if (random0 == 0)
-                    {
-                        cellDT.Branch(path)[index] = bCell.GenerateIAndIVariantShape(randomT0, directionCode0, w);
-                    }
-                    else
-                    {
-                        cellDT.Branch(path)[index] = bCell.GenerateCAndCVariantShape(randomT0, directionCode0, w);
-                    }
+                    // 此时只会生成 this.MainVolumeDirection = MainDirection.SouthNorth 的
+                    cellDT.Branch(path)[index] = bCell.GenerateCAndCVariantShape(randomT0, directionCode0, w);
                 }
             }
 
@@ -2729,6 +3665,115 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             #endregion
         }
 
+        private void GenerateDensityConstrainedCell_vReduceTwice(DataTree<Cell> cellDT,
+                                                                 List<Tuple<GH_Path, int>> indexToChangeListForBiCell_vReduceTwice,
+                                                                 List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutTwo_vReduceTwice,
+                                                                 List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutOne_vReduceTwice,
+                                                                 List<Tuple<GH_Path, int>> indexNotChangeListForBiCell_vReduceTwice, List<Tuple<GH_Path, int>> indexNotChangeListForTriCell_vReduceTwice)
+        {
+            #region 对于需要修改的
+            foreach (var path_index in indexToChangeListForBiCell_vReduceTwice)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                // 去掉最后一竖
+                int directionCode0 = m_random.Next(0, 4);
+                cellDT.Branch(path)[index] = bCell.GenerateRemovedCShapeOrIShapeOrSinglePolyline(1, directionCode0);
+            }
+
+            foreach (var path_index in indexToChangeListForTriCellCutTwo_vReduceTwice)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                TrilinearCell tCell = cellDT.Branch(path)[index] as TrilinearCell;
+                // 去掉最后两竖
+                cellDT.Branch(path)[index] = tCell.GenerateTwoRemovedEShapeOrZShapeOrEVariantShape();
+            }
+
+            foreach (var path_index in indexToChangeListForTriCellCutOne_vReduceTwice)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                TrilinearCell tCell = cellDT.Branch(path)[index] as TrilinearCell;
+                // 随机去掉一竖
+                int directionCode1 = m_random.Next(0, 4);// 取值范围是0,1,2,3
+                cellDT.Branch(path)[index] = tCell.GenerateOneRemovedEShapeOrZShapeOrEVariantShape(directionCode1);
+            }
+            #endregion
+
+            #region 其他不需要修改的
+            // 不动
+            #endregion
+        }
+
+        private void GenerateDensityConstrainedCell_hReduce(DataTree<Cell> cellDT,
+                                                            
+                                                            List<Tuple<GH_Path, int>> indexToChangeListForBiCellCutTwo_hReduce,
+                                                            List<Tuple<GH_Path, int>> indexToChangeListForBiCellCutOne_hReduce,
+                                                            List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutThree_hReduce,
+                                                            List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutTwo_hReduce,
+                                                            List<Tuple<GH_Path, int>> indexToChangeListForTriCellCutOne_hReduce,
+                                                            List<Tuple<GH_Path, int>> indexNotChangeListForBiCell_hReduce, List<Tuple<GH_Path, int>> indexNotChangeListForTriCell_hReduce)
+        {
+            #region 对于需要修改的
+            foreach (var path_index in indexToChangeListForBiCellCutTwo_hReduce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                // 去掉最后两横
+                // int directionCode1 = m_random.Next(0, 4);// 取值范围是0,1,2,3
+                cellDT.Branch(path)[index] = bCell.GenerateRemovedH(2, 0);
+            }
+
+            foreach (var path_index in indexToChangeListForBiCellCutOne_hReduce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                BilinearCell bCell = cellDT.Branch(path)[index] as BilinearCell;
+                // 随机去掉一横
+                int directionCode1 = m_random.Next(0, 3);// 取值范围是0,1,2
+                cellDT.Branch(path)[index] = bCell.GenerateRemovedH(1, directionCode1);
+            }
+
+            foreach (var path_index in indexToChangeListForTriCellCutThree_hReduce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                TrilinearCell tCell = cellDT.Branch(path)[index] as TrilinearCell;
+                cellDT.Branch(path)[index] = tCell.GenerateRemovedH(3, 0);
+            }
+            foreach (var path_index in indexToChangeListForTriCellCutTwo_hReduce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                TrilinearCell tCell = cellDT.Branch(path)[index] as TrilinearCell;
+                int directionCode1 = m_random.Next(0, 3);// 取值范围是0,1,2
+                cellDT.Branch(path)[index] = tCell.GenerateRemovedH(2, directionCode1);
+            }
+            foreach (var path_index in indexToChangeListForTriCellCutOne_hReduce)
+            {
+                GH_Path path = path_index.Item1;
+                int index = path_index.Item2;
+
+                TrilinearCell tCell = cellDT.Branch(path)[index] as TrilinearCell;
+                int directionCode1 = m_random.Next(0, 3);// 取值范围是0,1,2
+                cellDT.Branch(path)[index] = tCell.GenerateRemovedH(1, directionCode1);
+            }
+            #endregion
+
+            #region 其他不需要修改的
+            // 不动
+            #endregion
+        }
         private List<Polyline> SplitBlockIntoQuadBlock(Polyline polyline,
                                                        out List<List<Line>> lineForEachEdgeLoL,
                                                        out List<List<bool>> isGenerateablesLoL,

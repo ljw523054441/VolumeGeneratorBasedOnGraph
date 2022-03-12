@@ -51,6 +51,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
             Scaled = 7
         }
 
+        public enum BilinearMaxVReduceCount
+        {
+
+        }
+
+        public enum BilinearMaxHReduceCount
+        {
+
+        }
+
         public BilinearShapeType ShapeType { get; set; }
 
         public BilinearCell(BilinearCell source)
@@ -170,6 +180,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
                             int turningPointIndex)
         {
             #region baseLine 和 interval
+            //bool southFlag = true;
+            //bool northFlag = true;
+            //bool westFlag = true;
+            //bool eastFlag = true;
+
             int count = 0;
             if (southLine != null)
             {
@@ -212,6 +227,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             else if (count == 3)
             {
                 this.ShapeType = BilinearShapeType.CShape;
+                this.MainVolumeDirection = MainDirection.WestEast;
             }
 
             this.BoundaryBaseLineCount = count;
@@ -416,6 +432,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             #endregion
 
             this.ShapeType = BilinearShapeType.IShape;
+            this.MainVolumeDirection = MainDirection.WestEast;
             this.BoundaryBaseLineCount = count;
             this.CenterBaseLineCount = count;
 
@@ -1007,7 +1024,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return newGeneratedCell;
         }
 
-        public BilinearCell GenerateRemovedCShapeOrIShapeOrSinglePolyline()
+        public BilinearCell GenerateRemovedCShapeOrIShapeOrSinglePolyline(int removeCount, int directionCode)
         {
             if (this.ShapeType != BilinearShapeType.SinglePolyline 
                 || this.ShapeType != BilinearShapeType.IShape
@@ -1039,38 +1056,221 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 }
                 else if (this.ShapeType == BilinearShapeType.CShape)
                 {
-                    // 去掉中间的那一条
-                    if (this.South_Interval.Count == 0)
+                    if (this.MainVolumeDirection == MainDirection.SouthNorth)
                     {
-                        this.North_Interval = new List<Interval>();
-                    }
-                    else if (this.East_Interval.Count == 0)
-                    {
-                        this.West_Interval = new List<Interval>();
-                    }
-                    else if (this.North_Interval.Count == 0)
-                    {
-                        this.South_Interval = new List<Interval>();
+                        if (this.East_Interval.Count == 0)
+                        {
+                            this.West_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            this.East_Interval = new List<Interval>();
+                        }
                     }
                     else
                     {
-                        this.East_Interval = new List<Interval>();
+                        // 如果是东西，就看是要二选一，还是二选二，this.MainVolumeDirection == MainDirection.WestEast
+                        if (removeCount == 1)
+                        {
+                            // 首先看west和east是不是都在，如果都在，就随机删一个
+                            if (this.West_Interval.Count != 0 && this.East_Interval.Count != 0)
+                            {
+                                if (directionCode < 2)
+                                {
+                                    this.West_Interval = new List<Interval>();
+                                }
+                                else
+                                {
+                                    this.East_Interval = new List<Interval>();
+                                }
+                            }
+                            // 如果有一个不在，就直接删另一个
+                            else if (this.West_Interval.Count == 0 && this.East_Interval.Count != 0)
+                            {
+                                this.East_Interval = new List<Interval>();
+                            }
+                            // 如果有一个不在，就直接删另一个
+                            else if (this.West_Interval.Count != 0 && this.East_Interval.Count == 0)
+                            {
+                                this.West_Interval = new List<Interval>();
+                            }
+                        }
+                        else
+                        {
+                            this.West_Interval = new List<Interval>();
+                            this.East_Interval = new List<Interval>();
+                        }
                     }
                 }
                 else
                 {
-                    // 去掉中间的那一条
-                    if (this.HCenter_Interval.Count == 1)
+                    // IShape时
+                    if (this.MainVolumeDirection == MainDirection.SouthNorth)
                     {
-                        this.HCenter_Interval = new List<Interval>();
+                        // 去掉中间的那一条
+                        if (this.HCenter_Interval.Count == 1)
+                        {
+                            this.HCenter_Interval = new List<Interval>();
+                        }
                     }
-                    if (this.VCenter_Interval.Count == 1)
+                    else
                     {
-                        this.VCenter_Interval = new List<Interval>();
+                        // 如果是东西，就看是要二选一，还是二选二
+                        if (removeCount == 1)
+                        {
+                            // 首先看west和east是不是都在，如果都在，就随机删一个
+                            if (this.West_Interval.Count != 0 && this.East_Interval.Count != 0)
+                            {
+                                if (directionCode < 2)
+                                {
+                                    this.West_Interval = new List<Interval>();
+                                }
+                                else
+                                {
+                                    this.East_Interval = new List<Interval>();
+                                }
+                            }
+                            // 如果有一个不在，就直接删另一个
+                            else if (this.West_Interval.Count == 0 && this.East_Interval.Count != 0)
+                            {
+                                this.East_Interval = new List<Interval>();
+                            }
+                            // 如果有一个不在，就直接删另一个
+                            else if (this.West_Interval.Count != 0 && this.East_Interval.Count == 0)
+                            {
+                                this.West_Interval = new List<Interval>();
+                            }
+                        }
+                        else
+                        {
+                            this.West_Interval = new List<Interval>();
+                            this.East_Interval = new List<Interval>();
+                        }
                     }
                 }
                 return this;
             }
+        }
+
+        public BilinearCell GenerateRemovedH(int removeCount, int directionCode)
+        {
+            if (this.ShapeType != BilinearShapeType.SinglePolyline
+                || this.ShapeType != BilinearShapeType.IShape
+                || this.ShapeType != BilinearShapeType.CShape)
+            {
+                return this;
+            }
+            else
+            {
+                if (this.ShapeType == BilinearShapeType.SinglePolyline)
+                {
+                    // 无论 removeCount == 1 还是removeCount == 2，都是
+                    // 去掉连接的那一条
+                    if (this.PublicBaseLineIndex == 0)
+                    {
+                        this.South_Interval = new List<Interval>();
+                    }
+                    else if (this.PublicBaseLineIndex == 1)
+                    {
+                        this.East_Interval = new List<Interval>();
+                    }
+                    else if (this.PublicBaseLineIndex == 2)
+                    {
+                        this.North_Interval = new List<Interval>();
+                    }
+                    else
+                    {
+                        this.West_Interval = new List<Interval>();
+                    }
+                }
+                else if (this.ShapeType != BilinearShapeType.CShape)
+                {
+                    // 去掉两边的两条
+                    if (this.South_Interval.Count == 0)
+                    {
+                        if (removeCount == 2)
+                        {
+                            this.West_Interval = new List<Interval>();
+                            this.East_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            if (directionCode < 2) this.West_Interval = new List<Interval>();
+                            else this.East_Interval = new List<Interval>();
+                        }
+                    }
+                    else if (this.East_Interval.Count == 0)
+                    {
+                        if (removeCount == 2)
+                        {
+                            this.South_Interval = new List<Interval>();
+                            this.North_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            if (directionCode < 2) this.South_Interval = new List<Interval>();
+                            else this.North_Interval = new List<Interval>();
+                        }
+                    }
+                    else if (this.North_Interval.Count == 0)
+                    {
+                        if (removeCount == 2)
+                        {
+                            this.West_Interval = new List<Interval>();
+                            this.East_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            if (directionCode < 2) this.West_Interval = new List<Interval>();
+                            else this.East_Interval = new List<Interval>();
+                        }
+                    }
+                    else
+                    {
+                        if (removeCount == 2)
+                        {
+                            this.South_Interval = new List<Interval>();
+                            this.North_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            if (directionCode < 2) this.South_Interval = new List<Interval>();
+                            else this.North_Interval = new List<Interval>();
+                        }
+                    }
+                }
+                else
+                {
+                    if (this.HCenter_Interval.Count == 1)
+                    {
+                        if (removeCount == 2)
+                        {
+                            this.West_Interval = new List<Interval>();
+                            this.East_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            if (directionCode < 2) this.West_Interval = new List<Interval>();
+                            else this.East_Interval = new List<Interval>();
+                        }
+                    }
+                    if (this.VCenter_Interval.Count == 1)
+                    {
+                        if (removeCount == 2)
+                        {
+                            this.South_Interval = new List<Interval>();
+                            this.North_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            if (directionCode < 2) this.South_Interval = new List<Interval>();
+                            else this.North_Interval = new List<Interval>();
+                        }
+                    }
+                }
+            }
+
+            return this;
         }
 
         public BilinearCell GenerateScaledShape(double scaleFactor, double lMin, double w)
@@ -1112,6 +1312,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
             return this;
         }
+
 
         private int GetBoundaryBaseLinesCount()
         {

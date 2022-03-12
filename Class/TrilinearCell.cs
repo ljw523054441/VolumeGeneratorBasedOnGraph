@@ -978,6 +978,185 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return newGeneratedCell;
         }
 
+        public TrilinearCell GenerateOneRemovedEShapeOrZShapeOrEVariantShape(int directionCode)
+        {
+            if (this.ShapeType != TrilinearShapeType.ZShape
+                || this.ShapeType != TrilinearShapeType.EShape
+                || this.ShapeType != TrilinearShapeType.EVarientShape)
+            {
+                return this;
+            }
+            else
+            {
+                if (this.ShapeType == TrilinearShapeType.ZShape)
+                {
+                    if (this.West_Interval.Count == 0)
+                    {
+                        if (directionCode < 2)
+                        {
+                            this.West1_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            this.East_Interval = new List<Interval>();
+                        }
+                    }
+                    else if (this.East_Interval.Count == 0)
+                    {
+                        if (directionCode < 2)
+                        {
+                            this.East1_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            this.West_Interval = new List<Interval>();
+                        }
+                    }
+                }
+                else if (this.ShapeType == TrilinearShapeType.EShape)
+                {
+                    if (this.West_Interval.Count == 0)
+                    {
+                        if (directionCode < 2)
+                        {
+                            this.East_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            this.East1_Interval = new List<Interval>();
+                        }
+                    }
+                    else if (this.East_Interval.Count == 0)
+                    {
+                        if (directionCode < 2)
+                        {
+                            this.West_Interval = new List<Interval>();
+                        }
+                        else
+                        {
+                            this.West1_Interval = new List<Interval>();
+                        }
+                    }
+                }
+                else
+                {
+                    if (directionCode < 2)
+                    {
+                        this.HSouth_Interval = new List<Interval>();
+                    }
+                    else
+                    {
+                        this.HNouth_Interval = new List<Interval>();
+                    }
+                }
+
+                return this;
+            }
+        }
+
+        public TrilinearCell GenerateTwoRemovedEShapeOrZShapeOrEVariantShape()
+        {
+            if (this.ShapeType != TrilinearShapeType.ZShape
+                || this.ShapeType != TrilinearShapeType.EShape
+                || this.ShapeType != TrilinearShapeType.EVarientShape)
+            {
+                return this;
+            }
+            else
+            {
+                if (this.ShapeType == TrilinearShapeType.ZShape)
+                {
+                    // 去掉两条竖
+                    if (this.West_Interval.Count == 0)
+                    {
+                        this.West1_Interval = new List<Interval>();
+                        this.East_Interval = new List<Interval>();
+                    }
+                    else if (this.East_Interval.Count == 0)
+                    {
+                        this.East1_Interval = new List<Interval>();
+                        this.West_Interval = new List<Interval>();
+                    }
+                }
+                else if (this.ShapeType == TrilinearShapeType.EShape)
+                {
+                    // 去掉两条竖
+                    if (this.West_Interval.Count == 0)
+                    {
+                        this.East_Interval = new List<Interval>();
+                        this.East1_Interval = new List<Interval>();
+                    }
+                    else if (this.East_Interval.Count == 0)
+                    {
+                        this.West_Interval = new List<Interval>();
+                        this.West1_Interval = new List<Interval>();
+                    }
+                }
+                else
+                {
+                    //  去掉中间两条竖
+                    this.HSouth_Interval = new List<Interval>();
+                    this.HNouth_Interval = new List<Interval>();
+                }
+
+                return this;
+            }
+        }
+
+        public TrilinearCell GenerateRemovedH(int removeCount, int directionCode)
+        {
+            if (this.ShapeType != TrilinearShapeType.ZShape
+                || this.ShapeType != TrilinearShapeType.EShape
+                || this.ShapeType != TrilinearShapeType.EVarientShape)
+            {
+                return this;
+            }
+            else
+            {
+                if (removeCount == 3)
+                {
+                    this.South_Interval = new List<Interval>();
+                    this.Middle_Interval = new List<Interval>();
+                    this.North_Interval = new List<Interval>();
+                }
+                else if (removeCount == 2)
+                {
+                    if (directionCode == 0)
+                    {
+                        this.South_Interval = new List<Interval>();
+                        this.Middle_Interval = new List<Interval>();
+                    }
+                    else if (directionCode == 1)
+                    {
+                        this.Middle_Interval = new List<Interval>();
+                        this.North_Interval = new List<Interval>();
+                    }
+                    else
+                    {
+                        this.South_Interval = new List<Interval>();
+                        this.North_Interval = new List<Interval>();
+                    }
+                }
+                else
+                {
+                    if (directionCode == 0)
+                    {
+                        this.South_Interval = new List<Interval>();
+                    }
+                    else if (directionCode == 1)
+                    {
+                        this.Middle_Interval = new List<Interval>();
+                    }
+                    else
+                    {
+                        this.North_Interval = new List<Interval>();
+                    }
+                }
+            }
+
+            return this;
+        }
+
         public TrilinearCell GenerateScaledShape(double scaleFactor,double lMin, double w)
         {
             
