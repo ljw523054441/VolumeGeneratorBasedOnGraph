@@ -990,7 +990,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 if (this.ShapeType == TrilinearShapeType.ZShape)
                 {
-                    if (this.West_Interval.Count == 0)
+                    if (this.West_Interval == null)
                     {
                         if (directionCode < 2)
                         {
@@ -1001,7 +1001,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                             this.East_Interval = new List<Interval>();
                         }
                     }
-                    else if (this.East_Interval.Count == 0)
+                    else if (this.East_Interval == null)
                     {
                         if (directionCode < 2)
                         {
@@ -1015,7 +1015,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 }
                 else if (this.ShapeType == TrilinearShapeType.EShape)
                 {
-                    if (this.West_Interval.Count == 0)
+                    if (this.West_Interval == null)
                     {
                         if (directionCode < 2)
                         {
@@ -1026,7 +1026,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
                             this.East1_Interval = new List<Interval>();
                         }
                     }
-                    else if (this.East_Interval.Count == 0)
+                    else if (this.East_Interval == null)
                     {
                         if (directionCode < 2)
                         {
@@ -1057,8 +1057,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public TrilinearCell GenerateTwoRemovedEShapeOrZShapeOrEVariantShape()
         {
             if (this.ShapeType != TrilinearShapeType.ZShape
-                || this.ShapeType != TrilinearShapeType.EShape
-                || this.ShapeType != TrilinearShapeType.EVarientShape)
+                && this.ShapeType != TrilinearShapeType.EShape
+                && this.ShapeType != TrilinearShapeType.EVarientShape)
             {
                 return this;
             }
@@ -1067,12 +1067,12 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 if (this.ShapeType == TrilinearShapeType.ZShape)
                 {
                     // 去掉两条竖
-                    if (this.West_Interval.Count == 0)
+                    if (this.West_Interval == null)
                     {
                         this.West1_Interval = new List<Interval>();
                         this.East_Interval = new List<Interval>();
                     }
-                    else if (this.East_Interval.Count == 0)
+                    else if (this.East_Interval == null)
                     {
                         this.East1_Interval = new List<Interval>();
                         this.West_Interval = new List<Interval>();
@@ -1081,12 +1081,12 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 else if (this.ShapeType == TrilinearShapeType.EShape)
                 {
                     // 去掉两条竖
-                    if (this.West_Interval.Count == 0)
+                    if (this.West_Interval == null)
                     {
                         this.East_Interval = new List<Interval>();
                         this.East1_Interval = new List<Interval>();
                     }
-                    else if (this.East_Interval.Count == 0)
+                    else if (this.East_Interval == null)
                     {
                         this.West_Interval = new List<Interval>();
                         this.West1_Interval = new List<Interval>();
@@ -1106,8 +1106,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public TrilinearCell GenerateRemovedH(int removeCount, int directionCode)
         {
             if (this.ShapeType != TrilinearShapeType.ZShape
-                || this.ShapeType != TrilinearShapeType.EShape
-                || this.ShapeType != TrilinearShapeType.EVarientShape)
+                && this.ShapeType != TrilinearShapeType.EShape
+                && this.ShapeType != TrilinearShapeType.EVarientShape)
             {
                 return this;
             }
