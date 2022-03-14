@@ -165,6 +165,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.PublicBaseLineIndex = source.PublicBaseLineIndex;
             this.AnotherBaseLineIndexRelatedToCutPoint = source.AnotherBaseLineIndexRelatedToCutPoint;
             this.TurningPoint = new Point3d(source.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = source.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = source.NextBaseLineIndexRelatedToCutPoint;
         }
 
         public BilinearCell(Curve southLine, 
@@ -321,6 +323,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
                             Curve eastLine,
                             int publicBaseLineIndex,
                             int anotherBaseLineIndexRelatedToCutPoint,
+                            int prevBaseLineIndexRelatedToCutPoint,
+                            int nextBaseLineIndexRelatedToCutPoint,
                             Point3d turningPoint)
         {
             #region baseLine 和 interval
@@ -370,6 +374,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.CellBoundary = boundary.DuplicateCurve();
                 #endregion
 
+                this.PublicBaseLineIndex = publicBaseLineIndex;
+                this.AnotherBaseLineIndexRelatedToCutPoint = anotherBaseLineIndexRelatedToCutPoint;
+                this.PrevBaseLineIndexRelatedToCutPoint = prevBaseLineIndexRelatedToCutPoint;
+                this.NextBaseLineIndexRelatedToCutPoint = nextBaseLineIndexRelatedToCutPoint;
+
                 this.TurningPoint = new Point3d(turningPoint);
             }
             else
@@ -385,6 +394,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                 this.PublicBaseLineIndex = publicBaseLineIndex;
                 this.AnotherBaseLineIndexRelatedToCutPoint = anotherBaseLineIndexRelatedToCutPoint;
+                this.PrevBaseLineIndexRelatedToCutPoint = prevBaseLineIndexRelatedToCutPoint;
+                this.NextBaseLineIndexRelatedToCutPoint = nextBaseLineIndexRelatedToCutPoint;
 
                 this.TurningPoint = new Point3d(turningPoint);
             }

@@ -348,6 +348,11 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 startT++;
             }
 
+            if (x >= 0 && y >= 0)
+            {
+                pairs.Add(new int[2] { x, y });
+            }
+
             return pairs;
         }
 

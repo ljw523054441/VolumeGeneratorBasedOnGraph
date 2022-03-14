@@ -1452,80 +1452,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         }
                         else
                         {
-                            BilinearCell bCell = allBlockCellDT.Branch(new GH_Path(path[0], path[1]))[0] as BilinearCell;
+                            BilinearCell bCell = allBlockCellDT.Branch(new GH_Path(path[0], path[1], 0))[0] as BilinearCell;
 
-                            if ((bCell.East_Interval.Count==0 && bCell.AnotherBaseLineIndexRelatedToCutPoint == 3))
-                            {
-                                // 此时 West_Interval.Count 一定大于0
-                                // 此时先减h，再减v
-                                // 即，先判断减 S 还是减 N ，再减West
-                                int hCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0]));
-                                if (hCount > singlePolylineCount)
-                                {
-                                    hCount = singlePolylineCount;
-                                    double area = allBlockDelta.Branch(path)[0] - hCount * allBlockHAverageLength.Branch(path)[0];
-                                    int vCount = (int)Math.Ceiling(area / allBlockVAverageLength.Branch(path)[0]);
-                                    if (vCount > singlePolylineCount)
-                                    {
-                                        double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
-                                    }
-                                    else
-                                    {
-                                        // h直接切除，并且将原来的v变短
-                                        vCount = 0;
-                                        double sV = area / allBlockVAverageLength.Branch(path)[0];
-                                        double sH = 0;
-                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
-                                    }
-                                }
-                                else
-                                {
-                                    // 将原来的h变短
-                                    int vCount = 0;
-                                    double sV = 0;
-                                    double sH = allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0];
-                                    allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
-                                }
-                            }
-                            else if (bCell.West_Interval.Count == 0 && bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
-                            {
-                                // 此时先减h，再减v
-                                // 即，先判断减 S 还是减 N ，再减West
-                                int hCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0]));
-                                if (hCount > singlePolylineCount)
-                                {
-                                    hCount = singlePolylineCount;
-                                    double area = allBlockDelta.Branch(path)[0] - hCount * allBlockHAverageLength.Branch(path)[0];
-                                    int vCount = (int)Math.Ceiling(area / allBlockVAverageLength.Branch(path)[0]);
-                                    if (vCount > singlePolylineCount)
-                                    {
-                                        double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
-                                    }
-                                    else
-                                    {
-                                        // h直接切除，并且将原来的v变短
-                                        vCount = 0;
-                                        double sV = area / allBlockVAverageLength.Branch(path)[0];
-                                        double sH = 0;
-                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
-                                    }
-                                }
-                                else
-                                {
-                                    // 将原来的h变短
-                                    hCount = 0;
-                                    int vCount = 0;
-                                    double sV = 0;
-                                    double sH = allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0];
-                                    allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
-                                }
-                            }
-                            else
+                            if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0 || bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
                             {
                                 // 此时先减v，再减h
-                                // 即，先减West，然后再判断减 S 还是减 N 
                                 int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
                                 if (vCount > singlePolylineCount)
                                 {
@@ -1551,7 +1482,26 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                         hCount = 0;
                                         double sH = area / allBlockHAverageLength.Branch(path)[0];
                                         double sV = 0;
-                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
+                                        if (bCell.PrevBaseLineIndexRelatedToCutPoint == 3 && bCell.NextBaseLineIndexRelatedToCutPoint == -1)
+                                        {
+                                            // 从v的0端开始减
+                                            allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 0, true);
+                                        }
+                                        else if (bCell.PrevBaseLineIndexRelatedToCutPoint == 1 && bCell.NextBaseLineIndexRelatedToCutPoint == -1)
+                                        {
+                                            // 从v的1端开始减
+                                            allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 2, true);
+                                        }
+                                        else if (bCell.PrevBaseLineIndexRelatedToCutPoint != 1 && bCell.NextBaseLineIndexRelatedToCutPoint == 1)
+                                        {
+                                            // 从v的1端开始减
+                                            allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 0, true);
+                                        }
+                                        else if (bCell.PrevBaseLineIndexRelatedToCutPoint != 1 && bCell.NextBaseLineIndexRelatedToCutPoint == 3)
+                                        {
+                                            // 从v的0端开始减
+                                            allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 2, true);
+                                        }
                                     }
                                 }
                                 else
@@ -1561,9 +1511,102 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     int hCount = 0;
                                     double sH = 0;
                                     double sV = allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0];
-                                    allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH);
+                                    if (bCell.PrevBaseLineIndexRelatedToCutPoint == 1 && bCell.NextBaseLineIndexRelatedToCutPoint == -1)
+                                    {
+                                        // 从v的0端开始减
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 1, true);
+                                    }
+                                    else if (bCell.PrevBaseLineIndexRelatedToCutPoint == 3 && bCell.NextBaseLineIndexRelatedToCutPoint == -1)
+                                    {
+                                        // 从v的1端开始减
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 3, true);
+                                    }
+                                    else if (bCell.PrevBaseLineIndexRelatedToCutPoint != 1 && bCell.NextBaseLineIndexRelatedToCutPoint == 3)
+                                    {
+                                        // 从v的1端开始减
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 3, true);
+                                    }
+                                    else if (bCell.PrevBaseLineIndexRelatedToCutPoint != 1 && bCell.NextBaseLineIndexRelatedToCutPoint == 1)
+                                    {
+                                        // 从v的0端开始减
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 1, true);
+                                    }
                                 }
                             }
+                            else
+                            {
+                                // bCell.AnotherBaseLineIndexRelatedToCutPoint == 1 || bCell.AnotherBaseLineIndexRelatedToCutPoint == 3
+                                // 此时先减h，再减v
+                                // 即，先判断减 S 还是减 N ，再减West
+                                int hCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0]));
+                                if (hCount > singlePolylineCount)
+                                {
+                                    hCount = singlePolylineCount;
+                                    double area = allBlockDelta.Branch(path)[0] - hCount * allBlockHAverageLength.Branch(path)[0];
+                                    int vCount = (int)Math.Ceiling(area / allBlockVAverageLength.Branch(path)[0]);
+                                    if (vCount > singlePolylineCount)
+                                    {
+                                        double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
+                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                    }
+                                    else
+                                    {
+                                        // h直接切除，并且将原来的v变短
+                                        vCount = 0;
+                                        double sV = area / allBlockVAverageLength.Branch(path)[0];
+                                        double sH = 0;
+                                        if (bCell.PrevBaseLineIndexRelatedToCutPoint == 0 && bCell.NextBaseLineIndexRelatedToCutPoint == -1)
+                                        {
+                                            // 从v的0端开始减
+                                            allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 1, true);
+                                        }
+                                        else if (bCell.PrevBaseLineIndexRelatedToCutPoint == 2 && bCell.NextBaseLineIndexRelatedToCutPoint == -1)
+                                        {
+                                            // 从v的1端开始减
+                                            allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 3, true);
+                                        }
+                                        else if (bCell.PrevBaseLineIndexRelatedToCutPoint != 1 && bCell.NextBaseLineIndexRelatedToCutPoint == 2)
+                                        {
+                                            // 从v的1端开始减
+                                            allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 1, true);
+                                        }
+                                        else if (bCell.PrevBaseLineIndexRelatedToCutPoint != 1 && bCell.NextBaseLineIndexRelatedToCutPoint == 0)
+                                        {
+                                            // 从v的0端开始减
+                                            allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 3, true);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // 将原来的h变短
+                                    hCount = 0;
+                                    int vCount = 0;
+                                    double sV = 0;
+                                    double sH = allBlockDelta.Branch(path)[0] / allBlockHAverageLength.Branch(path)[0];
+                                    if (bCell.PrevBaseLineIndexRelatedToCutPoint == 2 && bCell.NextBaseLineIndexRelatedToCutPoint == -1)
+                                    {
+                                        // 从h的0端开始减
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 2, true);
+                                    }
+                                    else if (bCell.PrevBaseLineIndexRelatedToCutPoint == 0 && bCell.NextBaseLineIndexRelatedToCutPoint == -1)
+                                    {
+                                        // 从v的1端开始减
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 0, true);
+                                    }
+                                    else if (bCell.PrevBaseLineIndexRelatedToCutPoint != 1 && bCell.NextBaseLineIndexRelatedToCutPoint == 0)
+                                    {
+                                        // 从v的1端开始减
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 0, true);
+                                    }
+                                    else if (bCell.PrevBaseLineIndexRelatedToCutPoint != 1 && bCell.NextBaseLineIndexRelatedToCutPoint == 2)
+                                    {
+                                        // 从v的0端开始减
+                                        allBlockCellDT = DoDensityReduce_SP(allBlockCellDT, path, vCount, hCount, sV, sH, 2, true);
+                                    }
+                                }
+                            }
+
                         }
                     }
                     else if (singleRegionCount + singlePolylineCount + IShapeCount + CShapeCount == shiftedAllBlockBasicCellDT.Branch(path).Count
@@ -2130,7 +2173,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             return cellDT;
         }
 
-        private DataTree<Cell> DoDensityReduce_SP(DataTree<Cell> cellDT,GH_Path currentSmallBlockPathList, int vReduceCount, int hReduceCount, double sV, double sH)
+        private DataTree<Cell> DoDensityReduce_SP(DataTree<Cell> cellDT,GH_Path currentSmallBlockPathList, int vReduceCount, int hReduceCount, double sV, double sH, int indexToCut,bool isFromZero)
         {
             #region 得到当前小block的子树
             List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
@@ -2179,27 +2222,29 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 if (sH == 0)
                 {
                     // 将原来的v变短
-                    if (bCell.West_Interval.Count != 0)
+                    if (indexToCut == 1)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        // 减E
+                        if (isFromZero)
                         {
-                            bCell.West_Interval.Clear();
-                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                            bCell.East_Interval.Clear();
+                            bCell.East_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        else
                         {
-                            bCell.West_Interval.Clear();
-                            bCell.West_Interval.Add(new Interval(sV, 1));
+                            bCell.East_Interval.Clear();
+                            bCell.East_Interval.Add(new Interval(0, 1 - sV));
                         }
                     }
-                    else if (bCell.East_Interval.Count != 0)
+                    else if (indexToCut == 3)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        // 减W
+                        if (isFromZero)
                         {
                             bCell.West_Interval.Clear();
                             bCell.West_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        else
                         {
                             bCell.West_Interval.Clear();
                             bCell.West_Interval.Add(new Interval(0, 1 - sV));
@@ -2209,32 +2254,35 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 else if (sV == 0)
                 {
                     // 将原来的h变短
-                    if (bCell.South_Interval.Count != 0)
+                    if (indexToCut == 0)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        // 减S
+                        if (isFromZero)
                         {
                             bCell.South_Interval.Clear();
                             bCell.South_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        else
                         {
                             bCell.South_Interval.Clear();
                             bCell.South_Interval.Add(new Interval(0, 1 - sV));
                         }
                     }
-                    else if (bCell.North_Interval.Count != 0)
+                    else if (indexToCut == 2)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
-                        {
-                            bCell.North_Interval.Clear();
-                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
-                        }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        // 减N
+                        if (isFromZero)
                         {
                             bCell.North_Interval.Clear();
                             bCell.North_Interval.Add(new Interval(sV, 1));
                         }
+                        else
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
+                        }
                     }
+
                 }
             }
             else if (hReduceCount == 1 && vReduceCount == 0)
@@ -2244,27 +2292,29 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     bCell.South_Interval.Clear();
 
                     // 将原来的v变短
-                    if (bCell.West_Interval.Count != 0)
+                    if (indexToCut == 1)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        // 减E
+                        if (isFromZero)
                         {
-                            bCell.West_Interval.Clear();
-                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                            bCell.East_Interval.Clear();
+                            bCell.East_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        else
                         {
-                            bCell.West_Interval.Clear();
-                            bCell.West_Interval.Add(new Interval(sV, 1));
+                            bCell.East_Interval.Clear();
+                            bCell.East_Interval.Add(new Interval(0, 1 - sV));
                         }
                     }
-                    else if (bCell.East_Interval.Count != 0)
+                    else if (indexToCut == 3)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        // 减W
+                        if (isFromZero)
                         {
                             bCell.West_Interval.Clear();
                             bCell.West_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        else
                         {
                             bCell.West_Interval.Clear();
                             bCell.West_Interval.Add(new Interval(0, 1 - sV));
@@ -2276,27 +2326,29 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     bCell.North_Interval.Clear();
 
                     // 将原来的v变短
-                    if (bCell.West_Interval.Count != 0)
+                    if (indexToCut == 1)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        // 减E
+                        if (isFromZero)
                         {
-                            bCell.West_Interval.Clear();
-                            bCell.West_Interval.Add(new Interval(0, 1 - sV));
+                            bCell.East_Interval.Clear();
+                            bCell.East_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        else
                         {
-                            bCell.West_Interval.Clear();
-                            bCell.West_Interval.Add(new Interval(sV, 1));
+                            bCell.East_Interval.Clear();
+                            bCell.East_Interval.Add(new Interval(0, 1 - sV));
                         }
                     }
-                    else if (bCell.East_Interval.Count != 0)
+                    else if (indexToCut == 3)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 0)
+                        // 减W
+                        if (isFromZero)
                         {
                             bCell.West_Interval.Clear();
                             bCell.West_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 2)
+                        else
                         {
                             bCell.West_Interval.Clear();
                             bCell.West_Interval.Add(new Interval(0, 1 - sV));
@@ -2311,30 +2363,32 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     bCell.West_Interval.Clear();
 
                     // 将原来的h变短
-                    if (bCell.South_Interval.Count != 0)
+                    if (indexToCut == 0)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        // 减S
+                        if (isFromZero)
                         {
                             bCell.South_Interval.Clear();
                             bCell.South_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        else
                         {
                             bCell.South_Interval.Clear();
                             bCell.South_Interval.Add(new Interval(0, 1 - sV));
                         }
                     }
-                    else if (bCell.North_Interval.Count != 0)
+                    else if (indexToCut == 2)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
-                        {
-                            bCell.North_Interval.Clear();
-                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
-                        }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        // 减N
+                        if (isFromZero)
                         {
                             bCell.North_Interval.Clear();
                             bCell.North_Interval.Add(new Interval(sV, 1));
+                        }
+                        else
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
                         }
                     }
                 }
@@ -2343,30 +2397,32 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     bCell.East_Interval.Clear();
 
                     // 将原来的h变短
-                    if (bCell.South_Interval.Count != 0)
+                    if (indexToCut == 0)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
+                        // 减S
+                        if (isFromZero)
                         {
                             bCell.South_Interval.Clear();
                             bCell.South_Interval.Add(new Interval(sV, 1));
                         }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        else
                         {
                             bCell.South_Interval.Clear();
                             bCell.South_Interval.Add(new Interval(0, 1 - sV));
                         }
                     }
-                    else if (bCell.North_Interval.Count != 0)
+                    else if (indexToCut == 2)
                     {
-                        if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 1)
-                        {
-                            bCell.North_Interval.Clear();
-                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
-                        }
-                        else if (bCell.AnotherBaseLineIndexRelatedToCutPoint == 3)
+                        // 减N
+                        if (isFromZero)
                         {
                             bCell.North_Interval.Clear();
                             bCell.North_Interval.Add(new Interval(sV, 1));
+                        }
+                        else
+                        {
+                            bCell.North_Interval.Clear();
+                            bCell.North_Interval.Add(new Interval(0, 1 - sV));
                         }
                     }
                 }
@@ -2468,36 +2524,38 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 cd++;
             }
 
+            List<int[]> distinctPairs_vReduceOnce = countPairs_vReduceOnce.Distinct().ToList();
+
             List<int[]> finalCountPairs_vReduceOnce = new List<int[]>();
-            for (int i = 0; i < countPairs_vReduceOnce.Count; i++)
+            for (int i = 0; i < distinctPairs_vReduceOnce.Count; i++)
             {
-                if (countPairs_vReduceOnce[i][0] + countPairs_vReduceOnce[i][3] <= IShapeCount
-                    && countPairs_vReduceOnce[i][1] + countPairs_vReduceOnce[i][2] <= CShapeCount)
+                if (distinctPairs_vReduceOnce[i][0] + distinctPairs_vReduceOnce[i][3] <= IShapeCount
+                    && distinctPairs_vReduceOnce[i][1] + distinctPairs_vReduceOnce[i][2] <= CShapeCount)
                 {
                     bool flag0 = false;
                     bool flag1 = false;
                     bool flag2 = false;
                     bool flag3 = false;
-                    if (countPairs_vReduceOnce[i][0] >= 0)
+                    if (distinctPairs_vReduceOnce[i][0] >= 0)
                     {
                         flag0 = true;
                     }
-                    if (countPairs_vReduceOnce[i][1] >= 0)
+                    if (distinctPairs_vReduceOnce[i][1] >= 0)
                     {
                         flag1 = true;
                     }
-                    if (countPairs_vReduceOnce[i][2] >= 0)
+                    if (distinctPairs_vReduceOnce[i][2] >= 0)
                     {
                         flag2 = true;
                     }
-                    if (countPairs_vReduceOnce[i][3] >= 0)
+                    if (distinctPairs_vReduceOnce[i][3] >= 0)
                     {
                         flag3 = true;
                     }
 
                     if (flag0 && flag1 && flag2 && flag3)
                     {
-                        finalCountPairs_vReduceOnce.Add(countPairs_vReduceOnce[i]);
+                        finalCountPairs_vReduceOnce.Add(distinctPairs_vReduceOnce[i]);
                     }
                 }
             }
@@ -2606,26 +2664,28 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 #region 求解二元一次不定方程，得到finalCountPairs
                 List<int[]> countPairs_hReduce = UtilityFunctions.GetAllPositiveIntegerSolution(1, 1, hReduceCount);
 
+                List<int[]> distinctPairs_hReduce = countPairs_hReduce.Distinct().ToList();
+
                 List<int[]> finalCountPairs_hReduce = new List<int[]>();
-                for (int i = 0; i < countPairs_hReduce.Count; i++)
+                for (int i = 0; i < distinctPairs_hReduce.Count; i++)
                 {
-                    if (countPairs_hReduce[i][0] <= IShapeCount
-                        && countPairs_hReduce[i][1] <= CShapeCount)
+                    if (distinctPairs_hReduce[i][0] <= IShapeCount
+                        && distinctPairs_hReduce[i][1] <= CShapeCount)
                     {
                         bool flag0 = false;
                         bool flag1 = false;
-                        if (countPairs_hReduce[i][0] >= 0)
+                        if (distinctPairs_hReduce[i][0] >= 0)
                         {
                             flag0 = true;
                         }
-                        if (countPairs_hReduce[i][1] >= 0)
+                        if (distinctPairs_hReduce[i][1] >= 0)
                         {
                             flag1 = true;
                         }
 
                         if (flag0 && flag1)
                         {
-                            finalCountPairs_hReduce.Add(countPairs_hReduce[i]);
+                            finalCountPairs_hReduce.Add(distinctPairs_hReduce[i]);
                         }
                     }
                 }
@@ -2781,32 +2841,34 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 v++;
             }
 
+            List<int[]> distinctPairs_vReduceOnce = countPairs_vReduceOnce.Distinct().ToList();
+
             //List<int[]> countPairs = UtilityFunctions.GetAllPositiveIntegerSolution(2, 1, vReduceCount);
             List<int[]> finalCountPairs_vReduceOnce = new List<int[]>();
-            for (int i = 0; i < countPairs_vReduceOnce.Count; i++)
+            for (int i = 0; i < distinctPairs_vReduceOnce.Count; i++)
             {
-                if (countPairs_vReduceOnce[i][0]+countPairs_vReduceOnce[i][2] <= EightShapeCount
-                    && countPairs_vReduceOnce[i][1] <= RecShapeCount)
+                if (distinctPairs_vReduceOnce[i][0]+ distinctPairs_vReduceOnce[i][2] <= EightShapeCount
+                    && distinctPairs_vReduceOnce[i][1] <= RecShapeCount)
                 {
                     bool flag0 = false;
                     bool flag1 = false;
                     bool flag2 = false;
-                    if (countPairs_vReduceOnce[i][0] >= 0)
+                    if (distinctPairs_vReduceOnce[i][0] >= 0)
                     {
                         flag0 = true;
                     }
-                    if (countPairs_vReduceOnce[i][1] >= 0)
+                    if (distinctPairs_vReduceOnce[i][1] >= 0)
                     {
                         flag1 = true;
                     }
-                    if (countPairs_vReduceOnce[i][2] >= 0)
+                    if (distinctPairs_vReduceOnce[i][2] >= 0)
                     {
                         flag2 = true;
                     }
 
                     if (flag0 && flag1 && flag2)
                     {
-                        finalCountPairs_vReduceOnce.Add(countPairs_vReduceOnce[i]);
+                        finalCountPairs_vReduceOnce.Add(distinctPairs_vReduceOnce[i]);
                     }
                 }
             }
@@ -2912,31 +2974,33 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     v++;
                 }
 
+                List<int[]> distinctPairs_vReduceTwice = countPairs_vReduceTwice.Distinct().ToList();
+
                 List<int[]> finalCountPairs_vReduceTwice = new List<int[]>();
-                for (int i = 0; i < countPairs_vReduceTwice.Count; i++)
+                for (int i = 0; i < distinctPairs_vReduceTwice.Count; i++)
                 {
-                    if (countPairs_vReduceTwice[i][0] + countPairs_vReduceTwice[i][2] <= EightShapeCount
-                        && countPairs_vReduceTwice[i][1] <= RecShapeCount)
+                    if (distinctPairs_vReduceTwice[i][0] + distinctPairs_vReduceTwice[i][2] <= EightShapeCount
+                        && distinctPairs_vReduceTwice[i][1] <= RecShapeCount)
                     {
                         bool flag0 = false;
                         bool flag1 = false;
                         bool flag2 = false;
-                        if (countPairs_vReduceTwice[i][0] >= 0)
+                        if (distinctPairs_vReduceTwice[i][0] >= 0)
                         {
                             flag0 = true;
                         }
-                        if (countPairs_vReduceTwice[i][1] >= 0)
+                        if (distinctPairs_vReduceTwice[i][1] >= 0)
                         {
                             flag1 = true;
                         }
-                        if (countPairs_vReduceTwice[i][2] >= 0)
+                        if (distinctPairs_vReduceTwice[i][2] >= 0)
                         {
                             flag2 = true;
                         }
 
                         if (flag0 && flag1 && flag2)
                         {
-                            finalCountPairs_vReduceTwice.Add(countPairs_vReduceTwice[i]);
+                            finalCountPairs_vReduceTwice.Add(distinctPairs_vReduceTwice[i]);
                         }
                     }
                 }
@@ -3053,41 +3117,43 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     cde++;
                 }
 
+                List<int[]> distinctPairs_hReduce = countPairs_hReduce.Distinct().ToList();
+
                 List<int[]> finalCountPairs_hReduce = new List<int[]>();
-                for (int i = 0; i < countPairs_hReduce.Count; i++)
+                for (int i = 0; i < distinctPairs_hReduce.Count; i++)
                 {
-                    if (countPairs_hReduce[i][0] + countPairs_hReduce[i][2] + countPairs_hReduce[i][4] <= EightShapeCount
-                        && countPairs_hReduce[i][1] + countPairs_hReduce[i][3] <= RecShapeCount)
+                    if (distinctPairs_hReduce[i][0] + distinctPairs_hReduce[i][2] + distinctPairs_hReduce[i][4] <= EightShapeCount
+                        && distinctPairs_hReduce[i][1] + distinctPairs_hReduce[i][3] <= RecShapeCount)
                     {
                         bool flag0 = false;
                         bool flag1 = false;
                         bool flag2 = false;
                         bool flag3 = false;
                         bool flag4 = false;
-                        if (countPairs_hReduce[i][0] >= 0)
+                        if (distinctPairs_hReduce[i][0] >= 0)
                         {
                             flag0 = true;
                         }
-                        if (countPairs_hReduce[i][1] >= 0)
+                        if (distinctPairs_hReduce[i][1] >= 0)
                         {
                             flag1 = true;
                         }
-                        if (countPairs_hReduce[i][2] >= 0)
+                        if (distinctPairs_hReduce[i][2] >= 0)
                         {
                             flag2 = true;
                         }
-                        if (countPairs_hReduce[i][3] >= 0)
+                        if (distinctPairs_hReduce[i][3] >= 0)
                         {
                             flag3 = true;
                         }
-                        if (countPairs_hReduce[i][4] >= 0)
+                        if (distinctPairs_hReduce[i][4] >= 0)
                         {
                             flag4 = true;
                         }
 
                         if (flag0 && flag1 && flag2 && flag3 && flag4)
                         {
-                            finalCountPairs_hReduce.Add(countPairs_hReduce[i]);
+                            finalCountPairs_hReduce.Add(distinctPairs_hReduce[i]);
                         }
                     }
                 }
@@ -4413,7 +4479,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         }
                     }
 
-                    BilinearCell bCell = new BilinearCell(singleRegion, segment[0], segment[2], segment[3], segment[1], pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                    BilinearCell bCell = new BilinearCell(singleRegion, segment[0], segment[2], segment[3], segment[1], pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, -1, turningPoint);
                     cellLoL = new List<List<Cell>>();
                     cellLoL.Add(new List<Cell>());
                     cellLoL[0].Add(bCell);
@@ -4463,34 +4529,36 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     Line publicLine = lineForEachEdge[pulicBaseLineIndex];
                     if (publicLine.From.EpsilonEquals(turningPoint, GH_Component.DocumentTolerance()))
                     {
-                        int anotherBaseLineIndexRelatedToCutPoint = (pulicBaseLineIndex + 1) % lineForEachEdge.Count;
+                        int anotherBaseLineIndexRelatedToCutPoint = ((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
+                        int prev = ((pulicBaseLineIndex - 2) + lineForEachEdge.Count) % lineForEachEdge.Count;
 
-                        Curve crv = lineForEachEdge[(pulicBaseLineIndex + 1) % lineForEachEdge.Count].ToNurbsCurve();
-                        Curve nextCrv = lineForEachEdge[(pulicBaseLineIndex + 2) % lineForEachEdge.Count].ToNurbsCurve();
+                        Curve crv = lineForEachEdge[((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
+                        Curve prevCrv = lineForEachEdge[((pulicBaseLineIndex - 2) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
 
                         Curve offsetCrv = crv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
-                        Curve offsetNextCrv = nextCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                        Curve offsetPrevCrv = prevCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
 
-                        CurveIntersections event0 = Intersection.CurveCurve(offsetCrv, offsetNextCrv, GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
-                        Curve newCrv = new Line(offsetCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
-                        Curve newNextCrv = new Line(event0[0].PointA, offsetNextCrv.PointAtEnd).ToNurbsCurve();
+                        CurveIntersections event0 = Intersection.CurveCurve(offsetCrv, offsetPrevCrv, GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
+                        Curve newCrv = new Line(event0[0].PointA, offsetCrv.PointAtEnd).ToNurbsCurve();
+                        Curve newPrevCrv = new Line(offsetPrevCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
+                        
 
-                        int indexCrv = (pulicBaseLineIndex + 1) % lineForEachEdge.Count;
-                        if (indexCrv == 0)
+                        //int indexCrv = ((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
+                        if (anotherBaseLineIndexRelatedToCutPoint == 0)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, null, newNextCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, newPrevCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
                         }
-                        else if (indexCrv == 1)
+                        else if (anotherBaseLineIndexRelatedToCutPoint == 1)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newNextCrv, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newPrevCrv, null, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
                         }
-                        else if (indexCrv == 2)
+                        else if (anotherBaseLineIndexRelatedToCutPoint == 2)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, newNextCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, null, newPrevCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
                         }
                         else
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newNextCrv, null, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newPrevCrv, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
                         }
 
                         //// nextCrv需要在末端进行裁切
@@ -4503,34 +4571,35 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                     else
                     {
-                        int anotherBaseLineIndexRelatedToCutPoint = ((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
+                        int anotherBaseLineIndexRelatedToCutPoint = (pulicBaseLineIndex + 1) % lineForEachEdge.Count;
+                        int next = (pulicBaseLineIndex + 2) % lineForEachEdge.Count;
 
-                        Curve crv = lineForEachEdge[((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
-                        Curve prevCrv = lineForEachEdge[((pulicBaseLineIndex - 2) + lineForEachEdge.Count) % lineForEachEdge.Count].ToNurbsCurve();
+                        Curve crv = lineForEachEdge[(pulicBaseLineIndex + 1) % lineForEachEdge.Count].ToNurbsCurve();
+                        Curve nextCrv = lineForEachEdge[(pulicBaseLineIndex + 2) % lineForEachEdge.Count].ToNurbsCurve();
 
                         Curve offsetCrv = crv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
-                        Curve offsetPrevCrv = prevCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
+                        Curve offsetNextCrv = nextCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
 
-                        CurveIntersections event0 = Intersection.CurveCurve(offsetCrv, offsetPrevCrv, GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
-                        Curve newCrv = new Line(event0[0].PointA, offsetCrv.PointAtEnd).ToNurbsCurve();
-                        Curve newPrevCrv = new Line(offsetPrevCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
+                        CurveIntersections event0 = Intersection.CurveCurve(offsetCrv, offsetNextCrv, GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
+                        Curve newCrv = new Line(offsetCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
+                        Curve newNextCrv = new Line(event0[0].PointA, offsetNextCrv.PointAtEnd).ToNurbsCurve();
 
-                        int indexCrv = ((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
-                        if (indexCrv == 0)
+                        //int indexCrv = (pulicBaseLineIndex + 1) % lineForEachEdge.Count;
+                        if (anotherBaseLineIndexRelatedToCutPoint == 0)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, newPrevCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, null, newNextCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
                         }
-                        else if (indexCrv == 1)
+                        else if (anotherBaseLineIndexRelatedToCutPoint == 1)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newPrevCrv, null, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newNextCrv, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
                         }
-                        else if (indexCrv == 2)
+                        else if (anotherBaseLineIndexRelatedToCutPoint == 2)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, null, newPrevCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, newNextCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
                         }
                         else
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newPrevCrv, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newNextCrv, null, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
                         }
 
                         //// prevCrv需要在起始端进行裁切
@@ -4732,10 +4801,17 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 Curve southLine = hCurvesDT.Branch(i)[j];
                                 Curve northLine = null;
                                 bool flag = false;
-                                if (hCurvesDT.Branch(i)[j + 1] != null)
+                                if (j+1 < hCurvesDT.Branch(i).Count)
                                 {
-                                    northLine = hCurvesDT.Branch(i)[j + 1];
-                                    flag = false;
+                                    if (hCurvesDT.Branch(i)[j + 1] != null)
+                                    {
+                                        northLine = hCurvesDT.Branch(i)[j + 1];
+                                        flag = false;
+                                    }
+                                    else
+                                    {
+                                        flag = true;
+                                    }
                                 }
                                 else
                                 {
@@ -6094,27 +6170,44 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                         Surface surface = NurbsSurface.CreateRuledSurface(southCenterLine, northCenterLineDP);
                         //List<double> pList = new List<double>() { 0.0, 0.5, 1.0 };
-                        int pIndex = m_random.Next(3);
-                        if (pIndex == 1)
+                        int turningPtIndex = sortedBoundaryPolyline.IndexOf(turningPoint);
+                        if (turningPtIndex != -1)
                         {
-                            double t = surface.Domain(1).ParameterAt(0.5);
-                            Curve curve = surface.IsoCurve(0, t);
-                            Vector3d vec = curve.TangentAtStart;
-                            verticalVector = new Vector3d(-vec.Y, vec.X, vec.Z);
-                            curve = TrimBothEnd(boundary, verticalVector, curve, 2, w, W);
-
-                            horizontalCenterLines.Add(curve);
-                            HBranchType = HorizontalVolumeBranchType.OnlyOneCenter;
-                        }
-                        else if (pIndex == 0)
-                        {
-                            horizontalCenterLines.Add(southCenterLine);
-                            HBranchType = HorizontalVolumeBranchType.OnlyOneSouth;
+                            if (turningPtIndex == 0 || turningPtIndex == 1)
+                            {
+                                horizontalCenterLines.Add(southCenterLine);
+                                HBranchType = HorizontalVolumeBranchType.OnlyOneSouth;
+                            }
+                            else
+                            {
+                                horizontalCenterLines.Add(northCenterLineDP);
+                                HBranchType = HorizontalVolumeBranchType.OnlyOneNorth;
+                            }
                         }
                         else
                         {
-                            horizontalCenterLines.Add(northCenterLineDP);
-                            HBranchType = HorizontalVolumeBranchType.OnlyOneNorth;
+                            int pIndex = m_random.Next(3);
+                            if (pIndex == 1)
+                            {
+                                double t = surface.Domain(1).ParameterAt(0.5);
+                                Curve curve = surface.IsoCurve(0, t);
+                                Vector3d vec = curve.TangentAtStart;
+                                verticalVector = new Vector3d(-vec.Y, vec.X, vec.Z);
+                                curve = TrimBothEnd(boundary, verticalVector, curve, 2, w, W);
+
+                                horizontalCenterLines.Add(curve);
+                                HBranchType = HorizontalVolumeBranchType.OnlyOneCenter;
+                            }
+                            else if (pIndex == 0)
+                            {
+                                horizontalCenterLines.Add(southCenterLine);
+                                HBranchType = HorizontalVolumeBranchType.OnlyOneSouth;
+                            }
+                            else
+                            {
+                                horizontalCenterLines.Add(northCenterLineDP);
+                                HBranchType = HorizontalVolumeBranchType.OnlyOneNorth;
+                            }
                         }
                     }
                     else

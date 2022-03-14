@@ -36,6 +36,9 @@ namespace VolumeGeneratorBasedOnGraph.Class
         public int PublicBaseLineIndex { get; set; } = -1;
         public int AnotherBaseLineIndexRelatedToCutPoint { get; set; } = -1;
 
+        public int PrevBaseLineIndexRelatedToCutPoint { get; set; } = -1;
+        public int NextBaseLineIndexRelatedToCutPoint { get; set; } = -1;
+
         public Point3d TurningPoint { get; set; } = Point3d.Unset;
 
         public Curve CellBoundary { get; set; }
