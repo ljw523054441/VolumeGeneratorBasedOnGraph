@@ -1442,7 +1442,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return verticalLines;
         }
 
-        public void LengthConstraint(double lMin, double lMax, double d, double w)
+        public void LengthConstraint(double lMin, double lMax, double d, double w, Random random)
         {
             if (this.SouthBaseLine != Line.Unset)
             {
@@ -1469,16 +1469,25 @@ namespace VolumeGeneratorBasedOnGraph.Class
                         
                         double tEnd = line.ClosestParameter(newEnd);
                         this.South_Interval = new List<Interval>();
-                        this.South_Interval.Add(new Interval(0, tEnd));
+                        if (random.Next(0,2) == 0)
+                        {
+                            this.South_Interval.Add(new Interval(0, tEnd));
+                        }
+                        else
+                        {
+                            this.South_Interval.Add(new Interval(1 - tEnd, 1));
+                        }
                     }
                     else if (lMinCount == 2 && lMaxCount == 1)
                     {
                         List<double> factors = GetFactors(false, lMin, lMax, dw, lMinCount);
 
                         this.South_Interval = new List<Interval>();
-                        for (int i = 0; i < lMinCount; i++)
+                        int iter = 0;
+                        while (iter < factors.Count)
                         {
-                            this.South_Interval.Add(new Interval(factors[i], factors[i + 1]));
+                            this.South_Interval.Add(new Interval(factors[iter], factors[iter + 1]));
+                            iter += 2;
                         }
                     }
                     else
@@ -1528,16 +1537,25 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                         double tEnd = line.ClosestParameter(newEnd);
                         this.North_Interval = new List<Interval>();
-                        this.North_Interval.Add(new Interval(0, tEnd));
+                        if (random.Next(0, 2) == 0)
+                        {
+                            this.North_Interval.Add(new Interval(0, tEnd));
+                        }
+                        else
+                        {
+                            this.North_Interval.Add(new Interval(1 - tEnd, 1));
+                        }
                     }
                     else if (lMinCount == 2 && lMaxCount == 1)
                     {
                         List<double> factors = GetFactors(false, lMin, lMax, dw, lMinCount);
 
                         this.North_Interval = new List<Interval>();
-                        for (int i = 0; i < lMinCount; i++)
+                        int iter = 0;
+                        while (iter < factors.Count)
                         {
-                            this.North_Interval.Add(new Interval(factors[i], factors[i + 1]));
+                            this.North_Interval.Add(new Interval(factors[iter], factors[iter + 1]));
+                            iter += 2;
                         }
                     }
                     else
@@ -1587,16 +1605,25 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                         double tEnd = line.ClosestParameter(newEnd);
                         this.HCenter_Interval = new List<Interval>();
-                        this.HCenter_Interval.Add(new Interval(0, tEnd));
+                        if (random.Next(0, 2) == 0)
+                        {
+                            this.HCenter_Interval.Add(new Interval(0, tEnd));
+                        }
+                        else
+                        {
+                            this.HCenter_Interval.Add(new Interval(1 - tEnd, 1));
+                        }
                     }
                     else if (lMinCount == 2 && lMaxCount == 1)
                     {
                         List<double> factors = GetFactors(false, lMin, lMax, dw, lMinCount);
 
                         this.HCenter_Interval = new List<Interval>();
-                        for (int i = 0; i < lMinCount; i++)
+                        int iter = 0;
+                        while (iter < factors.Count)
                         {
-                            this.HCenter_Interval.Add(new Interval(factors[i], factors[i + 1]));
+                            this.HCenter_Interval.Add(new Interval(factors[iter], factors[iter + 1]));
+                            iter += 2;
                         }
                     }
                     else

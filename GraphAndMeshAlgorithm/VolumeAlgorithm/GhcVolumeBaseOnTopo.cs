@@ -4955,12 +4955,12 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     if (cellLoL[i][j].IsBilinearCell())
                     {
                         BilinearCell bCell = cellLoL[i][j] as BilinearCell;
-                        bCell.LengthConstraint(lMin, lMax, d, w);
+                        bCell.LengthConstraint(lMin, lMax, d, w, m_random);
                     }
                     else
                     {
                         TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
-                        tCell.LengthConstraint(lMin, lMax, d, w);
+                        tCell.LengthConstraint(lMin, lMax, d, w, m_random);
                     }
                 }
             }
