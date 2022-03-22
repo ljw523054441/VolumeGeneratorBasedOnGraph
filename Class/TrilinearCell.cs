@@ -1369,7 +1369,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                     if (lMinCount == 1 && lMaxCount == 1)
                     {
-                        Point3d newEnd = line.PointAtLength(lMax);
+                        Point3d newEnd;
+                        if (length - lMax > dw)
+                        {
+                            newEnd = line.PointAtLength(lMax);
+                        }
+                        else
+                        {
+                            newEnd = line.PointAtLength(length - dw);
+                        }
+                        
                         double tEnd = line.ClosestParameter(newEnd);
                         this.South_Interval = new List<Interval>();
                         this.South_Interval.Add(new Interval(0, tEnd));
@@ -1419,7 +1428,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                     if (lMinCount == 1 && lMaxCount == 1)
                     {
-                        Point3d newEnd = line.PointAtLength(lMax);
+                        Point3d newEnd;
+                        if (length - lMax > dw)
+                        {
+                            newEnd = line.PointAtLength(lMax);
+                        }
+                        else
+                        {
+                            newEnd = line.PointAtLength(length - dw);
+                        }
+
                         double tEnd = line.ClosestParameter(newEnd);
                         this.North_Interval = new List<Interval>();
                         this.North_Interval.Add(new Interval(0, tEnd));
@@ -1469,7 +1487,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                     if (lMinCount == 1 && lMaxCount == 1)
                     {
-                        Point3d newEnd = line.PointAtLength(lMax);
+                        Point3d newEnd;
+                        if (length - lMax > dw)
+                        {
+                            newEnd = line.PointAtLength(lMax);
+                        }
+                        else
+                        {
+                            newEnd = line.PointAtLength(length - dw);
+                        }
+
                         double tEnd = line.ClosestParameter(newEnd);
                         this.Middle_Interval = new List<Interval>();
                         this.Middle_Interval.Add(new Interval(0, tEnd));
@@ -1519,7 +1546,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                     if (lMinCount == 1 && lMaxCount == 1)
                     {
-                        Point3d newEnd = line.PointAtLength(lMax);
+                        Point3d newEnd;
+                        if (length - lMax > dw)
+                        {
+                            newEnd = line.PointAtLength(lMax);
+                        }
+                        else
+                        {
+                            newEnd = line.PointAtLength(length - dw);
+                        }
+
                         double tEnd = line.ClosestParameter(newEnd);
                         this.HSouth_Interval = new List<Interval>();
                         this.HSouth_Interval.Add(new Interval(0, tEnd));
@@ -1569,7 +1605,16 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                     if (lMinCount == 1 && lMaxCount == 1)
                     {
-                        Point3d newEnd = line.PointAtLength(lMax);
+                        Point3d newEnd;
+                        if (length - lMax > dw)
+                        {
+                            newEnd = line.PointAtLength(lMax);
+                        }
+                        else
+                        {
+                            newEnd = line.PointAtLength(length - dw);
+                        }
+
                         double tEnd = line.ClosestParameter(newEnd);
                         this.HNouth_Interval = new List<Interval>();
                         this.HNouth_Interval.Add(new Interval(0, tEnd));

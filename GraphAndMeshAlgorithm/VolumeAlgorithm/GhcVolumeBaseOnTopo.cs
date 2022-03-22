@@ -7128,6 +7128,28 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         // 不对resultSegment做任何处理
                     }
                 }
+                else if (curveIntersections0.Count == 0 && curveIntersections1.Count == 1 && curveIntersections1[0].IsOverlap)
+                {
+                    if (isOnlyOneSegment)
+                    {
+                        pointOnStart = current.PointAtStart;
+                    }
+                    else
+                    {
+                        // 不对resultSegment做任何处理
+                    }
+                }
+                else if (curveIntersections0.Count == 1 && curveIntersections1.Count == 0 && curveIntersections0[0].IsOverlap)
+                {
+                    if (isOnlyOneSegment)
+                    {
+                        pointOnStart = current.PointAtStart;
+                    }
+                    else
+                    {
+                        // 不对resultSegment做任何处理
+                    }
+                }
                 else if(curveIntersections0.Count == 0 && curveIntersections1.Count != 0)
                 {
                     IntersectionEvent event1;
@@ -7643,6 +7665,28 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 curveIntersections1 = Intersection.CurveCurve(new1, boundary, tolerance, tolerance);
 
                 if (curveIntersections0.Count == 0 && curveIntersections1.Count == 0)
+                {
+                    if (isOnlyOneSegment)
+                    {
+                        pointOnEnd = current.PointAtEnd;
+                    }
+                    else
+                    {
+                        // 不对resultSegment做任何处理
+                    }
+                }
+                else if (curveIntersections0.Count == 0 && curveIntersections1.Count == 1 && curveIntersections1[0].IsOverlap)
+                {
+                    if (isOnlyOneSegment)
+                    {
+                        pointOnEnd = current.PointAtEnd;
+                    }
+                    else
+                    {
+                        // 不对resultSegment做任何处理
+                    }
+                }
+                else if (curveIntersections0.Count == 1 && curveIntersections1.Count == 0 && curveIntersections0[0].IsOverlap)
                 {
                     if (isOnlyOneSegment)
                     {
