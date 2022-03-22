@@ -498,23 +498,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
                 #endregion
 
-                
-
-
-
-                
-
-                //for (int i = 0; i < facePolylines.Count; i++)
-                //{
-                //    allBlockArea.EnsurePath(path);
-                //    allBlockExpectedFirstFloorArea.EnsurePath(path);
-                //    allBlockExpectedBuildingArea.EnsurePath(path);
-                //}
-
-                
-
-
-
                 #region 退线
                 List<Polyline> innerResultPolylines;
                 List<List<BoundarySegment>> newAllFaceBS = OffsetBS(allFaceBS,
@@ -534,6 +517,23 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
                 DA.SetData("DualGraphWithHM with BS", dualGraphWithHM);
 
+
+                // 找到整个场地的中心点
+                List<Point3d> outerPoints = new List<Point3d>();
+                for (int i = 0; i < graph.Halfedges.Count; i++)
+                {
+                    if (graph.Halfedges[i].AdjacentFace == -1)
+                    {
+                        outerPoints.Add(graph.Vertices[graph.Halfedges[i].StartVertex].ToPoint3d());
+                    }
+                }
+                Point3d center = new Point3d(0, 0, 0);
+                for (int i = 0; i < outerPoints.Count; i++)
+                {
+                    center += outerPoints[i];
+                }
+                center /= outerPoints.Count;
+
                 SCrvForShowList.Clear();
                 NCrvForShowList.Clear();
                 ECrvForShowList.Clear();
@@ -546,7 +546,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 WBCrvForShowList.Clear();
 
                 AllBlockCellBoundaryDT.ClearData();
-                //AllBlockCellBoundaryDT2.Clear();
 
                 DataTree<double> allBlockUnOffsetedArea = new DataTree<double>();
 
@@ -611,6 +610,20 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         isGenerateables = new List<bool>() { true, true, true, true };
                         #endregion
 
+                        // 设置此时的turningPoint
+                        int maxIndex = 0;
+                        double maxDis = sortedBoundaryPolyline[0].DistanceTo(center);
+                        for (int j = 0; j < sortedBoundaryPolyline.ToArray().Length; j++)
+                        {
+                            double newMaxDis = sortedBoundaryPolyline[j].DistanceTo(center);
+                            if (newMaxDis > maxDis)
+                            {
+                                maxIndex = j;
+                                maxDis = newMaxDis;
+                            }
+                        }
+                        
+
                         List<List<List<Curve>>> hCurveLoL;
                         List<List<List<Curve>>> vCurveLoL;
                         //List<Polyline> contourList;
@@ -640,7 +653,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                                                                 isJitter,
 
                                                                                 false,
-                                                                                Point3d.Unset,
+                                                                                sortedBoundaryPolyline[maxIndex],
 
                                                                                 out hCurveLoL,
                                                                                 out vCurveLoL,
@@ -1439,6 +1452,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             //hReduceCountDT.Branch(path).Add(-1);
                             // 计算scaleFactor
                             double scaleFactor = (allBlockMaxFirstFloorArea.Branch(path)[0] - allBlockDelta.Branch(path)[0]) / allBlockMaxFirstFloorArea.Branch(path)[0];
+                            if (scaleFactor > 1)
+                            {
+                                scaleFactor = 1;
+                            }
                             allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scaleFactor, lMin, w);
                         }
                     }
@@ -1657,47 +1674,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     {
                         // 应该不可能
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, string.Format("Path为 {0} 的小Block内，存在else与singlePolyline(或者可能是IShape,CShape)共存的情况，该部分的代码未完善", path.ToString()));
-
-                    //    // 此时计算VReduceCount，不计算OffsetValue
-                    //    // 计算VReduceCount
-                    //    int vCount = (int)(Math.Ceiling(allBlockDelta.Branch(path)[0] / allBlockVAverageLength.Branch(path)[0]));
-                    //    if (vCount > singlePolylineCount + IShapeCount * 2 + CShapeCount * 2 + RecShapeCount * 2 + 4 * EightShapeCount)
-                    //    {
-                    //        // 如果需要减去的v，比所有v的数量还要多
-                    //        // 那么就要减去h，否则不用
-                    //        vCount = singlePolylineCount + IShapeCount * 2 + CShapeCount * 2 + RecShapeCount * 2 + 4 * EightShapeCount;
-
-                    //        double area = allBlockDelta.Branch(path)[0] - vCount * allBlockVAverageLength.Branch(path)[0];
-                    //        //double area = vNum * ;
-                    //        int hCount = (int)Math.Ceiling(area / allBlockHAverageLength.Branch(path)[0]);
-                    //        if (hCount > singlePolylineCount + IShapeCount + CShapeCount + RecShapeCount * 2 + EightShapeCount * 3)
-                    //        {
-                    //            vReduceCountDT.Branch(path).Add(-1);
-                    //            //hCount = singlePolylineCount + IShapeCount + CShapeCount + RecShapeCount * 2 + EightShapeCount * 3;
-                    //            // 如果h全减去也不够，
-                    //            hReduceCountDT.Branch(path).Add(-1);
-                    //            // 那么直接全员做scale生成
-                    //            // 计算scaleFactor
-                    //            double scale = allBlockExpectedFirstFloorArea.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                    //            scaleFactorDT.Branch(path).Add(scale);
-                    //        }
-                    //        else
-                    //        {
-                    //            vReduceCountDT.Branch(path).Add(vCount);
-                    //            // 计算hReduceCount
-                    //            hReduceCountDT.Branch(path).Add(hCount);
-                    //            // 不计算scaleFactor
-                    //            scaleFactorDT.Branch(path).Add(-1);
-                    //        }
-                    //    }
-                    //    else
-                    //    {
-                    //        vReduceCountDT.Branch(path).Add(vCount);
-                    //        // 计算hReduceCount
-                    //        hReduceCountDT.Branch(path).Add(-1);
-                    //        // 不计算scaleFactor
-                    //        scaleFactorDT.Branch(path).Add(-1);
-                    //    }
                     }
                     else
                     {
@@ -2580,7 +2556,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     int randomPathIndex = m_random.Next(0, IShapeIndexDT.Paths.Count);
                     GH_Path randomPath = IShapeIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, IShapeIndexDT.Branch(randomPath).Count);
-                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, IShapeIndexDT.Branch(randomPath)[randomIndex]);
                     if (!indexToChangeListForIShapeCutTwo_vReduceOnce.Contains(path_index)
                         && !indexToChangeListForIShapeCutOne_vReduceOnce.Contains(path_index))
                     {
@@ -2597,7 +2573,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     int randomPathIndex = m_random.Next(0, CShapeIndexDT.Paths.Count);
                     GH_Path randomPath = CShapeIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, CShapeIndexDT.Branch(randomPath).Count);
-                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, CShapeIndexDT.Branch(randomPath)[randomIndex]);
                     if (!indexToChangeListForCShapeCutOne_vReduceOnce.Contains(path_index)
                         && !indexToChangeListForCShapeCutTwo_vReduceOnce.Contains(path_index))
                     {
@@ -2614,7 +2590,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     int randomPathIndex = m_random.Next(0, CShapeIndexDT.Paths.Count);
                     GH_Path randomPath = CShapeIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, CShapeIndexDT.Branch(randomPath).Count);
-                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, CShapeIndexDT.Branch(randomPath)[randomIndex]);
                     if (!indexToChangeListForCShapeCutTwo_vReduceOnce.Contains(path_index)
                         && !indexToChangeListForCShapeCutOne_vReduceOnce.Contains(path_index))
                     {
@@ -2631,7 +2607,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     int randomPathIndex = m_random.Next(0, IShapeIndexDT.Paths.Count);
                     GH_Path randomPath = IShapeIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, IShapeIndexDT.Branch(randomPath).Count);
-                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, IShapeIndexDT.Branch(randomPath)[randomIndex]);
                     if (!indexToChangeListForIShapeCutOne_vReduceOnce.Contains(path_index)
                         && !indexToChangeListForIShapeCutTwo_vReduceOnce.Contains(path_index))
                     {
@@ -2707,7 +2683,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, IShapeIndexDT.Paths.Count);
                         GH_Path randomPath = IShapeIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, IShapeIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, IShapeIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForIShape_hReduce.Contains(path_index))
                         {
                             indexToChangeListForIShape_hReduce.Add(path_index);
@@ -2723,7 +2699,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, CShapeIndexDT.Paths.Count);
                         GH_Path randomPath = CShapeIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, CShapeIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, CShapeIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForCShape_hReduce.Contains(path_index))
                         {
                             indexToChangeListForCShape_hReduce.Add(path_index);
@@ -2894,7 +2870,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
                     GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
-                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, triCellIndexDT.Branch(randomPath)[randomIndex]);
                     if (!indexToChangeListForTriCellCutTwo_vReduceOnce.Contains(path_index)
                         && !indexToChangeListForTriCellCutOne_vReduceOnce.Contains(path_index))
                     {
@@ -2911,7 +2887,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     int randomPathIndex = m_random.Next(0, biCellIndexDT.Paths.Count);
                     GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
-                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, biCellIndexDT.Branch(randomPath)[randomIndex]);
                     if (!indexToChangeListForBiCell_vReduceOnce.Contains(path_index))
                     {
                         indexToChangeListForBiCell_vReduceOnce.Add(path_index);
@@ -2927,7 +2903,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
                     GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                     int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
-                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                    Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, triCellIndexDT.Branch(randomPath)[randomIndex]);
                     if (!indexToChangeListForTriCellCutOne_vReduceOnce.Contains(path_index) 
                         && !indexToChangeListForTriCellCutTwo_vReduceOnce.Contains(path_index))
                     {
@@ -3025,7 +3001,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
                         GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, triCellIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForTriCellCutTwo_vReduceTwice.Contains(path_index))
                         {
                             indexToChangeListForTriCellCutTwo_vReduceTwice.Add(path_index);
@@ -3041,7 +3017,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, biCellIndexDT.Paths.Count);
                         GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, biCellIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForBiCell_vReduceTwice.Contains(path_index))
                         {
                             indexToChangeListForBiCell_vReduceTwice.Add(path_index);
@@ -3057,7 +3033,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
                         GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, triCellIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForTriCellCutOne_vReduceTwice.Contains(path_index) && !indexToChangeListForTriCellCutTwo_vReduceTwice.Contains(path_index))
                         {
                             indexToChangeListForTriCellCutOne_vReduceTwice.Add(path_index);
@@ -3180,7 +3156,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
                         GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, triCellIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForTriCellCutThree_hReduce.Contains(path_index)
                             && !indexToChangeListForTriCellCutTwo_hReduce.Contains(path_index)
                             && !indexToChangeListForTriCellCutOne_hReduce.Contains(path_index))
@@ -3198,7 +3174,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, biCellIndexDT.Paths.Count);
                         GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, biCellIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForBiCellCutTwo_hReduce.Contains(path_index)
                             && !indexToChangeListForBiCellCutOne_hReduce.Contains(path_index))
                         {
@@ -3215,7 +3191,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
                         GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, triCellIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForTriCellCutTwo_hReduce.Contains(path_index)
                             && !indexToChangeListForTriCellCutThree_hReduce.Contains(path_index)
                             && !indexToChangeListForTriCellCutOne_hReduce.Contains(path_index))
@@ -3233,7 +3209,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, biCellIndexDT.Paths.Count);
                         GH_Path randomPath = biCellIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, biCellIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, biCellIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForBiCellCutOne_hReduce.Contains(path_index)
                             && !indexToChangeListForBiCellCutTwo_hReduce.Contains(path_index))
                         {
@@ -3250,7 +3226,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         int randomPathIndex = m_random.Next(0, triCellIndexDT.Paths.Count);
                         GH_Path randomPath = triCellIndexDT.Paths[randomPathIndex];
                         int randomIndex = m_random.Next(0, triCellIndexDT.Branch(randomPath).Count);
-                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, randomIndex);
+                        Tuple<GH_Path, int> path_index = new Tuple<GH_Path, int>(randomPath, triCellIndexDT.Branch(randomPath)[randomIndex]);
                         if (!indexToChangeListForTriCellCutOne_hReduce.Contains(path_index)
                             && !indexToChangeListForTriCellCutThree_hReduce.Contains(path_index)
                             && !indexToChangeListForTriCellCutTwo_hReduce.Contains(path_index))
@@ -3858,7 +3834,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     {
                         Vector3d cur = allEdges[j].Direction;
                         cur.Unitize();
-                        if (Math.Abs(vec * cur) == 1)
+                        if (Math.Abs(Math.Abs(vec * cur) - 1) < 0.1 * GH_Component.DocumentTolerance())
                         {
                             parallelEdges.Add(allEdges[j]);
                         }
@@ -4362,105 +4338,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                         isJitter,
                                         lMin, lMax, d, w);
                 #endregion
-
-                //#region 生成building
-                //List<List<List<Curve>>> curveForJoinLoL = new List<List<List<Curve>>>();
-                ////List<Curve> allCurveForJoin = new List<Curve>();
-                //for (int i = 0; i < cellLoL.Count; i++)
-                //{
-                //    allHCurvesLoL.Add(new List<List<Curve>>());
-                //    allVCurvesLoL.Add(new List<List<Curve>>());
-
-                //    curveForJoinLoL.Add(new List<List<Curve>>());
-
-                //    for (int j = 0; j < cellLoL[i].Count; j++)
-                //    {
-                //        allHCurvesLoL[i].Add(new List<Curve>());
-                //        allHCurvesLoL[i][j].AddRange(cellLoL[i][j].GetAllHorizontal());
-
-                //        allVCurvesLoL[i].Add(new List<Curve>());
-                //        allVCurvesLoL[i][j].AddRange(cellLoL[i][j].GetAllVertical());
-
-                //        //allCurveForJoin.AddRange(cellLoL[i][j].GetAllHorizontal());
-                //        //allCurveForJoin.AddRange(cellLoL[i][j].GetAllVertical());
-
-                //        curveForJoinLoL[i].Add(new List<Curve>());
-                //        curveForJoinLoL[i][j].AddRange(cellLoL[i][j].GetAllHorizontal());
-                //        curveForJoinLoL[i][j].AddRange(cellLoL[i][j].GetAllVertical());
-                //    }
-                //}
-
-                //List<List<List<Curve>>> contoursAndHolesCrvLoL = new List<List<List<Curve>>>();
-
-                //// 对 allCurveForJoin 做边缘裁切
-                //for (int i = 0; i < curveForJoinLoL.Count; i++)
-                //{
-                //    contourLoL.Add(new List<List<Polyline>>());
-                //    holeLoL.Add(new List<List<Polyline>>());
-                //    contoursAndHolesCrvLoL.Add(new List<List<Curve>>());
-
-                //    for (int j = 0; j < curveForJoinLoL[i].Count; j++)
-                //    {
-                //        contourLoL[i].Add(new List<Polyline>());
-                //        holeLoL[i].Add(new List<Polyline>());
-                //        contoursAndHolesCrvLoL[i].Add(new List<Curve>());
-
-                //        Curve[] joined = Curve.JoinCurves(curveForJoinLoL[i][j]);
-
-                //        // todo 怎么裁切
-                //        //Curve[] trimedJoined = new Curve[joined.Length];
-                //        //for (int k = 0; k < joined.Length; k++)
-                //        //{
-                //        //    Vector3d vec = joined[k].TangentAtStart;
-                //        //    Vector3d depthVec =  new Vector3d(-vec.Y, vec.X, vec.Z);
-                //        //    Curve crv = TrimBothEnd(cellLoL[i][j].CellBoundary, joined[k], 0, w);
-                //        //    trimedJoined[k] = crv;
-                //        //}
-                //        //trimedJoined = Curve.JoinCurves(trimedJoined);
-                        
-
-                //        List<Polyline> outContours;
-                //        List<Polyline> outHoles;
-                //        //GenerateBuilding(trimedJoined, w, out outContours, out outHoles);
-                //        GenerateBuilding(joined, w, out outContours, out outHoles);
-
-                //        contourLoL[i][j].AddRange(outContours);
-                //        holeLoL[i][j].AddRange(outHoles);
-
-                //        for (int k = 0; k < outContours.Count; k++)
-                //        {
-                //            contoursAndHolesCrvLoL[i][j].Add(outContours[k].ToPolylineCurve());
-                //        }
-                //        for (int k = 0; k < outHoles.Count; k++)
-                //        {
-                //            contoursAndHolesCrvLoL[i][j].Add(outHoles[k].ToPolylineCurve());
-                //        }
-                //    }
-                //}
-
-                
-                //for (int i = 0; i < contoursAndHolesCrvLoL.Count; i++)
-                //{
-                //    breps.Add(new List<List<Brep>>());
-                //    for (int j = 0; j < contoursAndHolesCrvLoL[i].Count; j++)
-                //    {
-                //        breps[i].Add(new List<Brep>());
-                //        Brep[] brepArray = BoundarySurfaces(contoursAndHolesCrvLoL[i][j]);
-                //        if (brepArray != null)
-                //        {
-                //            breps[i][j].AddRange(brepArray);
-                //        }
-                        
-                //    }
-                //}
-                //#endregion
             }
             else
             {
-                //List<List<Cell>> cellLoL;
                 if (singleRegion.IsClosed)
                 {
-                    //Curve offsetSingleRegion = singleRegion.Offset(Plane.WorldXY, -w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.Sharp)[0];
                     #region 构造Cell对象
                     Curve[] segment = singleRegion.DuplicateSegments();
 
@@ -4484,44 +4366,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     cellLoL.Add(new List<Cell>());
                     cellLoL[0].Add(bCell);
                     #endregion
-
-                    //// 此时不用裁切
-
-                    //allHCurvesLoL.Add(new List<List<Curve>>());
-                    //allHCurvesLoL[0].Add(new List<Curve>());
-                    //allHCurvesLoL[0][0].Add(segment[0]);
-                    //allHCurvesLoL[0][0].Add(segment[2]);
-
-                    //allVCurvesLoL.Add(new List<List<Curve>>());
-                    //allVCurvesLoL[0].Add(new List<Curve>());
-                    //allVCurvesLoL[0][0].Add(segment[1]);
-                    //allVCurvesLoL[0][0].Add(segment[3]);
-
-                    //List<Point3d> pts = new List<Point3d>();
-                    //pts.Add(segment[0].PointAtStart);
-                    //for (int i = 0; i < segment.Length; i++)
-                    //{
-                    //    pts.Add(segment[i].PointAtEnd);
-                    //}
-                    //contourLoL.Add(new List<List<Polyline>>());
-                    //contourLoL[0].Add(new List<Polyline>());
-                    //contourLoL[0][0].Add(new Polyline(pts));
-
-                    //holeLoL.Add(new List<List<Polyline>>());
-                    //holeLoL[0].Add(new List<Polyline>());
-
-                    //breps.Add(new List<List<Brep>>());
-                    //breps[0].Add(new List<Brep>());
-                    //Brep[] brepArray = BoundarySurfaces(singleRegion);
-                    //if (brepArray != null)
-                    //{
-                    //    breps[0][0].AddRange(brepArray);
-                    //}
                 }
                 else
                 {
                     Curve[] crvs = singleRegion.DuplicateSegments();
-                    //Curve[] crvs = new Curve[2];
                     Curve[] result = new Curve[1];
 
                     BilinearCell bCell;
@@ -4542,8 +4390,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve newCrv = new Line(event0[0].PointA, offsetCrv.PointAtEnd).ToNurbsCurve();
                         Curve newPrevCrv = new Line(offsetPrevCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
                         
-
-                        //int indexCrv = ((pulicBaseLineIndex - 1) + lineForEachEdge.Count) % lineForEachEdge.Count;
                         if (anotherBaseLineIndexRelatedToCutPoint == 0)
                         {
                             bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, newPrevCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
@@ -4560,14 +4406,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         {
                             bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newPrevCrv, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
                         }
-
-                        //// nextCrv需要在末端进行裁切
-                        //Vector3d vec = crvs[1].TangentAtStart;
-                        ////Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
-                        //result[0] = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(),singleRegion, 1, w);
-
-                        //crvs[0] = crv;
-                        //crvs[1] = newNextCrv;
                     }
                     else
                     {
@@ -4584,7 +4422,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve newCrv = new Line(offsetCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
                         Curve newNextCrv = new Line(event0[0].PointA, offsetNextCrv.PointAtEnd).ToNurbsCurve();
 
-                        //int indexCrv = (pulicBaseLineIndex + 1) % lineForEachEdge.Count;
                         if (anotherBaseLineIndexRelatedToCutPoint == 0)
                         {
                             bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, null, newNextCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
@@ -4602,50 +4439,11 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newNextCrv, null, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
                         }
 
-                        //// prevCrv需要在起始端进行裁切
-                        //Vector3d vec = crvs[0].TangentAtStart;
-                        ////Vector3d depthVec = new Vector3d(-vec.Y, vec.X, vec.Z);
-                        //result[0] = TrimBothEnd(sortedBoundaryPolyline.ToNurbsCurve(), singleRegion, 2, w);
-
-                        // crvs[0] = newPrevCrv;
-                        // crvs[1] = crv;
                     }
-
-                    //crvs = Curve.JoinCurves(crvs);
-
 
                     cellLoL = new List<List<Cell>>();
                     cellLoL.Add(new List<Cell>());
                     cellLoL[0].Add(bCell);
-
-
-                    //allHCurvesLoL.Add(new List<List<Curve>>());
-                    //allHCurvesLoL[0].Add(new List<Curve>());
-
-                    //allVCurvesLoL.Add(new List<List<Curve>>());
-                    //allVCurvesLoL[0].Add(new List<Curve>());
-                    //allVCurvesLoL[0][0].Add(singleRegion);
-
-                    ////Curve[] crvs = new Curve[1] { singleRegion };
-                    //List<Polyline> outContours;
-                    //List<Polyline> outHoles;
-                    //GenerateBuilding(result, w, out outContours, out outHoles);
-
-
-                    //contourLoL.Add(new List<List<Polyline>>());
-                    //contourLoL[0].Add(new List<Polyline>());
-                    //contourLoL[0][0].AddRange(outContours);
-                    //holeLoL.Add(new List<List<Polyline>>());
-                    //holeLoL[0].Add(new List<Polyline>());
-                    //holeLoL[0][0].AddRange(outHoles);
-
-                    //breps.Add(new List<List<Brep>>());
-                    //breps[0].Add(new List<Brep>());
-                    //Brep[] brepArray = BoundarySurfaces(outContours[0].ToNurbsCurve());
-                    //if (brepArray != null)
-                    //{
-                    //    breps[0][0].AddRange(brepArray);
-                    //}
                 }
             }
 
@@ -4724,21 +4522,22 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 #region 得到3或2的排列组合
                 List<List<int>> randomNumLoL = new List<List<int>>();
                 int countOnPrevBranch = hCurvesDT.Branch(0).Count;
+
+                List<int[]> countPairs = UtilityFunctions.GetAllPositiveIntegerSolution(3, 2, hCurvesDT.Branch(0).Count);
+                int randomIndex = m_random.Next(countPairs.Count);
+                int countForThree = countPairs[randomIndex][0];
+                int countForTwo = countPairs[randomIndex][1];
+                List<int> randomNum = RandomGetNum(countForThree, countForTwo);
+
                 for (int i = 0; i < hCurvesDT.BranchCount; i++)
                 {
                     randomNumLoL.Add(new List<int>());
-
-                    List<int[]> countPairs = UtilityFunctions.GetAllPositiveIntegerSolution(3, 2, hCurvesDT.Branch(i).Count);
-                    int randomIndex = m_random.Next(countPairs.Count);
-                    int countForThree = countPairs[randomIndex][0];
-                    int countForTwo = countPairs[randomIndex][1];
 
                     //bool isSame = true;
 
                     //List<List<int>> randomNumLoL = new List<List<int>>();
                     if (hCurvesDT.Branch(i).Count == countOnPrevBranch)
                     {
-                        List<int> randomNum = RandomGetNum(countForThree, countForTwo);
                         if (isJitter)
                         {
                             randomNumLoL[i].AddRange(RandomGetNum(countForThree, countForTwo));
@@ -4750,7 +4549,12 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                     else
                     {
-                        randomNumLoL[i].AddRange(RandomGetNum(countForThree, countForTwo));
+                        List<int[]> countPairsNew = UtilityFunctions.GetAllPositiveIntegerSolution(3, 2, hCurvesDT.Branch(i).Count);
+                        int randomIndexNew = m_random.Next(countPairs.Count);
+                        int countForThreeNew = countPairs[randomIndex][0];
+                        int countForTwoNew = countPairs[randomIndex][1];
+
+                        randomNumLoL[i].AddRange(RandomGetNum(countForThreeNew, countForTwoNew));
                     }
                 }
                 
@@ -5161,76 +4965,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 }
             }
             #endregion
-
-            //#region 对初步生成的Cell对象进行随机修改，形成工，口，C
-            //for (int i = 0; i < cellLoL.Count; i++)
-            //{
-            //    for (int j = 0; j < cellLoL[i].Count; j++)
-            //    {
-            //        int random0 = m_random.Next(0, 3);// 取值范围是0,1,2
-            //        int random1 = m_random.Next(0, 4);// 取值范围是0,1,2,3
-            //        int randomT0 = m_random.Next(0, 3) / 2;
-            //        int randomT1 = m_random.Next(0, 3) / 2;
-            //        int directionCode0 = m_random.Next(0, 3);
-            //        int directionCode1 = m_random.Next(0, 4);
-            //        if (cellLoL[i][j].IsBilinearCell())
-            //        {
-            //            BilinearCell bCell = cellLoL[i][j] as BilinearCell;
-            //            bool flag = false;
-            //            // 如果在面宽方向上被切割过，就不走IShape分支，不走RecVariantShape分支
-            //            if ((bCell.South_Interval != null && bCell.South_Interval.Count > 1) 
-            //                || (bCell.North_Interval != null && bCell.North_Interval.Count > 1))
-            //            {
-            //                random0 = m_random.Next(1, 3);
-            //                flag = true;
-            //            }
-                        
-            //            if (random0 == 0)
-            //            {
-            //                cellLoL[i][j] = bCell.GenerateIAndIVariantShape(randomT0, directionCode0, w);
-            //            }
-            //            else if (random0 == 1)
-            //            {
-            //                cellLoL[i][j] = bCell.GenerateCAndCVariantShape(randomT0, directionCode0, w);
-            //            }
-            //            else
-            //            {
-            //                cellLoL[i][j] = bCell.GenerateRecAndRecVariantShape(randomT0, directionCode0, lMin, w, flag);
-            //            }
-            //        }
-            //        else
-            //        {
-            //            TrilinearCell tCell = cellLoL[i][j] as TrilinearCell;
-            //            bool flag = false;
-            //            // 如果在面宽方向上被切割过，就不走EVariantShape分支，不走EightVariantShape分支
-            //            if ((tCell.South_Interval !=null && tCell.South_Interval.Count > 1)
-            //                || (tCell.Middle_Interval != null && tCell.Middle_Interval.Count > 1)
-            //                || (tCell.North_Interval != null && tCell.North_Interval.Count > 1))
-            //            {
-            //                random1 = m_random.Next(1, 4);
-            //                flag = true;
-            //            }
-
-            //            if (random1 == 0)
-            //            {
-            //                cellLoL[i][j] = tCell.GenerateEVariantShape(directionCode1, randomT0, randomT1, w);
-            //            }
-            //            else if (random1 == 1)
-            //            {
-            //                cellLoL[i][j] = tCell.GenerateEShape(directionCode1);
-            //            }
-            //            else if (random1 == 2)
-            //            {
-            //                cellLoL[i][j] = tCell.GenerateZShape(directionCode1);
-            //            }
-            //            else
-            //            {
-            //                cellLoL[i][j] = tCell.GenerateEightAndEightVariantShape(directionCode1, randomT1, lMin, w, flag);
-            //            }
-            //        }
-            //    }
-            //}
-            //#endregion
 
             return cellLoL;
         } 
@@ -9008,14 +8742,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
 
             // Temp
-            for (int i = 0; i < SCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
-            }
-            for (int i = 0; i < NCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
-            }
+            //for (int i = 0; i < SCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
+            //}
+            //for (int i = 0; i < NCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
+            //}
             //for (int i = 0; i < ECrvForShowList.Count; i++)
             //{
             //    args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);
@@ -9077,14 +8811,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             }
 
             // Temp
-            for (int i = 0; i < SCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
-            }
-            for (int i = 0; i < NCrvForShowList.Count; i++)
-            {
-                args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
-            }
+            //for (int i = 0; i < SCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(SCrvForShowList[i], Color.Red, 2);
+            //}
+            //for (int i = 0; i < NCrvForShowList.Count; i++)
+            //{
+            //    args.Display.DrawCurve(NCrvForShowList[i], Color.Green, 2);
+            //}
             //for (int i = 0; i < ECrvForShowList.Count; i++)
             //{
             //    args.Display.DrawCurve(ECrvForShowList[i], Color.Blue, 2);

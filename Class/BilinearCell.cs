@@ -300,9 +300,13 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 this.TurningPoint = pts[2];
             }
-            else
+            else if (turningPointIndex == 3)
             {
                 this.TurningPoint = pts[3];
+            }
+            else
+            {
+                this.TurningPoint = Point3d.Unset;
             }
 
         }
@@ -512,9 +516,13 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 this.TurningPoint = pts[2];
             }
-            else
+            else if (turningPointIndex == 3)
             {
                 this.TurningPoint = pts[3];
+            }
+            else
+            {
+                this.TurningPoint = Point3d.Unset;
             }
         }
 
@@ -1292,12 +1300,17 @@ namespace VolumeGeneratorBasedOnGraph.Class
             int index = pts.IndexOf(this.TurningPoint);
 
             Plane plane0 = new Plane(this.TurningPoint, pts[(index + 1) % pts.Count], pts[((index - 1) + pts.Count) % pts.Count] + this.TurningPoint);
-            BoundingBox box0 = this.CellBoundary.GetBoundingBox(plane0);
+            Transform xForm = Transform.ChangeBasis(Plane.WorldXY, plane0);
+            BoundingBox box0 = this.CellBoundary.GetBoundingBox(xForm);
             double x0 = box0.Max.X - box0.Min.X;
             double y0 = box0.Max.Y - box0.Min.Y;
             double scale_x0 = lMin / x0;
             double scale_y0 = w / y0;
             double minScale0 = scale_x0 > scale_y0 ? scale_x0 : scale_y0;
+            if (minScale0 > 1)
+            {
+                minScale0 = 1;
+            }
 
             Transform transform = Transform.Scale(this.TurningPoint, minScale0);
             Curve crv = this.CellBoundary.DuplicateCurve();
