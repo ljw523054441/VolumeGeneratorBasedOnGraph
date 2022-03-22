@@ -1195,7 +1195,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             double y0 = box0.Max.Y - box0.Min.Y;
             double scale_x0 = lMin / x0;
             double scale_y0 = w / y0;
-            double minScale0 = scale_x0 > scale_y0 ? scale_x0 : scale_y0;
+            double minScale0 = scale_x0 < scale_y0 ? scale_x0 : scale_y0;
 
             Plane plane1 = new Plane(ptList1[0], ptList1[1], ptList1[3]);
             BoundingBox box1 = crv1.GetBoundingBox(plane1);
@@ -1203,7 +1203,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             double y1 = box1.Max.Y - box1.Min.Y;
             double scale_x1 = lMin / x1;
             double scale_y1 = w / y1;
-            double minScale1 = scale_x1 > scale_y1 ? scale_x1 : scale_y1;
+            double minScale1 = scale_x1 < scale_y1 ? scale_x1 : scale_y1;
 
             //this.MinScaleFactors
 

@@ -4387,24 +4387,31 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve offsetPrevCrv = prevCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
 
                         CurveIntersections event0 = Intersection.CurveCurve(offsetCrv, offsetPrevCrv, GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
-                        Curve newCrv = new Line(event0[0].PointA, offsetCrv.PointAtEnd).ToNurbsCurve();
-                        Curve newPrevCrv = new Line(offsetPrevCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
-                        
-                        if (anotherBaseLineIndexRelatedToCutPoint == 0)
+                        if (event0.Count == 0)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, newPrevCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
-                        }
-                        else if (anotherBaseLineIndexRelatedToCutPoint == 1)
-                        {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newPrevCrv, null, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
-                        }
-                        else if (anotherBaseLineIndexRelatedToCutPoint == 2)
-                        {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, null, newPrevCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), lineForEachEdge[0].ToNurbsCurve(), lineForEachEdge[1].ToNurbsCurve(), lineForEachEdge[2].ToNurbsCurve(), lineForEachEdge[3].ToNurbsCurve(), pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, -1, turningPoint);
                         }
                         else
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newPrevCrv, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
+                            Curve newCrv = new Line(event0[0].PointA, offsetCrv.PointAtEnd).ToNurbsCurve();
+                            Curve newPrevCrv = new Line(offsetPrevCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
+
+                            if (anotherBaseLineIndexRelatedToCutPoint == 0)
+                            {
+                                bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, newPrevCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
+                            }
+                            else if (anotherBaseLineIndexRelatedToCutPoint == 1)
+                            {
+                                bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newPrevCrv, null, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
+                            }
+                            else if (anotherBaseLineIndexRelatedToCutPoint == 2)
+                            {
+                                bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, null, newPrevCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
+                            }
+                            else
+                            {
+                                bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newPrevCrv, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, prev, -1, turningPoint);
+                            }
                         }
                     }
                     else
@@ -4419,26 +4426,32 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Curve offsetNextCrv = nextCrv.Offset(Plane.WorldXY, -0.5 * w, GH_Component.DocumentTolerance(), CurveOffsetCornerStyle.None)[0];
 
                         CurveIntersections event0 = Intersection.CurveCurve(offsetCrv, offsetNextCrv, GH_Component.DocumentTolerance(), GH_Component.DocumentTolerance());
-                        Curve newCrv = new Line(offsetCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
-                        Curve newNextCrv = new Line(event0[0].PointA, offsetNextCrv.PointAtEnd).ToNurbsCurve();
-
-                        if (anotherBaseLineIndexRelatedToCutPoint == 0)
+                        if (event0.Count == 0)
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, null, newNextCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
-                        }
-                        else if (anotherBaseLineIndexRelatedToCutPoint == 1)
-                        {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newNextCrv, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
-                        }
-                        else if (anotherBaseLineIndexRelatedToCutPoint == 2)
-                        {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, newNextCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
+                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), lineForEachEdge[0].ToNurbsCurve(), lineForEachEdge[1].ToNurbsCurve(), lineForEachEdge[2].ToNurbsCurve(), lineForEachEdge[3].ToNurbsCurve(), pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, -1, turningPoint);
                         }
                         else
                         {
-                            bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newNextCrv, null, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
-                        }
+                            Curve newCrv = new Line(offsetCrv.PointAtStart, event0[0].PointA).ToNurbsCurve();
+                            Curve newNextCrv = new Line(event0[0].PointA, offsetNextCrv.PointAtEnd).ToNurbsCurve();
 
+                            if (anotherBaseLineIndexRelatedToCutPoint == 0)
+                            {
+                                bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newCrv, null, null, newNextCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
+                            }
+                            else if (anotherBaseLineIndexRelatedToCutPoint == 1)
+                            {
+                                bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newNextCrv, null, newCrv, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
+                            }
+                            else if (anotherBaseLineIndexRelatedToCutPoint == 2)
+                            {
+                                bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), null, newCrv, newNextCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
+                            }
+                            else
+                            {
+                                bCell = new BilinearCell(sortedBoundaryPolyline.ToNurbsCurve(), newNextCrv, null, newCrv, null, pulicBaseLineIndex, anotherBaseLineIndexRelatedToCutPoint, -1, next, turningPoint);
+                            }
+                        }
                     }
 
                     cellLoL = new List<List<Cell>>();

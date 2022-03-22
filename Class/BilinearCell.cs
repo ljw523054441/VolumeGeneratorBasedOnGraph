@@ -1306,13 +1306,15 @@ namespace VolumeGeneratorBasedOnGraph.Class
             double y0 = box0.Max.Y - box0.Min.Y;
             double scale_x0 = lMin / x0;
             double scale_y0 = w / y0;
-            double minScale0 = scale_x0 > scale_y0 ? scale_x0 : scale_y0;
-            if (minScale0 > 1)
+            double minScale = scale_x0 < scale_y0 ? scale_x0 : scale_y0;
+            if (minScale > 1)
             {
-                minScale0 = 1;
+                minScale = 1;
             }
 
-            Transform transform = Transform.Scale(this.TurningPoint, minScale0);
+            double scale = minScale > scaleFactor ? minScale : scaleFactor;
+
+            Transform transform = Transform.Scale(this.TurningPoint, scale);
             Curve crv = this.CellBoundary.DuplicateCurve();
             crv.Transform(transform);
 
