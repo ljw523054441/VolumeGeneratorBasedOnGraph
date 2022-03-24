@@ -190,18 +190,42 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             
 
-            if (source.CellBreps == null)
+            if (source.CellBreps_Multistorey == null)
             {
-                this.CellBreps = null;
+                this.CellBreps_Multistorey = null;
             }
             else
             {
-                this.CellBreps = new Brep[source.CellBreps.Length];
-                for (int i = 0; i < source.CellBreps.Length; i++)
+                this.CellBreps_Multistorey = new Brep[source.CellBreps_Multistorey.Length];
+                for (int i = 0; i < source.CellBreps_Multistorey.Length; i++)
                 {
-                    this.CellBreps[i] = source.CellBreps[i].DuplicateBrep();
+                    this.CellBreps_Multistorey[i] = source.CellBreps_Multistorey[i].DuplicateBrep();
                 }
             }
+
+            if (source.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = source.crvForHighRise.DuplicateCurve();
+            }
+
+            if (source.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[source.CellBreps_Highrise.Length];
+                for (int i = 0; i < source.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = source.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = source.IsLengthConstraint;
 
             this.PublicBaseLineIndex = source.PublicBaseLineIndex;
             this.AnotherBaseLineIndexRelatedToCutPoint = source.AnotherBaseLineIndexRelatedToCutPoint;
@@ -463,7 +487,48 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
             #endregion
 
-            this.TurningPoint = initialCell.TurningPoint;
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         /// <summary>
@@ -558,7 +623,48 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
             #endregion
 
-            this.TurningPoint = initialCell.TurningPoint;
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         /// <summary>
@@ -629,7 +735,48 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
             #endregion
 
-            this.TurningPoint = initialCell.TurningPoint;
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         /// <summary>
@@ -710,6 +857,49 @@ namespace VolumeGeneratorBasedOnGraph.Class
             #region CellBoundary
             this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
             #endregion
+
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         /// <summary>
@@ -870,7 +1060,48 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
             #endregion
 
-            this.TurningPoint = initialCell.TurningPoint;
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         public TrilinearCell GenerateEShape(int directionCode)
@@ -1235,6 +1466,170 @@ namespace VolumeGeneratorBasedOnGraph.Class
             this.HNouth_Interval = null;
             #endregion
             this.ShapeType = TrilinearShapeType.Scaled;
+
+            return this;
+        }
+
+        public TrilinearCell GenerateHighRise(double lForHighRise, double lMin, double w, int randomCode0,int randomCode1)
+        {
+            Polyline poly;
+            this.CellBoundary.TryGetPolyline(out poly);
+            List<Point3d> pts = poly.ToList();
+            pts.RemoveAt(pts.Count - 1);
+            int index = pts.IndexOf(this.TurningPoint);
+
+            Point3d pt0 = Point3d.Unset;
+            Point3d pt1 = Point3d.Unset;
+            List<Point3d> ptList0 = new List<Point3d>();
+            List<Point3d> ptList1 = new List<Point3d>();
+            if (index == 0 || index == 2)
+            {
+                pt0 = (pts[((index - 1) + pts.Count) % pts.Count] + this.TurningPoint) / 2;
+                pt1 = (pts[((index - 2) + pts.Count) % pts.Count] + pts[(index + 1) % pts.Count]) / 2;
+
+                ptList0.Add(this.TurningPoint);
+                ptList0.Add(pts[(index + 1) % pts.Count]);
+                ptList0.Add(pt1);
+                ptList0.Add(pt0);
+                ptList0.Add(this.TurningPoint);
+
+                ptList1.Add(pt0);
+                ptList1.Add(pt1);
+                ptList1.Add(pts[((index - 2) + pts.Count) % pts.Count]);
+                ptList1.Add(pts[((index - 1) + pts.Count) % pts.Count]);
+                ptList1.Add(pt0);
+            }
+            else if (index == 1 || index == 3)
+            {
+                pt1 = (pts[(index + 1) % pts.Count] + this.TurningPoint) / 2;
+                pt0 = (pts[(index + 2) % pts.Count] + pts[(index + 3) % pts.Count]) / 2;
+
+                ptList0.Add(pts[(index + 3) % pts.Count]);
+                ptList0.Add(this.TurningPoint);
+                ptList0.Add(pt1);
+                ptList0.Add(pt0);
+                ptList0.Add(pts[(index + 3) % pts.Count]);
+
+                ptList1.Add(pt0);
+                ptList1.Add(pt1);
+                ptList1.Add(pts[(index + 1) % pts.Count]);
+                ptList1.Add(pts[(index + 2) % pts.Count]);
+                ptList1.Add(pt0);
+            }
+
+            Point3d basePoint = Point3d.Unset;
+            if (randomCode0 < 2)
+            {
+                if (randomCode1 == 0)
+                {
+                    basePoint = ptList0[0];
+                }
+                else if (randomCode1 == 1)
+                {
+                    basePoint = ptList0[1];
+                }
+                else if (randomCode1 == 2)
+                {
+                    basePoint = ptList0[2];
+                }
+                else
+                {
+                    basePoint = ptList0[3];
+                }
+
+                Curve crv0 = new Polyline(ptList0).ToNurbsCurve();
+                ptList0.RemoveAt(ptList0.Count - 1);
+
+                int basePointIndex = ptList0.IndexOf(basePoint);
+                Plane plane0 = new Plane(basePoint, ptList0[(basePointIndex + 1) % ptList0.Count], ptList0[((basePointIndex - 1) + ptList0.Count) % ptList0.Count]);
+                BoundingBox box0 = crv0.GetBoundingBox(plane0);
+                double x0 = box0.Max.X - box0.Min.X;
+                double y0 = box0.Max.Y - box0.Min.Y;
+                double scale_x0 = lMin / x0;
+                double scale_y0 = w / y0;
+                double minScale0 = scale_x0 < scale_y0 ? scale_x0 : scale_y0;
+
+                Line lineA0 = new Line(basePoint, ptList0[(basePointIndex + 1) % ptList0.Count]);
+                Line lineB0 = new Line(basePoint, ptList0[((basePointIndex - 1) + ptList0.Count) % ptList0.Count]);
+                double lengthA = lineA0.Length;
+                double lengthB = lineB0.Length;
+                double minLength = lengthA < lengthB ? lengthA : lengthB;
+                double scaleFactor;
+                if (minLength > lForHighRise)
+                {
+                    scaleFactor = lForHighRise / minLength;
+                }
+                else
+                {
+                    scaleFactor = 1;
+                }
+
+                if (scaleFactor < minScale0)
+                {
+                    scaleFactor = minScale0;
+                }
+
+                Transform transform0 = Transform.Scale(basePoint, scaleFactor);
+                crv0.Transform(transform0);
+
+                this.crvForHighRise = crv0.DuplicateCurve();
+            }
+            else
+            {
+                if (randomCode1 == 0)
+                {
+                    basePoint = ptList1[0];
+                }
+                else if (randomCode1 == 1)
+                {
+                    basePoint = ptList1[1];
+                }
+                else if (randomCode1 == 2)
+                {
+                    basePoint = ptList1[2];
+                }
+                else
+                {
+                    basePoint = ptList1[3];
+                }
+
+                Curve crv1 = new Polyline(ptList1).ToNurbsCurve();
+                ptList1.RemoveAt(ptList1.Count - 1);
+
+                int basePointIndex = ptList1.IndexOf(basePoint);
+                Plane plane1 = new Plane(basePoint, ptList1[(basePointIndex + 1) % ptList1.Count], ptList1[((basePointIndex - 1) + ptList1.Count) % ptList1.Count]);
+                BoundingBox box1 = crv1.GetBoundingBox(plane1);
+                double x1 = box1.Max.X - box1.Min.X;
+                double y1 = box1.Max.Y - box1.Min.Y;
+                double scale_x1 = lMin / x1;
+                double scale_y1 = w / y1;
+                double minScale1 = scale_x1 < scale_y1 ? scale_x1 : scale_y1;
+
+                Line lineA1 = new Line(basePoint, ptList1[(basePointIndex + 1) % ptList1.Count]);
+                Line lineB1 = new Line(basePoint, ptList1[((basePointIndex - 1) + ptList1.Count) % ptList1.Count]);
+                double lengthA = lineA1.Length;
+                double lengthB = lineB1.Length;
+                double minLength = lengthA < lengthB ? lengthA : lengthB;
+                double scaleFactor;
+                if (minLength > lForHighRise)
+                {
+                    scaleFactor = lForHighRise / minLength;
+                }
+                else
+                {
+                    scaleFactor = 1;
+                }
+
+                if (scaleFactor < minScale1)
+                {
+                    scaleFactor = minScale1;
+                }
+
+                Transform transform1 = Transform.Scale(basePoint, scaleFactor);
+                crv1.Transform(transform1);
+
+                this.crvForHighRise = crv1.DuplicateCurve();
+            }
 
             return this;
         }

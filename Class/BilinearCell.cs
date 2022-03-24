@@ -149,18 +149,42 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 this.CellBoundary = source.CellBoundary.DuplicateCurve();
             }
 
-            if (source.CellBreps == null)
+            if (source.CellBreps_Multistorey == null)
             {
-                this.CellBreps = null;
+                this.CellBreps_Multistorey = null;
             }
             else
             {
-                this.CellBreps = new Brep[source.CellBreps.Length];
-                for (int i = 0; i < source.CellBreps.Length; i++)
+                this.CellBreps_Multistorey = new Brep[source.CellBreps_Multistorey.Length];
+                for (int i = 0; i < source.CellBreps_Multistorey.Length; i++)
                 {
-                    this.CellBreps[i] = source.CellBreps[i].DuplicateBrep();
+                    this.CellBreps_Multistorey[i] = source.CellBreps_Multistorey[i].DuplicateBrep();
                 }
             }
+
+            if (source.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = source.crvForHighRise.DuplicateCurve();
+            }
+
+            if (source.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[source.CellBreps_Highrise.Length];
+                for (int i = 0; i < source.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = source.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = source.IsLengthConstraint;
 
             this.PublicBaseLineIndex = source.PublicBaseLineIndex;
             this.AnotherBaseLineIndexRelatedToCutPoint = source.AnotherBaseLineIndexRelatedToCutPoint;
@@ -632,8 +656,51 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
             }
-            
+
             #endregion
+
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         /// <summary>
@@ -760,8 +827,51 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
             }
-            
+
             #endregion
+
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         /// <summary>
@@ -820,8 +930,51 @@ namespace VolumeGeneratorBasedOnGraph.Class
             {
                 this.CellBoundary = initialCell.CellBoundary.DuplicateCurve();
             }
-            
+
             #endregion
+
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         /// <summary>
@@ -888,6 +1041,49 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
 
             #endregion
+
+            if (initialCell.CellBreps_Multistorey == null)
+            {
+                this.CellBreps_Multistorey = null;
+            }
+            else
+            {
+                this.CellBreps_Multistorey = new Brep[initialCell.CellBreps_Multistorey.Length];
+                for (int i = 0; i < initialCell.CellBreps_Multistorey.Length; i++)
+                {
+                    this.CellBreps_Multistorey[i] = initialCell.CellBreps_Multistorey[i].DuplicateBrep();
+                }
+            }
+
+            if (initialCell.crvForHighRise == null)
+            {
+                this.crvForHighRise = null;
+            }
+            else
+            {
+                this.crvForHighRise = initialCell.crvForHighRise.DuplicateCurve();
+            }
+
+            if (initialCell.CellBreps_Highrise == null)
+            {
+                this.CellBreps_Highrise = null;
+            }
+            else
+            {
+                this.CellBreps_Highrise = new Brep[initialCell.CellBreps_Highrise.Length];
+                for (int i = 0; i < initialCell.CellBreps_Highrise.Length; i++)
+                {
+                    this.CellBreps_Highrise[i] = initialCell.CellBreps_Highrise[i].DuplicateBrep();
+                }
+            }
+
+            this.IsLengthConstraint = initialCell.IsLengthConstraint;
+
+            this.PublicBaseLineIndex = initialCell.PublicBaseLineIndex;
+            this.AnotherBaseLineIndexRelatedToCutPoint = initialCell.AnotherBaseLineIndexRelatedToCutPoint;
+            this.TurningPoint = new Point3d(initialCell.TurningPoint);
+            this.PrevBaseLineIndexRelatedToCutPoint = initialCell.PrevBaseLineIndexRelatedToCutPoint;
+            this.NextBaseLineIndexRelatedToCutPoint = initialCell.NextBaseLineIndexRelatedToCutPoint;
         }
 
         public BilinearCell GenerateIAndIVariantShape(double randomT,int directionCode, double w)
@@ -1338,6 +1534,88 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return this;
         }
 
+
+        public BilinearCell GenerateHighRise(double lForHighRise, double lMin, double w, int randomCode)
+        {
+            Polyline poly;
+            this.CellBoundary.TryGetPolyline(out poly);
+            List<Point3d> pts = poly.ToList();
+            pts.RemoveAt(pts.Count - 1);
+            //int index = pts.IndexOf(this.TurningPoint);
+
+            Point3d basePoint = Point3d.Unset;
+            if (this.ShapeType == BilinearShapeType.SingleRegion)
+            {
+                basePoint = this.TurningPoint;
+            }
+            else if (this.ShapeType == BilinearShapeType.SinglePolyline)
+            {
+                basePoint = this.TurningPoint;
+            }
+            else if (this.ShapeType == BilinearShapeType.Scaled)
+            {
+                basePoint = this.TurningPoint;
+            }
+            else
+            {
+                if (randomCode == 0)
+                {
+                    basePoint = pts[0];
+                }
+                else if (randomCode == 1)
+                {
+                    basePoint = pts[1];
+                }
+                else if (randomCode == 2)
+                {
+                    basePoint = pts[2];
+                }
+                else
+                {
+                    basePoint = pts[3];
+                }
+            }
+
+            int basePointIndex = pts.IndexOf(basePoint);
+            Plane plane0 = new Plane(basePoint, pts[(basePointIndex + 1) % pts.Count], pts[((basePointIndex - 1) + pts.Count) % pts.Count]);// + this.TurningPoint);
+            Transform xForm = Transform.ChangeBasis(Plane.WorldXY, plane0);
+            BoundingBox box0 = this.CellBoundary.GetBoundingBox(xForm);
+            double x0 = box0.Max.X - box0.Min.X;
+            double y0 = box0.Max.Y - box0.Min.Y;
+            double scale_x0 = lMin / x0;
+            double scale_y0 = w / y0;
+            double minScale = scale_x0 < scale_y0 ? scale_x0 : scale_y0;
+
+            //Line lineA = new Line(this.TurningPoint, pts[(index + 1) % pts.Count]);
+            //Line lineB = new Line(this.TurningPoint, pts[((index - 1) + pts.Count) % pts.Count]);
+            Line lineA = new Line(basePoint, pts[(basePointIndex + 1) % pts.Count]);
+            Line lineB = new Line(basePoint, pts[((basePointIndex - 1) + pts.Count) % pts.Count]);
+            double lengthA = lineA.Length;
+            double lengthB = lineB.Length;
+            double minLength = lengthA < lengthB ? lengthA : lengthB;
+            double scaleFactor;
+            if (minLength > lForHighRise)
+            {
+                scaleFactor = lForHighRise / minLength;
+            }
+            else
+            {
+                scaleFactor = 1;
+            }
+
+            if (scaleFactor < minScale)
+            {
+                scaleFactor = minScale;
+            }
+
+            Transform transform = Transform.Scale(basePoint, scaleFactor);
+            Curve crv = this.CellBoundary.DuplicateCurve();
+            crv.Transform(transform);
+
+            this.crvForHighRise = crv.DuplicateCurve();
+
+            return this;
+        }
 
         private int GetBoundaryBaseLinesCount()
         {
