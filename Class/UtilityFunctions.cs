@@ -358,6 +358,52 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         #endregion
 
+
+        #region isoTrim
+        internal static Surface IsoTrim(Surface face,UVInterval uvinterval)
+        {
+            //UVInterval uvinterval = new UVInterval(Interval.Unset, Interval.Unset);
+
+            double min = face.Domain(0).Min;
+            double max = face.Domain(0).Max;
+            double min2 = face.Domain(1).Min;
+            double max2 = face.Domain(1).Max;
+            //Surface face = surf.Trim()
+            double min3 = uvinterval.U.Min;
+            double max3 = uvinterval.U.Max;
+            double min4 = uvinterval.V.Min;
+            double max4 = uvinterval.V.Max;
+
+            Limit(ref min3, min, max);
+            Limit(ref max3, min, max);
+            Limit(ref min4, min2, max2);
+            Limit(ref max4, min2, max2);
+            double num = 1E-08;
+            if (max3 - min3 < num)
+            {
+                return null;
+            }
+            if (max4 - min4 < num)
+            {
+                return null;
+            }
+            if (min3 <= max + num && max3 >= min - num && min4 <= max2 + num && max4 >= min2 - num)
+            {
+                return face.Trim(new Interval(min3, max3), new Interval(min4, max4));
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        internal static void Limit(ref double v, double min, double max)
+        {
+            v = Math.Min(v, max);
+            v = Math.Max(v, min);
+        }
+        #endregion
+
         #region 图形绘制
 
         /// <summary>

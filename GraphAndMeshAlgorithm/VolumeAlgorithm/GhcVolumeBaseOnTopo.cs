@@ -1467,7 +1467,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             {
                                 scaleFactor = 1;
                             }
-                            allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scaleFactor, lMin, w);
+                            allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scaleFactor, lMin, w, lForHighRise);
                         }
                     }
                     else if (singlePolylineCount == shiftedAllBlockBasicCellDT.Branch(path).Count)
@@ -1502,7 +1502,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     if (hCount > singlePolylineCount)
                                     {
                                         double scale = allBlockExpectedFirstFloorArea_Multistorey.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w, lForHighRise);
                                     }
                                     else
                                     {
@@ -1575,7 +1575,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                     if (vCount > singlePolylineCount)
                                     {
                                         double scale = allBlockExpectedFirstFloorArea_Multistorey.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                        allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w, lForHighRise);
                                     }
                                     else
                                     {
@@ -1668,7 +1668,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             if (hCount > IShapeCount * 0 + CShapeCount * 0)
                             {
                                 double scale = allBlockExpectedFirstFloorArea_Multistorey.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                                allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w, lForHighRise);
                             }
                             else
                             {
@@ -1715,7 +1715,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                                 if (hCount > RecShapeCount * 1 + 2 * EightShapeCount)
                                 {
                                     double scale = allBlockExpectedFirstFloorArea_Multistorey.Branch(path)[0] / allBlockCellBoundaryAreaSum.Branch(path)[0];
-                                    allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w);
+                                    allBlockCellDT = DoDensityReduce_Scale(allBlockCellDT, path, scale, lMin, w, lForHighRise);
                                 }
                                 else
                                 {
@@ -1764,7 +1764,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             }
                             else if (bCell.ShapeType == BilinearCell.BilinearShapeType.Scaled)
                             {
-                                Brep[] brepArray = BoundarySurfaces(bCell.FinalRegion);
+                                Brep[] brepArray = BoundarySurfaces(bCell.crvForScaled);
                                 if (brepArray != null)
                                 {
                                     allBlockGroundBrepDT_Multistorey.Branch(allBlockCellDT.Paths[i]).AddRange(brepArray);
@@ -1825,9 +1825,9 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                             if (tCell.ShapeType == TrilinearCell.TrilinearShapeType.Scaled)
                             {
-                                for (int k = 0; k < tCell.FinalRegions.Length; k++)
+                                for (int k = 0; k < tCell.crvForScaled.Length; k++)
                                 {
-                                    Brep[] brepArray = BoundarySurfaces(tCell.FinalRegions[k]);
+                                    Brep[] brepArray = BoundarySurfaces(tCell.crvForScaled[k]);
                                     if (brepArray != null)
                                     {
                                         allBlockGroundBrepDT_Multistorey.Branch(allBlockCellDT.Paths[i]).AddRange(brepArray);
@@ -1950,15 +1950,15 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             if (allBlockCellDT.Branch(i)[j] is BilinearCell)
                             {
                                 BilinearCell bCell = allBlockCellDT.Branch(i)[j] as BilinearCell;
-                                int randomCode = m_random.Next(0, 4);
-                                allBlockCellDT.Branch(i)[j] = bCell.GenerateHighRise(lForHighRise[allBlockCellDT.Paths[i][0]], lMin, w, randomCode);
+                                //int randomCode = m_random.Next(0, 4);
+                                allBlockCellDT.Branch(i)[j] = bCell.GenerateHighRise(lForHighRise[allBlockCellDT.Paths[i][0]], lMin, w, m_random);
                             }
                             else
                             {
-                                TrilinearCell tCell = allBlockBasicCellDT.Branch(i)[j] as TrilinearCell;
+                                TrilinearCell tCell = allBlockCellDT.Branch(i)[j] as TrilinearCell;
                                 int randomCode0 = m_random.Next(0, 4);
-                                int randomCode1 = m_random.Next(0, 4);
-                                allBlockCellDT.Branch(i)[j] = tCell.GenerateHighRise(lForHighRise[allBlockCellDT.Paths[i][0]], lMin, w, randomCode0, randomCode1);
+                                //int randomCode1 = m_random.Next(0, 4);
+                                allBlockCellDT.Branch(i)[j] = tCell.GenerateHighRise(lForHighRise[allBlockCellDT.Paths[i][0]], lMin, w, randomCode0, m_random);
                             }
                         }
                     }
@@ -2024,31 +2024,42 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                             }
                             if (layers > 30 - allBlockLowestLimitLayerNum.Branch(path)[0])
                             {
+                                // 高层部分超出的面积
                                 double exceedArea = allBlockExpectedBuildingArea_HighRise.Branch(path)[0] - i * (30 - allBlockLowestLimitLayerNum.Branch(path)[0]) * allBlockAverageFirstFloorArea_Highrise.Branch(path)[0];
+                                // 将高层部分超出的面积匀到多层部分
                                 double newBuildingArea_Multistorey = allBlockExpectedBuildingArea_Multistorey.Branch(path)[0] + exceedArea;
+                                // 计算新的多层部分的层数
                                 int newlayer_Multistorey = (int)Math.Round(newBuildingArea_Multistorey / allBlockCurrentFirstFloorArea_Multistorey.Branch(path)[0], MidpointRounding.AwayFromZero);
-                                int deltaMultistoreyLayers = newlayer_Multistorey - allBlockLowestLimitLayerNum.Branch(path)[0];
-                                int highriseLayers = 30 - allBlockLowestLimitLayerNum.Branch(path)[0];
-                                int new_newlayerNum_Multistorey = newlayer_Multistorey;
-                                while (deltaMultistoreyLayers != 0)
+                                // 新的多层部分层数与原来的层数之间的差值，也即高层部分的层数要减去几层
+                                int deltaLayer = newlayer_Multistorey - allBlockLowestLimitLayerNum.Branch(path)[0];
+                                // 当前高层部分的层数
+                                int layer_Highrise = 30 - allBlockLowestLimitLayerNum.Branch(path)[0];
+                                // 
+                                int new_newlayer_Multistorey = newlayer_Multistorey;
+                                while (deltaLayer != 0)
                                 {
-                                    double delta_HighriseArea = i * deltaMultistoreyLayers * allBlockAverageFirstFloorArea_Highrise.Branch(path)[0];
-                                    newBuildingArea_Multistorey = newBuildingArea_Multistorey + delta_HighriseArea;
-                                    new_newlayerNum_Multistorey = (int)Math.Ceiling(newBuildingArea_Multistorey / allBlockCurrentFirstFloorArea_Multistorey.Branch(path)[0]);
+                                    // 新的要匀给多层的高层部分面积
+                                    double deltaArea_Highrise = i * deltaLayer * allBlockAverageFirstFloorArea_Highrise.Branch(path)[0];
+                                    // 新的多层部分的面积
+                                    newBuildingArea_Multistorey = newBuildingArea_Multistorey + deltaArea_Highrise;
+                                    // 新的多层部分层数
+                                    new_newlayer_Multistorey = (int)Math.Ceiling(newBuildingArea_Multistorey / allBlockCurrentFirstFloorArea_Multistorey.Branch(path)[0]);
 
-                                    highriseLayers = highriseLayers - deltaMultistoreyLayers;
-                                    deltaMultistoreyLayers = new_newlayerNum_Multistorey - newlayer_Multistorey;
+                                    layer_Highrise = layer_Highrise - deltaLayer;
+                                    if (layer_Highrise <= 0)
+                                    {
+                                        layer_Highrise = 0;
+                                        break;
+                                    }
+                                    deltaLayer = new_newlayer_Multistorey - newlayer_Multistorey;
+                                    newlayer_Multistorey = new_newlayer_Multistorey;
                                 }
 
-                                //num_layers_HighrisePart.Add(new Tuple<int, int>(i, highriseLayers));
-                                //layers_MultistoreyPart.Add(new_newlayerNum_Multistorey);
-                                num_layers_HighrisePartDT.Branch(path).Add(new Tuple<int, int>(i, highriseLayers));
-                                layers_MultistoreyPartDT.Branch(path).Add(new_newlayerNum_Multistorey);
+                                num_layers_HighrisePartDT.Branch(path).Add(new Tuple<int, int>(i, layer_Highrise));
+                                layers_MultistoreyPartDT.Branch(path).Add(new_newlayer_Multistorey);
                             }
                             else
                             {
-                                //num_layers_HighrisePart.Add(new Tuple<int, int>(i, layers));
-                                //layers_MultistoreyPart.Add(allBlockLowestLimitLayerNum.Branch(path)[0]);
                                 num_layers_HighrisePartDT.Branch(path).Add(new Tuple<int, int>(i, layers));
                                 layers_MultistoreyPartDT.Branch(path).Add(allBlockLowestLimitLayerNum.Branch(path)[0]);
                             }
@@ -2102,7 +2113,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         Vector3d dir = new Vector3d(0, 0, floorHeight);
                         for (int j = 0; j < allBlockCellDT.Branch(path).Count; j++)
                         {
-                            //Brep[] extrudeBreps = new Brep[allBlockCellDT.Branch(path)[i].CellBreps.Length];
                             for (int k = 0; k < allBlockCellDT.Branch(path)[j].CellBreps_Multistorey.Length; k++)
                             {
                                 Brep brp = allBlockCellDT.Branch(path)[j].CellBreps_Multistorey[k];
@@ -2111,7 +2121,6 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         }
 
                         Vector3d translateDir = new Vector3d(0, 0, i * floorHeight);
-                        //List<Brep> translatedResultBrps = new List<Brep>();
                         for (int j = 0; j < resultBrps.Count; j++)
                         {
                             resultBrps[j].Translate(translateDir);
@@ -2166,10 +2175,17 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 {
                     for (int i = 0; i < path_index_DT.Branch(path).Count; i++)
                     {
+                        GH_Path pathForallBlockBrepDT = new GH_Path(path_index_DT.Branch(path)[i].Item1[0], path_index_DT.Branch(path)[i].Item1[1], path_index_DT.Branch(path)[i].Item1[2], 0);
+
+                        Vector3d dirForZero = new Vector3d(0, 0, floorHeight * layers_Multistorey_ListDT.Branch(path)[0]);
+                        Brep brpForZero = BoundarySurfaces(allBlockCellDT.Branch(path_index_DT.Branch(path)[i].Item1)[path_index_DT.Branch(path)[i].Item2].crvForHighRise)[0];
+                        Brep resultBrpForZero = ExtrudeBrep(brpForZero, dirForZero);
+
+                        allBlockBrepDT.Branch(pathForallBlockBrepDT).Add(resultBrpForZero);
+
                         for (int j = 0; j < num_layers_Highrise_ListDT.Branch(new GH_Path(path[0], path[1]))[0].Item2; j++)
                         {
-                            GH_Path pathForallBlockBrepDT = new GH_Path(path_index_DT.Branch(path)[i].Item1[0], path_index_DT.Branch(path)[i].Item1[1], path_index_DT.Branch(path)[i].Item1[2], i);
-
+                            pathForallBlockBrepDT = new GH_Path(path_index_DT.Branch(path)[i].Item1[0], path_index_DT.Branch(path)[i].Item1[1], path_index_DT.Branch(path)[i].Item1[2], j+1);
                             allBlockBrepDT.EnsurePath(pathForallBlockBrepDT);
 
                             Vector3d dir = new Vector3d(0, 0, floorHeight);
@@ -2341,7 +2357,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         /// <param name="currentSmallBlockPathList"></param>
         /// <param name="scaleFactor"></param>
         /// <returns></returns>
-        private DataTree<Cell> DoDensityReduce_Scale(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList, double scaleFactor, double lMin, double w)
+        private DataTree<Cell> DoDensityReduce_Scale(DataTree<Cell> cellDT, GH_Path currentSmallBlockPathList, double scaleFactor, double lMin, double w, List<double> lforHighRise)
         {
             List<GH_Path> currentSmallBlockContainsCellPath = new List<GH_Path>();
             foreach (var cellPath in cellDT.Paths)
@@ -2356,7 +2372,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             // 注意此时只会有一个Cell，所以这个For循环也只会循环一次
             for (int i = 0; i < currentSmallBlockContainsCellPath.Count; i++)
             {
-                GenerateDensityConstrainedCell(cellDT, currentSmallBlockContainsCellPath[i], scaleFactor, lMin, w);
+                GenerateDensityConstrainedCell(cellDT, currentSmallBlockContainsCellPath[i], scaleFactor, lMin, w, lforHighRise[currentSmallBlockContainsCellPath[i][0]]);
             }
 
             return cellDT;
@@ -3478,7 +3494,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         /// <param name="cellDT"></param>
         /// <param name="path"></param>
         /// <param name="scaleFactor"></param>
-        private void GenerateDensityConstrainedCell(DataTree<Cell> cellDT, GH_Path path, double scaleFactor, double lMin, double w)
+        private void GenerateDensityConstrainedCell(DataTree<Cell> cellDT, GH_Path path, double scaleFactor, double lMin, double w, double lForHighRise)
         {
             //BilinearCell bCell = cellDT.Branch(path)[0] as BilinearCell;
             //cellDT.Branch(path)[0] = bCell.GenerateOffsetedSingleRegion(scaleFactor);
@@ -3488,12 +3504,12 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 if (cellDT.Branch(path)[i] is BilinearCell)
                 {
                     BilinearCell bCell = cellDT.Branch(path)[i] as BilinearCell;
-                    cellDT.Branch(path)[i] = bCell.GenerateScaledShape(scaleFactor, lMin, w);
+                    cellDT.Branch(path)[i] = bCell.GenerateScaledShape(lForHighRise, scaleFactor, lMin, w);
                 }
                 else
                 {
                     TrilinearCell tCell = cellDT.Branch(path)[i] as TrilinearCell;
-                    cellDT.Branch(path)[i] = tCell.GenerateScaledShape(scaleFactor, lMin, w);
+                    cellDT.Branch(path)[i] = tCell.GenerateScaledShape(lForHighRise, scaleFactor, lMin, w);
                 }
             }
         }
@@ -9043,13 +9059,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             //    args.Display.DrawCurve(WBCrvForShowList[i], Color.Yellow, 2);
             //}
 
-            for (int i = 0; i < AllBlockCellBoundaryDT.BranchCount; i++)
-            {
-                for (int j = 0; j < AllBlockCellBoundaryDT.Branch(i).Count; j++)
-                {
-                    args.Display.DrawCurve(AllBlockCellBoundaryDT.Branch(i)[j], Color.DeepPink, 4);
-                }
-            }
+            //for (int i = 0; i < AllBlockCellBoundaryDT.BranchCount; i++)
+            //{
+            //    for (int j = 0; j < AllBlockCellBoundaryDT.Branch(i).Count; j++)
+            //    {
+            //        args.Display.DrawCurve(AllBlockCellBoundaryDT.Branch(i)[j], Color.DeepPink, 4);
+            //    }
+            //}
             //for (int i = 0; i < AllBlockCellBoundaryDT2.BranchCount; i++)
             //{
             //    for (int j = 0; j < AllBlockCellBoundaryDT2.Branch(i).Count; j++)
@@ -9112,13 +9128,13 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
             //    args.Display.DrawCurve(WBCrvForShowList[i], Color.Yellow, 2);
             //}
 
-            for (int i = 0; i < AllBlockCellBoundaryDT.BranchCount; i++)
-            {
-                for (int j = 0; j < AllBlockCellBoundaryDT.Branch(i).Count; j++)
-                {
-                    args.Display.DrawCurve(AllBlockCellBoundaryDT.Branch(i)[j], Color.DeepPink, 4);
-                }
-            }
+            //for (int i = 0; i < AllBlockCellBoundaryDT.BranchCount; i++)
+            //{
+            //    for (int j = 0; j < AllBlockCellBoundaryDT.Branch(i).Count; j++)
+            //    {
+            //        args.Display.DrawCurve(AllBlockCellBoundaryDT.Branch(i)[j], Color.DeepPink, 4);
+            //    }
+            //}
 
             //for (int i = 0; i < AllBlockCellBoundaryDT2.BranchCount; i++)
             //{

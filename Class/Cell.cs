@@ -43,7 +43,12 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public Curve CellBoundary { get; set; }
 
-        public Brep[] CellBreps { get; set; }
+        public Brep[] CellBreps_Multistorey { get; set; }
+
+        public Curve crvForHighRise { get; set; }
+        public Brep[] CellBreps_Highrise { get; set; }
+
+        public bool IsLengthConstraint { get; set; }
 
         /// <summary>
         /// 构造空的Cell对象

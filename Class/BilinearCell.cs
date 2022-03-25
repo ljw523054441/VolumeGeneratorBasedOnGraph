@@ -36,7 +36,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         //List<int> WhichBoundaryToOffset { get; set; }
 
 
-        public Curve FinalRegion { get; set; }
+        public Curve crvForScaled { get; set; }
 
         public enum BilinearShapeType
         {
@@ -1487,40 +1487,141 @@ namespace VolumeGeneratorBasedOnGraph.Class
             return this;
         }
 
-        public BilinearCell GenerateScaledShape(double scaleFactor, double lMin, double w)
+        public BilinearCell GenerateScaledShape(double lForHighRise, double scaleFactor, double lMin, double w)
         {
             Polyline poly;
             this.CellBoundary.TryGetPolyline(out poly);
             List<Point3d> pts = poly.ToList();
             pts.RemoveAt(pts.Count - 1);
-            int index = pts.IndexOf(this.TurningPoint);
+            int basePointIndex = pts.IndexOf(this.TurningPoint);
 
-            Plane plane0 = new Plane(this.TurningPoint, pts[(index + 1) % pts.Count], pts[((index - 1) + pts.Count) % pts.Count] + this.TurningPoint);
-            Transform xForm = Transform.ChangeBasis(Plane.WorldXY, plane0);
-            BoundingBox box0 = this.CellBoundary.GetBoundingBox(xForm);
-            double x0 = box0.Max.X - box0.Min.X;
-            double y0 = box0.Max.Y - box0.Min.Y;
-            double scale_x0 = lMin / x0;
-            double scale_y0 = w / y0;
-            double minScale = scale_x0 < scale_y0 ? scale_x0 : scale_y0;
-            if (minScale > 1)
+            #region 构造Brep，并且得到Surf
+            Curve railCrv0;
+            Curve railCrv1;
+            List<Curve> shapes = new List<Curve>();
+            if (basePointIndex == 0 || basePointIndex == 2)
             {
-                minScale = 1;
+                railCrv0 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[basePointIndex], pts[(basePointIndex + 3) % pts.Count] }, 1);
+                railCrv1 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 1) % pts.Count], pts[(basePointIndex + 2) % pts.Count] }, 1);
+                Curve shape0 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[basePointIndex], pts[(basePointIndex + 1) % pts.Count] }, 1);
+                Curve shape1 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 3) % pts.Count], pts[(basePointIndex + 2) % pts.Count] }, 1);
+                shapes.Add(shape0);
+                shapes.Add(shape1);
+            }
+            else
+            {
+                // basePointIndex == 1 || basePointIndex == 3
+                railCrv0 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 3) % pts.Count], pts[(basePointIndex + 2) % pts.Count] }, 1);
+                railCrv1 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[basePointIndex], pts[(basePointIndex + 1) % pts.Count] }, 1);
+                Curve shape0 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 3) % pts.Count], pts[basePointIndex] }, 1);
+                Curve shape1 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 2) % pts.Count], pts[(basePointIndex + 1) % pts.Count] }, 1);
+                shapes.Add(shape0);
+                shapes.Add(shape1);
             }
 
-            double scale = minScale > scaleFactor ? minScale : scaleFactor;
+            Brep brp = Brep.CreateFromSweep(railCrv0, railCrv1, shapes, false, Tolerance)[0];
 
-            Transform transform = Transform.Scale(this.TurningPoint, scale);
-            Curve crv = this.CellBoundary.DuplicateCurve();
-            crv.Transform(transform);
+            Surface surf = brp.Surfaces[0];
+            surf.SetDomain(0, new Interval(0, 1));
+            surf.SetDomain(1, new Interval(0, 1));
+            #endregion
 
-            this.FinalRegion = crv.DuplicateCurve();
+            #region 按照scale的值，计算此时XY方向上的占比
+            // 各自的占比就是scale
+            double scale_X = scaleFactor;
+            double scale_Y = scaleFactor;
+            #endregion
 
-            //Curve[] segments = crv.DuplicateSegments();
-            //this.SouthBaseLine = new Line(segments[0].PointAtStart, segments[0].PointAtEnd);
-            //this.EastBaseLine = new Line(segments[1].PointAtStart, segments[1].PointAtEnd);
-            //this.NorthBaseLine = new Line(segments[2].PointAtEnd, segments[2].PointAtStart);
-            //this.WestBaseLine = new Line(segments[3].PointAtEnd, segments[3].PointAtStart);
+            #region 求XY方向缩放比的下限
+            Line lineX = new Line(this.TurningPoint, pts[(basePointIndex + 1) % pts.Count]);
+            Line lineY = new Line(this.TurningPoint, pts[((basePointIndex - 1) + pts.Count) % pts.Count]);
+            double lengthX = lineX.Length;
+            double lengthY = lineY.Length;
+
+            double scaleFactor_X_Min;
+            double scaleFactor_Y_Min;
+            if (lengthX > w)
+            {
+                scaleFactor_X_Min = w / lengthX;
+            }
+            else
+            {
+                scaleFactor_X_Min = 1;
+            }
+            if (lengthY > w)
+            {
+                scaleFactor_Y_Min = w / lengthY;
+            }
+            else
+            {
+                scaleFactor_Y_Min = 1;
+            }
+
+
+            double scaleFactor_X;
+            double scaleFactor_Y;
+            if (lengthX > lForHighRise)
+            {
+                scaleFactor_X = lForHighRise / lengthX;
+            }
+            else
+            {
+                scaleFactor_X = 1;
+            }
+            if (lengthY > lForHighRise)
+            {
+                scaleFactor_Y = lForHighRise / lengthY;
+            }
+            else
+            {
+                scaleFactor_Y = 1;
+            }
+            #endregion
+
+            #region 比较
+            if (scale_X < scaleFactor_X)
+            {
+                scale_X = scaleFactor_X;
+            }
+            if (scale_Y < scaleFactor_Y)
+            {
+                scale_Y = scaleFactor_Y;
+            }
+            if (scale_X < scaleFactor_X_Min)
+            {
+                scale_X = scaleFactor_X_Min;
+            }
+            
+            if (scale_Y < scaleFactor_Y_Min)
+            {
+                scale_Y = scaleFactor_Y_Min;
+            }
+            #endregion
+
+            #region 取子面
+            UVInterval uvinterval;
+            if (basePointIndex == 0)
+            {
+                uvinterval = new UVInterval(new Interval(0, scale_Y), new Interval(0, scale_X));
+            }
+            else if (basePointIndex == 1)
+            {
+                uvinterval = new UVInterval(new Interval(0, scale_X), new Interval((1 - scale_Y), 1));
+            }
+            else if (basePointIndex == 2)
+            {
+                uvinterval = new UVInterval(new Interval(0, scale_Y), new Interval(0, scale_X));
+            }
+            else
+            {
+                uvinterval = new UVInterval(new Interval((1 - scale_X), 1), new Interval(0, scale_Y));
+            }
+            Surface trimedSurf = UtilityFunctions.IsoTrim(surf, uvinterval);
+            Curve[] crvs = trimedSurf.ToBrep().DuplicateEdgeCurves();
+            Curve crv = Curve.JoinCurves(crvs)[0];
+            #endregion
+
+            this.crvForScaled = crv.DuplicateCurve();
             #region 清空所有的interval
             this.South_Interval = null;
             this.North_Interval = null;
@@ -1535,7 +1636,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
         }
 
 
-        public BilinearCell GenerateHighRise(double lForHighRise, double lMin, double w, int randomCode)
+        public BilinearCell GenerateHighRise(double lForHighRise, double lMin, double w, Random m_random)
         {
             Polyline poly;
             this.CellBoundary.TryGetPolyline(out poly);
@@ -1543,6 +1644,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             pts.RemoveAt(pts.Count - 1);
             //int index = pts.IndexOf(this.TurningPoint);
 
+            #region 确定basePoint
             Point3d basePoint = Point3d.Unset;
             if (this.ShapeType == BilinearShapeType.SingleRegion)
             {
@@ -1558,64 +1660,334 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             else
             {
-                if (randomCode == 0)
+                // 找到可以放置高层的位置
+                //List<Point3d> pointsForCanPlaceHighrise_Two = new List<Point3d>();
+                //List<Point3d> pointsForCanPlaceHighrise_One = new List<Point3d>();
+
+                List<int> indexForCanPlaceHighrise_Two = new List<int>();
+                List<int> indexForCanPlaceHighrise_One = new List<int>();
+
+                #region west
+                bool west_0 = false;
+                bool west_1 = false;
+
+                if (this.West_Interval != null)
                 {
-                    basePoint = pts[0];
+                    for (int i = 0; i < this.West_Interval.Count; i++)
+                    {
+                        if (this.West_Interval[i].IncludesParameter(0))
+                        {
+                            west_0 = true;
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < this.West_Interval.Count; i++)
+                    {
+                        if (this.West_Interval[i].IncludesParameter(1))
+                        {
+                            west_1 = true;
+                            break;
+                        }
+                    }
                 }
-                else if (randomCode == 1)
+                #endregion
+
+                #region south
+                bool south_0 = false;
+                bool south_1 = false;
+
+                if (this.South_Interval != null)
                 {
-                    basePoint = pts[1];
+                    for (int i = 0; i < this.South_Interval.Count; i++)
+                    {
+                        if (this.South_Interval[i].IncludesParameter(0))
+                        {
+                            south_0 = true;
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < this.South_Interval.Count; i++)
+                    {
+                        if (this.South_Interval[i].IncludesParameter(1))
+                        {
+                            south_1 = true;
+                            break;
+                        }
+                    }
                 }
-                else if (randomCode == 2)
+                #endregion
+
+                #region east
+                bool east_0 = false;
+                bool east_1 = false;
+
+                if (this.East_Interval != null)
                 {
-                    basePoint = pts[2];
+                    for (int i = 0; i < this.East_Interval.Count; i++)
+                    {
+                        if (this.East_Interval[i].IncludesParameter(0))
+                        {
+                            east_0 = true;
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < this.East_Interval.Count; i++)
+                    {
+                        if (this.East_Interval[i].IncludesParameter(1))
+                        {
+                            east_1 = true;
+                            break;
+                        }
+                    }
+                }
+                #endregion
+
+                #region north
+                bool north_0 = false;
+                bool north_1 = false;
+
+                if (this.North_Interval != null)
+                {
+                    for (int i = 0; i < this.North_Interval.Count; i++)
+                    {
+                        if (this.North_Interval[i].IncludesParameter(0))
+                        {
+                            north_0 = true;
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < this.North_Interval.Count; i++)
+                    {
+                        if (this.North_Interval[i].IncludesParameter(1))
+                        {
+                            north_1 = true;
+                            break;
+                        }
+                    }
+                }
+                #endregion
+
+                #region 西南角点
+                if (west_0 && south_0)
+                {
+                    //pointsForCanPlaceHighrise_Two.Add(this.SouthBaseLine.From);
+                    indexForCanPlaceHighrise_Two.Add(0);
+                }
+                else if (west_0 || south_0)
+                {
+                    //pointsForCanPlaceHighrise_One.Add(this.SouthBaseLine.From);
+                    indexForCanPlaceHighrise_One.Add(0);
+                }
+                #endregion
+
+                #region 东南角点
+                if (south_1 && east_0)
+                {
+                    //pointsForCanPlaceHighrise_Two.Add(this.EastBaseLine.From);
+                    indexForCanPlaceHighrise_Two.Add(1);
+                }
+                else if (south_1 || east_0)
+                {
+                    //pointsForCanPlaceHighrise_One.Add(this.EastBaseLine.From);
+                    indexForCanPlaceHighrise_One.Add(1);
+                }
+                #endregion
+
+                #region 东北角点
+                if (east_1 && north_1)
+                {
+                    //pointsForCanPlaceHighrise_Two.Add(this.NorthBaseLine.To);
+                    indexForCanPlaceHighrise_Two.Add(2);
+                }
+                else if (east_1 || north_1)
+                {
+                    //pointsForCanPlaceHighrise_One.Add(this.NorthBaseLine.To);
+                    indexForCanPlaceHighrise_One.Add(2);
+                }
+                #endregion
+
+                #region 西北角点
+                if (north_0 && west_1)
+                {
+                    //pointsForCanPlaceHighrise_Two.Add(this.WestBaseLine.To);
+                    indexForCanPlaceHighrise_Two.Add(3);
+                }
+                else if (north_0 || west_1)
+                {
+                    //pointsForCanPlaceHighrise_One.Add(this.WestBaseLine.To);
+                    indexForCanPlaceHighrise_One.Add(3);
+                }
+                #endregion
+
+                #region 随机取点
+                if (indexForCanPlaceHighrise_Two.Count != 0)
+                {
+                    int randomIndex = m_random.Next(indexForCanPlaceHighrise_Two.Count);
+                    basePoint = pts[indexForCanPlaceHighrise_Two[randomIndex]];
+                }
+                else if (indexForCanPlaceHighrise_One.Count != 0)
+                {
+                    int randomIndex = m_random.Next(indexForCanPlaceHighrise_One.Count);
+                    basePoint = pts[indexForCanPlaceHighrise_One[randomIndex]];
                 }
                 else
                 {
-                    basePoint = pts[3];
+                    // 应该不存在此种情况
+                    int randomIndex = m_random.Next(4);
+                    basePoint = pts[randomIndex];
                 }
+                #endregion
             }
+            #endregion
 
             int basePointIndex = pts.IndexOf(basePoint);
-            Plane plane0 = new Plane(basePoint, pts[(basePointIndex + 1) % pts.Count], pts[((basePointIndex - 1) + pts.Count) % pts.Count]);// + this.TurningPoint);
-            Transform xForm = Transform.ChangeBasis(Plane.WorldXY, plane0);
-            BoundingBox box0 = this.CellBoundary.GetBoundingBox(xForm);
-            double x0 = box0.Max.X - box0.Min.X;
-            double y0 = box0.Max.Y - box0.Min.Y;
-            double scale_x0 = lMin / x0;
-            double scale_y0 = w / y0;
-            double minScale = scale_x0 < scale_y0 ? scale_x0 : scale_y0;
-
-            //Line lineA = new Line(this.TurningPoint, pts[(index + 1) % pts.Count]);
-            //Line lineB = new Line(this.TurningPoint, pts[((index - 1) + pts.Count) % pts.Count]);
-            Line lineA = new Line(basePoint, pts[(basePointIndex + 1) % pts.Count]);
-            Line lineB = new Line(basePoint, pts[((basePointIndex - 1) + pts.Count) % pts.Count]);
-            double lengthA = lineA.Length;
-            double lengthB = lineB.Length;
-            double minLength = lengthA < lengthB ? lengthA : lengthB;
-            double scaleFactor;
-            if (minLength > lForHighRise)
+            #region 构造Brep，并且得到Surf
+            Curve railCrv0;
+            Curve railCrv1;
+            List<Curve> shapes = new List<Curve>();
+            if (basePointIndex == 0 || basePointIndex == 2)
             {
-                scaleFactor = lForHighRise / minLength;
+
+                railCrv0 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[basePointIndex], pts[(basePointIndex + 3) % pts.Count] }, 1);
+                railCrv1 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 1) % pts.Count], pts[(basePointIndex + 2) % pts.Count] }, 1);
+                Curve shape0 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[basePointIndex], pts[(basePointIndex + 1) % pts.Count] }, 1);
+                Curve shape1 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 3) % pts.Count], pts[(basePointIndex + 2) % pts.Count] }, 1);
+                shapes.Add(shape0);
+                shapes.Add(shape1);
             }
             else
             {
-                scaleFactor = 1;
+                // basePointIndex == 1 || basePointIndex == 3
+                railCrv0 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 3) % pts.Count], pts[(basePointIndex + 2) % pts.Count] }, 1);
+                railCrv1 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[basePointIndex], pts[(basePointIndex + 1) % pts.Count] }, 1);
+                Curve shape0 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 3) % pts.Count], pts[basePointIndex] }, 1);
+                Curve shape1 = Curve.CreateInterpolatedCurve(new Point3d[] { pts[(basePointIndex + 2) % pts.Count], pts[(basePointIndex + 1) % pts.Count] }, 1);
+                shapes.Add(shape0);
+                shapes.Add(shape1);
             }
 
-            if (scaleFactor < minScale)
+            Brep brp = Brep.CreateFromSweep(railCrv0, railCrv1, shapes, false, Tolerance)[0];
+
+            Surface surf = brp.Surfaces[0];
+            surf.SetDomain(0, new Interval(0, 1));
+            surf.SetDomain(1, new Interval(0, 1));
+            #endregion
+
+            #region 求XY方向缩放比
+            Line lineX = new Line(basePoint, pts[(basePointIndex + 1) % pts.Count]);
+            Line lineY = new Line(basePoint, pts[((basePointIndex - 1) + pts.Count) % pts.Count]);
+            double lengthX = lineX.Length;
+            double lengthY = lineY.Length;
+
+            double scaleFactor_X_Min;
+            double scaleFactor_Y_Min;
+            if (lengthX > w)
             {
-                scaleFactor = minScale;
+                scaleFactor_X_Min = w / lengthX;
+            }
+            else
+            {
+                scaleFactor_X_Min = 1;
+            }
+            if (lengthY > w)
+            {
+                scaleFactor_Y_Min = w / lengthY;
+            }
+            else
+            {
+                scaleFactor_Y_Min = 1;
             }
 
-            Transform transform = Transform.Scale(basePoint, scaleFactor);
-            Curve crv = this.CellBoundary.DuplicateCurve();
-            crv.Transform(transform);
+            double scaleFactor_X;
+            double scaleFactor_Y;
+            if (lengthX > lForHighRise)
+            {
+                scaleFactor_X = lForHighRise / lengthX;
+            }
+            else
+            {
+                scaleFactor_X = 1;
+            }
+            if (lengthY > lForHighRise)
+            {
+                scaleFactor_Y = lForHighRise / lengthY;
+            }
+            else
+            {
+                scaleFactor_Y = 1;
+            }
+            #endregion
 
+            #region XY方向缩放比与下限比较
+            if (scaleFactor_X < scaleFactor_X_Min)
+            {
+                scaleFactor_X = scaleFactor_X_Min;
+            }
+            if (scaleFactor_Y < scaleFactor_Y_Min)
+            {
+                scaleFactor_Y = scaleFactor_Y_Min;
+            }
+            #endregion
+
+            #region 取子面
+            UVInterval uvinterval;
+            if (basePointIndex == 0)
+            {
+                uvinterval = new UVInterval(new Interval(0, scaleFactor_Y), new Interval(0, scaleFactor_X));
+            }
+            else if (basePointIndex == 1)
+            {
+                uvinterval = new UVInterval(new Interval(0, scaleFactor_X), new Interval((1 - scaleFactor_Y), 1));
+            }
+            else if (basePointIndex == 2)
+            {
+                uvinterval = new UVInterval(new Interval(0, scaleFactor_Y), new Interval(0, scaleFactor_X));
+            }
+            else
+            {
+                uvinterval = new UVInterval(new Interval((1 - scaleFactor_X), 1), new Interval(0, scaleFactor_Y));
+            }
+            Surface trimedSurf = UtilityFunctions.IsoTrim(surf, uvinterval);
+            Curve[] crvs = trimedSurf.ToBrep().DuplicateEdgeCurves();
+            Curve crv = Curve.JoinCurves(crvs)[0];
             this.crvForHighRise = crv.DuplicateCurve();
+            #endregion
 
             return this;
         }
+
+        //private void IsCanPlaceHighRise(List<Interval> intervals_0, 
+        //                                List<Interval> intervals_1,
+        //                                out bool flag0,
+        //                                out bool flag1)
+        //{
+        //    flag0 = false;
+        //    flag1 = false;
+        //    for (int i = 0; i < intervals_0.Count; i++)
+        //    {
+        //        if (intervals_0[i].IncludesParameter(0))
+        //        {
+        //            flag0 = true;
+        //            break;
+        //        }
+        //    }
+        //    for (int i = 0; i < intervals_1.Count; i++)
+        //    {
+        //        if (true)
+        //        {
+
+        //        }
+        //    }
+
+
+        //    basePoint = pts[randomCode];
+
+
+        //}
 
         private int GetBoundaryBaseLinesCount()
         {
