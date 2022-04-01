@@ -414,17 +414,35 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                 }
 
-                for (int i = 0; i < inner_Outer.Count; i++)
+                for ( int i = 0; i < inner_Outer.Count; i++)
                 {
                     // 按照outer的序号进行升序排序
-                    inner_Outer[i].Sort();
+                    //inner_Outer[i].Sort();
                     // 在同时包含首尾时，调整首尾两个的位置，即346变为634，以保证后面与BS的匹配
                     if (inner_Outer[i].Contains(innerNodeCount) && inner_Outer[i].Contains(innerNodeCount + outerNodeCount - 1))
                     {
-                        int item = inner_Outer[i].Last();
-                        inner_Outer[i].Insert(0, item);
-                        inner_Outer[i].RemoveAt(inner_Outer[i].Count - 1);
+                        inner_Outer[i].Reverse();
+
+                        // 首先判断3与6的顺序
+                        int index3 = inner_Outer[i].IndexOf(innerNodeCount);
+                        int index6 = inner_Outer[i].IndexOf(innerNodeCount + outerNodeCount - 1);
+                        if (index6 < index3)
+                        {
+                            // 6在3前面
+                        }
+                        else
+                        {
+                            // 3在6前面
+                            int item = inner_Outer[i].Last();
+                            inner_Outer[i].Insert(0, item);
+                            inner_Outer[i].RemoveAt(inner_Outer[i].Count - 1);
+                        }
                     }
+                    else
+                    {
+                        inner_Outer[i].Reverse();
+                    }
+
                 }
 
                 #endregion
@@ -4236,19 +4254,19 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                     else
                     {
-                        pts.Insert((turningIndex - 2) + pts.Count, publicPoint);
+                        pts.Insert(((turningIndex - 2) + pts.Count) % pts.Count, publicPoint);
 
                         int newTurningIndex = pts.IndexOf(turningPt);
 
                         int currIndex = (newTurningIndex + 1 + 3) % pts.Count;
-                        while (currIndex != newTurningIndex + 1)
+                        while (currIndex != (newTurningIndex + 1) % pts.Count)
                         {
                             pts1.Add(pts[currIndex]);
                             currIndex = (currIndex + 1) % pts.Count;
                         }
                         isSmallerList.Add(true);
 
-                        currIndex = newTurningIndex + 1;
+                        currIndex = (newTurningIndex + 1) % pts.Count;
                         while (currIndex != (newTurningIndex + 2 + 3) % pts.Count)
                         {
                             pts2.Add(pts[currIndex]);

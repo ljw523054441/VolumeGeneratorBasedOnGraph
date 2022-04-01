@@ -1,0 +1,4 @@
+name,area,connectivity,adjacency,spanNumX,spanNumY,floorNumZ,spanSizeX,spanSizeY,floorHeightZ
+办公部分,10,1-2,0,3,2,3,5,5,3
+酒店部分,20,0-2,1,3,2,4,5,5,3
+公寓部分,40,0-1,2,3,2,5,5,5,3

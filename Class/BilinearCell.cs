@@ -1614,7 +1614,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             else
             {
-                uvinterval = new UVInterval(new Interval((1 - scale_X), 1), new Interval(0, scale_Y));
+                uvinterval = new UVInterval(new Interval(0, scale_X), new Interval((1 - scale_Y), 1));
             }
             Surface trimedSurf = UtilityFunctions.IsoTrim(surf, uvinterval);
             Curve[] crvs = trimedSurf.ToBrep().DuplicateEdgeCurves();
@@ -1887,7 +1887,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             double scaleFactor_Y_Min;
             if (lengthX > w)
             {
-                scaleFactor_X_Min = w / lengthX;
+                scaleFactor_X_Min = 0.5 * w / lengthX;
             }
             else
             {
@@ -1895,7 +1895,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             if (lengthY > w)
             {
-                scaleFactor_Y_Min = w / lengthY;
+                scaleFactor_Y_Min = 0.5 * w / lengthY;
             }
             else
             {
@@ -1949,7 +1949,7 @@ namespace VolumeGeneratorBasedOnGraph.Class
             }
             else
             {
-                uvinterval = new UVInterval(new Interval((1 - scaleFactor_X), 1), new Interval(0, scaleFactor_Y));
+                uvinterval = new UVInterval(new Interval(0, scaleFactor_X), new Interval((1 - scaleFactor_Y), 1));
             }
             Surface trimedSurf = UtilityFunctions.IsoTrim(surf, uvinterval);
             Curve[] crvs = trimedSurf.ToBrep().DuplicateEdgeCurves();
