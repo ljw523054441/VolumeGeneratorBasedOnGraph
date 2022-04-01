@@ -2468,84 +2468,104 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                         #region west
                         bool west_0 = false;
-                        for (int i = 0; i < this.West_Interval.Count; i++)
-                        {
-                            if (this.West_Interval[i].IncludesParameter(0))
-                            {
-                                west_0 = true;
-                                break;
-                            }
-                        }
                         bool west_1 = false;
-                        for (int i = 0; i < this.West_Interval.Count; i++)
+
+                        if (this.West_Interval != null)
                         {
-                            if (this.West_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.West_Interval.Count; i++)
                             {
-                                west_1 = true;
-                                break;
+                                if (this.West_Interval[i].IncludesParameter(0))
+                                {
+                                    west_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.West_Interval.Count; i++)
+                            {
+                                if (this.West_Interval[i].IncludesParameter(1))
+                                {
+                                    west_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region south
                         bool south_0 = false;
-                        for (int i = 0; i < this.South_Interval.Count; i++)
-                        {
-                            if (this.South_Interval[i].IncludesParameter(0))
-                            {
-                                south_0 = true;
-                                break;
-                            }
-                        }
                         bool south_1 = false;
-                        for (int i = 0; i < this.South_Interval.Count; i++)
+
+                        if (this.South_Interval != null)
                         {
-                            if (this.South_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.South_Interval.Count; i++)
                             {
-                                south_1 = true;
-                                break;
+                                if (this.South_Interval[i].IncludesParameter(0))
+                                {
+                                    south_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.South_Interval.Count; i++)
+                            {
+                                if (this.South_Interval[i].IncludesParameter(1))
+                                {
+                                    south_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region east
                         bool east_0 = false;
-                        for (int i = 0; i < this.East_Interval.Count; i++)
-                        {
-                            if (this.East_Interval[i].IncludesParameter(0))
-                            {
-                                east_0 = true;
-                                break;
-                            }
-                        }
                         bool east_1 = false;
-                        for (int i = 0; i < this.East_Interval.Count; i++)
+
+                        if (this.East_Interval != null)
                         {
-                            if (this.East_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.East_Interval.Count; i++)
                             {
-                                east_1 = true;
-                                break;
+                                if (this.East_Interval[i].IncludesParameter(0))
+                                {
+                                    east_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.East_Interval.Count; i++)
+                            {
+                                if (this.East_Interval[i].IncludesParameter(1))
+                                {
+                                    east_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region Mid
                         bool mid_0 = false;
-                        for (int i = 0; i < this.Middle_Interval.Count; i++)
-                        {
-                            if (this.Middle_Interval[i].IncludesParameter(0))
-                            {
-                                mid_0 = true;
-                                break;
-                            }
-                        }
                         bool mid_1 = false;
-                        for (int i = 0; i < this.Middle_Interval.Count; i++)
+
+                        if (this.Middle_Interval != null)
                         {
-                            if (this.Middle_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.Middle_Interval.Count; i++)
                             {
-                                mid_1 = true;
-                                break;
+                                if (this.Middle_Interval[i].IncludesParameter(0))
+                                {
+                                    mid_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.Middle_Interval.Count; i++)
+                            {
+                                if (this.Middle_Interval[i].IncludesParameter(1))
+                                {
+                                    mid_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
@@ -2635,84 +2655,104 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                         #region west
                         bool west_0 = false;
-                        for (int i = 0; i < this.West1_Interval.Count; i++)
-                        {
-                            if (this.West1_Interval[i].IncludesParameter(0))
-                            {
-                                west_0 = true;
-                                break;
-                            }
-                        }
                         bool west_1 = false;
-                        for (int i = 0; i < this.West1_Interval.Count; i++)
+
+                        if (this.West1_Interval != null)
                         {
-                            if (this.West1_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.West1_Interval.Count; i++)
                             {
-                                west_1 = true;
-                                break;
+                                if (this.West1_Interval[i].IncludesParameter(0))
+                                {
+                                    west_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.West1_Interval.Count; i++)
+                            {
+                                if (this.West1_Interval[i].IncludesParameter(1))
+                                {
+                                    west_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region Mid
                         bool mid_0 = false;
-                        for (int i = 0; i < this.Middle_Interval.Count; i++)
-                        {
-                            if (this.Middle_Interval[i].IncludesParameter(0))
-                            {
-                                mid_0 = true;
-                                break;
-                            }
-                        }
                         bool mid_1 = false;
-                        for (int i = 0; i < this.Middle_Interval.Count; i++)
+
+                        if (this.Middle_Interval != null)
                         {
-                            if (this.Middle_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.Middle_Interval.Count; i++)
                             {
-                                mid_1 = true;
-                                break;
+                                if (this.Middle_Interval[i].IncludesParameter(0))
+                                {
+                                    mid_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.Middle_Interval.Count; i++)
+                            {
+                                if (this.Middle_Interval[i].IncludesParameter(1))
+                                {
+                                    mid_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region east
                         bool east_0 = false;
-                        for (int i = 0; i < this.East1_Interval.Count; i++)
-                        {
-                            if (this.East1_Interval[i].IncludesParameter(0))
-                            {
-                                east_0 = true;
-                                break;
-                            }
-                        }
                         bool east_1 = false;
-                        for (int i = 0; i < this.East1_Interval.Count; i++)
+
+                        if (this.East1_Interval != null)
                         {
-                            if (this.East1_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.East1_Interval.Count; i++)
                             {
-                                east_1 = true;
-                                break;
+                                if (this.East1_Interval[i].IncludesParameter(0))
+                                {
+                                    east_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.East1_Interval.Count; i++)
+                            {
+                                if (this.East1_Interval[i].IncludesParameter(1))
+                                {
+                                    east_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region north
                         bool north_0 = false;
-                        for (int i = 0; i < this.North_Interval.Count; i++)
-                        {
-                            if (this.North_Interval[i].IncludesParameter(0))
-                            {
-                                north_0 = true;
-                                break;
-                            }
-                        }
                         bool north_1 = false;
-                        for (int i = 0; i < this.North_Interval.Count; i++)
+
+                        if (this.North_Interval != null)
                         {
-                            if (this.North_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.North_Interval.Count; i++)
                             {
-                                north_1 = true;
-                                break;
+                                if (this.North_Interval[i].IncludesParameter(0))
+                                {
+                                    north_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.North_Interval.Count; i++)
+                            {
+                                if (this.North_Interval[i].IncludesParameter(1))
+                                {
+                                    north_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
@@ -2929,84 +2969,104 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                         #region west
                         bool west_0 = false;
-                        for (int i = 0; i < this.West1_Interval.Count; i++)
-                        {
-                            if (this.West1_Interval[i].IncludesParameter(0))
-                            {
-                                west_0 = true;
-                                break;
-                            }
-                        }
                         bool west_1 = false;
-                        for (int i = 0; i < this.West1_Interval.Count; i++)
+
+                        if (this.West1_Interval != null)
                         {
-                            if (this.West1_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.West1_Interval.Count; i++)
                             {
-                                west_1 = true;
-                                break;
+                                if (this.West1_Interval[i].IncludesParameter(0))
+                                {
+                                    west_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.West1_Interval.Count; i++)
+                            {
+                                if (this.West1_Interval[i].IncludesParameter(1))
+                                {
+                                    west_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region Mid
                         bool mid_0 = false;
-                        for (int i = 0; i < this.Middle_Interval.Count; i++)
-                        {
-                            if (this.Middle_Interval[i].IncludesParameter(0))
-                            {
-                                mid_0 = true;
-                                break;
-                            }
-                        }
                         bool mid_1 = false;
-                        for (int i = 0; i < this.Middle_Interval.Count; i++)
+
+                        if (this.Middle_Interval != null)
                         {
-                            if (this.Middle_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.Middle_Interval.Count; i++)
                             {
-                                mid_1 = true;
-                                break;
+                                if (this.Middle_Interval[i].IncludesParameter(0))
+                                {
+                                    mid_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.Middle_Interval.Count; i++)
+                            {
+                                if (this.Middle_Interval[i].IncludesParameter(1))
+                                {
+                                    mid_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region east
                         bool east_0 = false;
-                        for (int i = 0; i < this.East1_Interval.Count; i++)
-                        {
-                            if (this.East1_Interval[i].IncludesParameter(0))
-                            {
-                                east_0 = true;
-                                break;
-                            }
-                        }
                         bool east_1 = false;
-                        for (int i = 0; i < this.East1_Interval.Count; i++)
+
+                        if (this.East1_Interval != null)
                         {
-                            if (this.East1_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.East1_Interval.Count; i++)
                             {
-                                east_1 = true;
-                                break;
+                                if (this.East1_Interval[i].IncludesParameter(0))
+                                {
+                                    east_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.East1_Interval.Count; i++)
+                            {
+                                if (this.East1_Interval[i].IncludesParameter(1))
+                                {
+                                    east_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region north
                         bool north_0 = false;
-                        for (int i = 0; i < this.North_Interval.Count; i++)
-                        {
-                            if (this.North_Interval[i].IncludesParameter(0))
-                            {
-                                north_0 = true;
-                                break;
-                            }
-                        }
                         bool north_1 = false;
-                        for (int i = 0; i < this.North_Interval.Count; i++)
+
+                        if (this.North_Interval != null)
                         {
-                            if (this.North_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.North_Interval.Count; i++)
                             {
-                                north_1 = true;
-                                break;
+                                if (this.North_Interval[i].IncludesParameter(0))
+                                {
+                                    north_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.North_Interval.Count; i++)
+                            {
+                                if (this.North_Interval[i].IncludesParameter(1))
+                                {
+                                    north_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
@@ -3096,84 +3156,104 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
                         #region west
                         bool west_0 = false;
-                        for (int i = 0; i < this.West_Interval.Count; i++)
-                        {
-                            if (this.West_Interval[i].IncludesParameter(0))
-                            {
-                                west_0 = true;
-                                break;
-                            }
-                        }
                         bool west_1 = false;
-                        for (int i = 0; i < this.West_Interval.Count; i++)
+
+                        if (this.West_Interval != null)
                         {
-                            if (this.West_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.West_Interval.Count; i++)
                             {
-                                west_1 = true;
-                                break;
+                                if (this.West_Interval[i].IncludesParameter(0))
+                                {
+                                    west_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.West_Interval.Count; i++)
+                            {
+                                if (this.West_Interval[i].IncludesParameter(1))
+                                {
+                                    west_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region south
                         bool south_0 = false;
-                        for (int i = 0; i < this.South_Interval.Count; i++)
-                        {
-                            if (this.South_Interval[i].IncludesParameter(0))
-                            {
-                                south_0 = true;
-                                break;
-                            }
-                        }
                         bool south_1 = false;
-                        for (int i = 0; i < this.South_Interval.Count; i++)
+
+                        if (this.South_Interval != null)
                         {
-                            if (this.South_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.South_Interval.Count; i++)
                             {
-                                south_1 = true;
-                                break;
+                                if (this.South_Interval[i].IncludesParameter(0))
+                                {
+                                    south_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.South_Interval.Count; i++)
+                            {
+                                if (this.South_Interval[i].IncludesParameter(1))
+                                {
+                                    south_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region east
                         bool east_0 = false;
-                        for (int i = 0; i < this.East_Interval.Count; i++)
-                        {
-                            if (this.East_Interval[i].IncludesParameter(0))
-                            {
-                                east_0 = true;
-                                break;
-                            }
-                        }
                         bool east_1 = false;
-                        for (int i = 0; i < this.East_Interval.Count; i++)
+
+                        if (this.East_Interval != null)
                         {
-                            if (this.East_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.East_Interval.Count; i++)
                             {
-                                east_1 = true;
-                                break;
+                                if (this.East_Interval[i].IncludesParameter(0))
+                                {
+                                    east_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.East_Interval.Count; i++)
+                            {
+                                if (this.East_Interval[i].IncludesParameter(1))
+                                {
+                                    east_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
 
                         #region Mid
                         bool mid_0 = false;
-                        for (int i = 0; i < this.Middle_Interval.Count; i++)
-                        {
-                            if (this.Middle_Interval[i].IncludesParameter(0))
-                            {
-                                mid_0 = true;
-                                break;
-                            }
-                        }
                         bool mid_1 = false;
-                        for (int i = 0; i < this.Middle_Interval.Count; i++)
+
+                        if (this.Middle_Interval != null)
                         {
-                            if (this.Middle_Interval[i].IncludesParameter(1))
+                            for (int i = 0; i < this.Middle_Interval.Count; i++)
                             {
-                                mid_1 = true;
-                                break;
+                                if (this.Middle_Interval[i].IncludesParameter(0))
+                                {
+                                    mid_0 = true;
+                                    break;
+                                }
+                            }
+
+                            for (int i = 0; i < this.Middle_Interval.Count; i++)
+                            {
+                                if (this.Middle_Interval[i].IncludesParameter(1))
+                                {
+                                    mid_1 = true;
+                                    break;
+                                }
                             }
                         }
                         #endregion
