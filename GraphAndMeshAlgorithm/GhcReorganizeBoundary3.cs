@@ -64,6 +64,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             // pManager.AddCurveParameter("ReorganizedBoundary", "RB", "经过重新组织的边界polyline", GH_ParamAccess.item);
             pManager.AddGenericParameter("SortedBoundarySegments", "SBS", "经过排序后的BoundarySegment", GH_ParamAccess.list);
             // pManager.AddIntegerParameter("BSIndexContainVolumeJunctions", "BSI", "包含边界分裂点的BoundarySegment序号", GH_ParamAccess.list);
+            pManager.AddIntegerParameter("Shift", "S", "排序BoundarySegment所带来的序号偏移量", GH_ParamAccess.item);
 
             pManager.AddGenericParameter("VerticesIndexForEachBS", "VIFBS", "每个BS上点对应的对偶图中的index", GH_ParamAccess.list);
 
@@ -294,6 +295,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<BoundarySegment> sortedBS = LeftShift<BoundarySegment>(sortedBSFromW, shift);
                 #endregion
                 DA.SetDataList("SortedBoundarySegments", sortedBS);
+                DA.SetData("Shift", shift);
 
                 #region 对verticesIndexForEachBS进行shift
                 List<List<int>> shiftedVerticesIndexForEachBSLoL = LeftShift<List<int>>(verticesIndexForEachBSLoL, shift);

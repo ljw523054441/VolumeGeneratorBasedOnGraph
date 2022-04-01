@@ -66,6 +66,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
         {
             pManager.AddGenericParameter("DualGraphWithHM", "DGHM", "生成的对偶图", GH_ParamAccess.item);
             pManager.AddGenericParameter("SortedBoundarySegments", "SBS", "经过排序后的BoundarySegment", GH_ParamAccess.list);
+            pManager.AddIntegerParameter("Shift", "S", "排序BoundarySegment所带来的序号偏移量", GH_ParamAccess.item);
 
             pManager.AddGenericParameter("VerticesIndexForEachBS", "VIFBS", "每个BS上点对应的对偶图中的index", GH_ParamAccess.list);
 
@@ -115,6 +116,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
             DualGraphWithHM dualGraphWithHM = new DualGraphWithHM();
             
             List<BoundarySegment> sortedBoundarySegments = new List<BoundarySegment>();
+            int shift = 0;
 
             List<string> volumeJunctionsTexts = new List<string>();
 
@@ -143,6 +145,7 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
 
             if (DA.GetData<DualGraphWithHM>("DualGraphWithHM", ref dualGraphWithHM)
                 && DA.GetDataList("SortedBoundarySegments", sortedBoundarySegments)
+                && DA.GetData("Shift", ref shift)
                 //&& DA.GetDataList("BSIndexContainVolumeJunctions", bSIndexContainVolumeJunctions)
                 && DA.GetDataList("VerticesIndexForEachBS", allLayerVerticesIndexForEachBS)
                 && DA.GetDataList("IndexOnEachBS", allLayerVolumeJunctionsIndexOnEachBS)
@@ -648,8 +651,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     point0 += verticalVector * 3 * sortedBoundarySegments[i].Lines[0].Length / 4;
                     outerGraphNodePoints.Add(point0);
                 }
-                outerGraphNodePoints.Insert(0, outerGraphNodePoints.Last());
-                outerGraphNodePoints.RemoveAt(outerGraphNodePoints.Count - 1);
+
+                while (shift != 0)
+                {
+                    outerGraphNodePoints.Insert(0, outerGraphNodePoints.Last());
+                    outerGraphNodePoints.RemoveAt(outerGraphNodePoints.Count - 1);
+
+                    shift--;
+                }
                 #endregion
 
                 #region 把LOL形式的allLayerPairCorrespondingFaceIndexLoL转换为list形式
