@@ -1,0 +1,6 @@
+name,area,connectivity,adjacency,spanNumX,spanNumY,floorNumZ,spanSizeX,spanSizeY,floorHeightZ
+商务办公组团,10,1-2,2,3,2,3,5,5,3
+研发办公组团,20,0-2,3,3,2,4,5,5,3
+商业配套组团,40,0-1-3-4,,3,2,4,5,5,3
+人才公寓组团,40,2,0-1,3,2,5,5,5,3
+缺口完型部分,40,2,0-3,3,2,5,5,5,3
