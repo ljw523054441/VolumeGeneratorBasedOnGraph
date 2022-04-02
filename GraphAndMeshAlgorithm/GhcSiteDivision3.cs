@@ -670,7 +670,19 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 #endregion
                 if (allLayerVerticesIndexForEachBS.Last().DataCount == 0)
                 {
-                    allLayerPairCorrespondingFaceIndex_OnD.Add(P.Faces.Count - 1);
+                    List<int> alreadyAdded = new List<int>();
+                    alreadyAdded.AddRange(allLayerPairCorrespondingFaceIndex_OnD);
+
+                    List<int> allFaceIndex = new List<int>();
+                    for (int i = 0; i < P.Faces.Count; i++)
+                    {
+                        allFaceIndex.Add(i);
+                    }
+
+                    List<int> difference = allFaceIndex.Except(alreadyAdded).ToList();
+
+                    // 
+                    allLayerPairCorrespondingFaceIndex_OnD.Add(difference[0]);
                 }
 
                 #region newNodePoints
