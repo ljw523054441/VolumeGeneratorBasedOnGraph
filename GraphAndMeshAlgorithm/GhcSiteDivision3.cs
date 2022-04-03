@@ -625,6 +625,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 int innerNodeCount = dualGraphWithHM.InnerNodeCount;
                 int outerNodeCount = dualGraphWithHM.OuterNodeCount;
 
+                List<List<int>> hiddenGraphTables = dualGraphWithHM.HiddenGraphTables;
+
                 #region 更新原来图的相关信息
                 #region 添加对偶图所有面的中心点作为innerGraphNodePoints的坐标位置
                 Polyline[] polylines = P.ToPolylines();
@@ -733,6 +735,14 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<int> DFace_PVertice = allLayerPairCorrespondingFaceIndex_OnD;
                 newDualGraphWithHM.DFIndex_PVIndex = new List<int>();
                 newDualGraphWithHM.DFIndex_PVIndex.AddRange(DFace_PVertice);
+
+                // 添加HiddenGraphTables
+                newDualGraphWithHM.HiddenGraphTables = new List<List<int>>();
+                for (int i = 0; i < hiddenGraphTables.Count; i++)
+                {
+                    newDualGraphWithHM.HiddenGraphTables.Add(new List<int>());
+                    newDualGraphWithHM.HiddenGraphTables[i].AddRange(hiddenGraphTables[i]);
+                }
 
                 //GraphWithHM newGraphWithHM = new GraphWithHM(planktonMeshForGraph, newGraph.GraphNodes, newGraph.GraphTables);
                 DA.SetData("DualGraphWithHM", newDualGraphWithHM);

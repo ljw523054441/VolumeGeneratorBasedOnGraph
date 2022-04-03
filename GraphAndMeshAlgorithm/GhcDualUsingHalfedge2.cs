@@ -85,6 +85,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                 List<List<int>> pGraphTables = graphWithHM.GraphTables;
                 PlanktonMesh P = graphWithHM.PlanktonMesh;
 
+                // 从P中获取HiddenGraphTables
+                List<List<int>> hiddenGraphTables = new List<List<int>>();
+                for (int i = 0; i < P.Vertices.Count; i++)
+                {
+                    hiddenGraphTables.Add(new List<int>());
+                    hiddenGraphTables[i].AddRange(P.Vertices.GetVertexNeighbours(i));
+                }
 
                 #region 获得对偶图
                 // 利用半边数据结构求出对偶
@@ -132,6 +139,13 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     }
                 }
                 //dualGraphWithHM.FaceCorrespondingGraphNodeIndex = faceCorrespondingGraphNodeIndex;
+
+                dualGraphWithHM.HiddenGraphTables = new List<List<int>>();
+                for (int i = 0; i < hiddenGraphTables.Count; i++)
+                {
+                    dualGraphWithHM.HiddenGraphTables.Add(new List<int>());
+                    dualGraphWithHM.HiddenGraphTables[i].AddRange(hiddenGraphTables[i]);
+                }
 
                 DA.SetData("DualGraphWithHM", dualGraphWithHM);
 

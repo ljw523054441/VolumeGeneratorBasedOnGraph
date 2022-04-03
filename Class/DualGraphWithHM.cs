@@ -46,6 +46,8 @@ namespace VolumeGeneratorBasedOnGraph.Class
 
         public List<List<BoundarySegment>> OffsetedBoundarySegments { get; set; }
 
+        public List<List<int>> HiddenGraphTables { get; set; }
+
         /// <summary>
         /// 构造空的DualGraphWithHM对象
         /// </summary>
@@ -203,6 +205,17 @@ namespace VolumeGeneratorBasedOnGraph.Class
                 {
                     this.DFaceIndexsAroundOuterNodes.Add(new List<int>());
                     this.DFaceIndexsAroundOuterNodes[i].AddRange(source.DFaceIndexsAroundOuterNodes[i]);
+                }
+            }
+
+            // 深拷贝HiddenGraphTables
+            if (source.HiddenGraphTables != null)
+            {
+                this.HiddenGraphTables = new List<List<int>>();
+                for (int i = 0; i < source.HiddenGraphTables.Count; i++)
+                {
+                    this.HiddenGraphTables.Add(new List<int>());
+                    this.HiddenGraphTables[i].AddRange(source.HiddenGraphTables[i]);
                 }
             }
         }
