@@ -132,13 +132,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("DualGraphWithHM with BS","", "", GH_ParamAccess.item);
-            
+            //pManager.AddGenericParameter("DualGraphWithHM with BS","", "", GH_ParamAccess.item);
+            pManager.AddGeometryParameter("Divide Site", "", "", GH_ParamAccess.list);
             pManager.AddGeometryParameter("SetBack Polyline", "", "", GH_ParamAccess.list);
 
             pManager.AddBrepParameter("Building", "", "", GH_ParamAccess.tree);
-            pManager.AddCurveParameter("Contours", "", "", GH_ParamAccess.tree);
-            pManager.AddCurveParameter("Holes", "", "", GH_ParamAccess.tree);
+            pManager.AddBrepParameter("FirstFloor", "", "", GH_ParamAccess.tree);
+            //pManager.AddCurveParameter("Contours", "", "", GH_ParamAccess.tree);
+            //pManager.AddCurveParameter("Holes", "", "", GH_ParamAccess.tree);
 
             pManager.AddCurveParameter("HCurves", "", "", GH_ParamAccess.tree);
             pManager.AddCurveParameter("VCurves", "", "", GH_ParamAccess.tree);
@@ -277,6 +278,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 #endregion
 
                 List<Polyline> facePolylines = new List<Polyline>();
+                List<Polyline> closedBoundarys = new List<Polyline>();
                 for (int i = 0; i < dual.Faces.Count; i++)
                 {
                     int[] faceVerticesIndex = dual.Faces.GetFaceVertices(i);
@@ -287,6 +289,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                     Polyline pl = new Polyline(faceVertices);
                     facePolylines.Add(pl);
+
+                    faceVertices.Add(faceVertices[0]);
+                    Polyline pl2 = new Polyline(faceVertices);
+                    closedBoundarys.Add(pl2);
                 }
 
                 #region 将HIndex分类
@@ -529,6 +535,8 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                 #endregion
                 #endregion
 
+                DA.SetDataList("Divide Site", closedBoundarys);
+
                 #region 退线
                 List<Polyline> innerResultPolylines;
                 List<List<BoundarySegment>> newAllFaceBS = OffsetBS(allFaceBS,
@@ -546,7 +554,7 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                         dualGraphWithHM.OffsetedBoundarySegments[i].Add(new BoundarySegment(newAllFaceBS[i][j]));
                     }
                 }
-                DA.SetData("DualGraphWithHM with BS", dualGraphWithHM);
+                //DA.SetData("DualGraphWithHM with BS", dualGraphWithHM);
 
 
                 // 找到整个场地的中心点
@@ -828,12 +836,70 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                         List<double> splitedAreas;
 
+                        // 添加共线剔除模块，来减少sortedBoundaryPolyline中点的数量
+                        List<Point3d> cleanedPoints = new List<Point3d>();
+                        cleanedPoints.Add(sortedBoundaryPolyline[0]);
+                        int iter = 0;
+                        do
+                        {
+                            Point3d point0 = sortedBoundaryPolyline[iter];
+                            Point3d point1 = sortedBoundaryPolyline[(iter + 1) % sortedBoundaryPolyline.Count];
+                            Point3d point2 = sortedBoundaryPolyline[(iter + 2) % sortedBoundaryPolyline.Count];
+
+                            if (IsThreePointsCollinear(point0, point1, point2))
+                            {
+                                cleanedPoints.Add(point2);
+                                //cleanedPoints.Add(point2);
+                                iter += 2;
+                            }
+                            else
+                            {
+                                cleanedPoints.Add(point1);
+                                //cleanedPoints.Add(point2);
+                                iter += 1;
+                            }
+
+                        } while (iter != sortedBoundaryPolyline.Count);
+
+                        //cleanedPoints.Add(cleanedPoints[0]);
+                        Polyline cleanedSortedBoundaryPolyline = new Polyline(cleanedPoints);
+
+
+                        // 添加共线剔除模块，来减少facePolylines[i]中点的数量
+                        List<Point3d> cleanedFacePolylinePoints = new List<Point3d>();
+                        cleanedFacePolylinePoints.Add(facePolylines[i][0]);
+                        iter = 0;
+                        do
+                        {
+                            Point3d point0 = facePolylines[i][iter];
+                            Point3d point1 = facePolylines[i][(iter + 1) % facePolylines[i].Count];
+                            Point3d point2 = facePolylines[i][(iter + 2) % facePolylines[i].Count];
+
+                            if (IsThreePointsCollinear(point0, point1, point2))
+                            {
+                                cleanedFacePolylinePoints.Add(point2);
+                                //cleanedPoints.Add(point2);
+                                iter += 2;
+                            }
+                            else
+                            {
+                                cleanedFacePolylinePoints.Add(point1);
+                                //cleanedPoints.Add(point2);
+                                iter += 1;
+                            }
+
+                        } while (iter != facePolylines[i].Count);
+
+                        Polyline cleanedFacePolylines = new Polyline(cleanedFacePolylinePoints);
+
+
                         List<List<Line>> newLineforEachEdgeLoL;
                         List<List<bool>> isGenerateablesLoL;
                         List<bool> isSmallerList;
                         Point3d turningPt = Point3d.Unset;
-                        List<Polyline> splitedPolylines = SplitBlockIntoQuadBlock(sortedBoundaryPolyline, facePolylines[i], out splitedAreas, out newLineforEachEdgeLoL, out isGenerateablesLoL, out isSmallerList, out turningPt);
+                        List<Polyline> splitedPolylines = SplitBlockIntoQuadBlock(cleanedSortedBoundaryPolyline, cleanedFacePolylines, out splitedAreas, out newLineforEachEdgeLoL, out isGenerateablesLoL, out isSmallerList, out turningPt);
 
+                        
 
 
                         for (int j = 0; j < splitedPolylines.Count; j++)
@@ -2117,10 +2183,21 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
                     }
                 }
 
+
+                DataTree<Brep> allBlockFirstFloorBrepDT = new DataTree<Brep>();
+
                 // 根据多层的层数，生成多层的brep
                 DataTree<Brep> allBlockBrepDT = new DataTree<Brep>();
                 foreach (var path in allBlockCellDT.Paths)
                 {
+                    //GH_Path pathForFirstFloorBrepDT = new GH_Path(path);
+                    allBlockFirstFloorBrepDT.EnsurePath(path);
+                    for (int i = 0; i < allBlockCellDT.Branch(path).Count; i++)
+                    {
+                        allBlockFirstFloorBrepDT.Branch(path).AddRange(allBlockCellDT.Branch(path)[i].CellBreps_Multistorey);
+                    }
+
+
                     for (int i = 0; i < layers_Multistorey_ListDT.Branch(new GH_Path(path[0], path[1]))[0]; i++)
                     {
                         GH_Path pathForallBlockBrepDT = new GH_Path(path[0], path[1], path[2], i);
@@ -2197,6 +2274,10 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                         Vector3d dirForZero = new Vector3d(0, 0, floorHeight * layers_Multistorey_ListDT.Branch(path)[0]);
                         Brep brpForZero = BoundarySurfaces(allBlockCellDT.Branch(path_index_DT.Branch(path)[i].Item1)[path_index_DT.Branch(path)[i].Item2].crvForHighRise)[0];
+
+
+                        allBlockFirstFloorBrepDT.Branch(path_index_DT.Branch(path)[i].Item1).Add(brpForZero);
+
                         Brep resultBrpForZero = ExtrudeBrep(brpForZero, dirForZero);
 
                         allBlockBrepDT.Branch(pathForallBlockBrepDT).Add(resultBrpForZero);
@@ -2223,13 +2304,14 @@ namespace VolumeGeneratorBasedOnGraph.VolumeAlgorithm
 
                 #endregion
 
-                DA.SetDataTree(3, allBlockCellBoundaryDT);
-                DA.SetDataTree(4, allBlockHoleDT);
+                
+                //DA.SetDataTree(4, allBlockHoleDT);
 
                 DA.SetDataTree(2, allBlockBrepDT);
-
-                DA.SetDataTree(5, allBlockHCurvesDT);
-                DA.SetDataTree(6, allBlockVCurvesDT);
+                DA.SetDataTree(3, allBlockFirstFloorBrepDT);
+                //DA.SetDataTree(3, allBlockCellBoundaryDT);
+                DA.SetDataTree(4, allBlockHCurvesDT);
+                DA.SetDataTree(5, allBlockVCurvesDT);
 
                 #region 可视化
                 InnerResultPolyline.Clear();

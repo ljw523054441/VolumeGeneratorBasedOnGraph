@@ -598,7 +598,6 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                         break;
                     }
 
-
                     P = GenerateInnerPart(allLayerVerticesIndexForEachBS[currentLayer],
                                           allLayerVolumeJunctionsIndexOnEachBS[currentLayer],
                                           allLayerBoundaryTLoL[currentLayer],
@@ -1826,7 +1825,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     if (nVectorForBS1.X == 0)
                     {
                         // 法向量为y轴
-                        double y = Math.Abs(endPoint1.Y - point1.Y);
+                        //double y = Math.Abs(endPoint1.Y - point1.Y);
+                        double y = Math.Abs(point2.Y - endPoint1.Y);
 
                         double t2 = innerTOnEachBS.Branch(branchIndex)[itemIndex];
                         double addY;
@@ -1845,7 +1845,8 @@ namespace VolumeGeneratorBasedOnGraph.GraphAndMeshAlgorithm
                     else
                     {
                         // 法向量为x轴
-                        double x = Math.Abs(endPoint1.X - point1.X);
+                        //double x = Math.Abs(endPoint1.X - point1.X);
+                        double x = Math.Abs(point2.X - endPoint1.X);
 
                         double t2 = innerTOnEachBS.Branch(branchIndex)[itemIndex];
                         double addX;
